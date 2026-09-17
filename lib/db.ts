@@ -34,6 +34,7 @@ export interface UserRecord {
   email: string;
   title?: string;
   company?: string;
+  password?: string;
   provider: "email" | "google" | "github" | "microsoft";
   createdAt: string;
 }
@@ -249,9 +250,42 @@ export async function getContacts(): Promise<ContactRecord[]> {
   return local.contacts;
 }
 
+export async function findUserByEmail(email: string): Promise<UserRecord | null> {
+  const cleanEmail = email.toLowerCase().trim();
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        const u = await db.collection<UserRecord>("users").findOne({ email: cleanEmail });
+        if (u) {
+          return {
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            title: u.title,
+            company: u.company,
+            password: u.password,
+            provider: u.provider,
+            createdAt: u.createdAt,
+          };
+        }
+        return null;
+      }
+    } catch (err) {
+      console.warn("MongoDB findUserByEmail failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  const found = local.users.find((u) => u.email.toLowerCase() === cleanEmail);
+  return found || null;
+}
+
 export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Promise<UserRecord> {
+  const cleanEmail = user.email.toLowerCase().trim();
   const record: UserRecord = {
     ...user,
+    email: cleanEmail,
     id: "user_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
     createdAt: new Date().toISOString(),
   };
@@ -262,9 +296,27 @@ export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Prom
       if (db) {
         const existing = await db
           .collection<UserRecord>("users")
-          .findOne({ email: user.email.toLowerCase() });
-        if (existing) return existing;
-        await db.collection<UserRecord>("users").insertOne(record);
+          .findOne({ email: cleanEmail });
+        if (existing) {
+          if (user.password && !existing.password) {
+            await db.collection<UserRecord>("users").updateOne(
+              { email: cleanEmail },
+              { $set: { password: user.password } }
+            );
+            existing.password = user.password;
+          }
+          return {
+            id: existing.id,
+            name: existing.name,
+            email: existing.email,
+            title: existing.title,
+            company: existing.company,
+            password: existing.password,
+            provider: existing.provider,
+            createdAt: existing.createdAt,
+          };
+        }
+        await db.collection<UserRecord>("users").insertOne({ ...record });
         return record;
       }
     } catch (err) {
@@ -273,8 +325,14 @@ export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Prom
   }
 
   const local = readLocalDb();
-  const existing = local.users.find((u) => u.email.toLowerCase() === user.email.toLowerCase());
-  if (existing) return existing;
+  const existingIndex = local.users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+  if (existingIndex !== -1) {
+    if (user.password && !local.users[existingIndex].password) {
+      local.users[existingIndex].password = user.password;
+      writeLocalDb(local);
+    }
+    return local.users[existingIndex];
+  }
 
   local.users.unshift(record);
   writeLocalDb(local);
@@ -297,6 +355,7 @@ export async function getUsers(): Promise<UserRecord[]> {
           email: u.email,
           title: u.title,
           company: u.company,
+          password: u.password,
           provider: u.provider,
           createdAt: u.createdAt,
         }));
