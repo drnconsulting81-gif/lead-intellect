@@ -7,7 +7,7 @@ export async function POST(req: Request) {
     const { name, email, title, company, password, provider } = body;
 
     if (provider === "google" || provider === "github" || provider === "microsoft") {
-      const user = saveUser({
+      const user = await saveUser({
         name: name || "Verified User",
         email: email || `${provider}.user@leadintellect.ai`,
         title: title || "",
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const user = saveUser({
+    const user = await saveUser({
       name,
       email,
       title: title || "",

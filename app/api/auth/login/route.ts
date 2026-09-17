@@ -8,7 +8,7 @@ export async function POST(req: Request) {
 
     if (provider === "google" || provider === "github" || provider === "microsoft") {
       const mockName = email ? email.split("@")[0] : "Verified User";
-      const user = saveUser({
+      const user = await saveUser({
         name: mockName,
         email: email || `${provider}.user@leadintellect.ai`,
         provider,
@@ -28,12 +28,12 @@ export async function POST(req: Request) {
     }
 
     // Check existing or authenticate mock user
-    const users = getUsers();
+    const users = await getUsers();
     let user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
 
     if (!user) {
       // For demonstration convenience, auto-register or authenticate
-      user = saveUser({
+      user = await saveUser({
         name: email.split("@")[0],
         email,
         provider: "email",
