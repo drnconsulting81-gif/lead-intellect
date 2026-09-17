@@ -81,7 +81,10 @@ export default function LoginPage() {
       if (res.ok && data.user) {
         localStorage.setItem("leadintellect_user", JSON.stringify(data.user));
         setCurrentUser(data.user);
-        setSuccessMsg(`Welcome! Authenticated via ${provider.toUpperCase()}.`);
+        setSuccessMsg(`Welcome! Authenticated via ${provider.toUpperCase()}. Redirecting...`);
+        setTimeout(() => {
+          window.location.href = "/admin";
+        }, 900);
       } else {
         setErrorMsg(data.error || "Social authentication failed.");
       }
@@ -115,7 +118,10 @@ export default function LoginPage() {
       if (res.ok && data.user) {
         localStorage.setItem("leadintellect_user", JSON.stringify(data.user));
         setCurrentUser(data.user);
-        setSuccessMsg(data.message || (tab === "login" ? "Login successful!" : "Account created successfully!"));
+        setSuccessMsg("✓ Authentication successful! Redirecting to your dashboard...");
+        setTimeout(() => {
+          window.location.href = "/admin";
+        }, 900);
       } else {
         setErrorMsg(data.error || "Authentication failed. Check your credentials.");
       }
@@ -371,9 +377,18 @@ export default function LoginPage() {
                 )}
 
                 {successMsg && (
-                  <div className="mb-4 p-3 rounded-xl bg-teal/10 border border-teal/30 text-xs font-semibold text-teal-dark flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    {successMsg}
+                  <div className="mb-4 p-3 rounded-xl bg-teal/15 border border-teal/30 text-xs font-semibold text-teal-dark flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-teal-dark" />
+                      <span>{successMsg}</span>
+                    </div>
+                    <Link
+                      href="/admin"
+                      className="inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-navy text-teal hover:bg-teal hover:text-navy rounded-lg font-bold text-xs transition-colors shadow-xs"
+                    >
+                      <span>Open Admin Dashboard Now</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
                   </div>
                 )}
 
