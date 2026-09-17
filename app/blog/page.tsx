@@ -2,15 +2,29 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BookOpen, Clock, User, ArrowRight, Sparkles, Tag } from "lucide-react";
+import { BookOpen, Clock, User, ArrowRight, Sparkles, Tag, TrendingUp, ShieldCheck, Database, Calendar } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-const categories = ["All", "AI Prospecting", "ICP Scoring", "Data Compliance", "Sales Strategy"];
+const categories = ["All", "Industry Analysis", "AI Prospecting", "ICP Scoring", "Data Compliance", "Sales Strategy"];
 
 const articles = [
   {
+    id: "featured",
+    slug: "/blog/ai-b2b-lead-intelligence-industry-playbook",
+    title: "The Modern B2B Prospecting Dilemma: Why 73% of Outbound Fails in SaaS, IT & FinTech—And How AI Lead Intelligence Restores 3.8x ROI",
+    category: "Industry Analysis",
+    date: "September 17, 2026",
+    readTime: "8 min read",
+    author: "Devon Vance",
+    role: "Head of GTM Strategy",
+    summary:
+      "Static lead sheets are dead. Deep industry analysis examining cold outreach decay across SaaS, IT Managed Services, and FinTech—and how LeadIntellect's dual AI + zero-decay verified database framework delivers 3.8x higher qualified pipeline ROI.",
+    isFeatured: true,
+  },
+  {
     id: "1",
+    slug: "/blog/ai-b2b-lead-intelligence-industry-playbook",
     title: "The Death of Cold List Dumping: Why Context-First Prospecting Converts 3.4x Higher",
     category: "AI Prospecting",
     date: "September 10, 2026",
@@ -22,6 +36,7 @@ const articles = [
   },
   {
     id: "2",
+    slug: "/blog/ai-b2b-lead-intelligence-industry-playbook",
     title: "How Algorithmic ICP Scoring (0–100) Eliminates Pipeline Bloat for SDRs",
     category: "ICP Scoring",
     date: "September 4, 2026",
@@ -33,6 +48,7 @@ const articles = [
   },
   {
     id: "3",
+    slug: "/blog/ai-b2b-lead-intelligence-industry-playbook",
     title: "B2B Sales Compliance in 2026: The Serious Risks of Unauthorized LinkedIn Scraping",
     category: "Data Compliance",
     date: "August 28, 2026",
@@ -44,6 +60,7 @@ const articles = [
   },
   {
     id: "4",
+    slug: "/blog/ai-b2b-lead-intelligence-industry-playbook",
     title: "Human-in-the-Loop AI: How Sales Teams Retain Authenticity While Scaling Outreach",
     category: "Sales Strategy",
     date: "August 19, 2026",
@@ -55,6 +72,7 @@ const articles = [
   },
   {
     id: "5",
+    slug: "/blog/ai-b2b-lead-intelligence-industry-playbook",
     title: "Enrichment Beyond Email: Why Intent Signals and Buying Committee Mapping Matter",
     category: "AI Prospecting",
     date: "August 12, 2026",
@@ -74,6 +92,8 @@ export default function BlogPage() {
       ? articles
       : articles.filter((a) => a.category === activeCategory);
 
+  const featured = articles[0];
+
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       <Navbar />
@@ -92,6 +112,57 @@ export default function BlogPage() {
             <p className="mt-3 text-sm text-text-muted leading-relaxed">
               Actionable guides, data compliance analysis, and ICP scoring playbooks written by revenue leaders and AI practitioners.
             </p>
+          </div>
+
+          {/* Featured Hero Article Banner */}
+          <div className="max-w-6xl mx-auto mb-12">
+            <div className="rounded-3xl border border-teal/30 bg-gradient-to-br from-navy via-[#0c1e3d] to-navy p-8 sm:p-10 text-white shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-teal/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative z-10 max-w-3xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-[11px] font-extrabold uppercase px-3 py-1 rounded-full bg-teal text-navy tracking-wider">
+                    Featured Industry Guide
+                  </span>
+                  <span className="text-xs text-white/70 flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" /> 8 min read
+                  </span>
+                  <span className="text-xs text-white/70 flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5" /> September 17, 2026
+                  </span>
+                </div>
+
+                <Link href={featured.slug} className="block group-hover:text-teal transition-colors">
+                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight tracking-tight">
+                    {featured.title}
+                  </h2>
+                </Link>
+
+                <p className="mt-4 text-xs sm:text-sm text-white/80 leading-relaxed max-w-2xl font-normal">
+                  {featured.summary}
+                </p>
+
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-white/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-teal text-navy flex items-center justify-center text-xs font-extrabold">
+                      DV
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white leading-tight">{featured.author}</p>
+                      <p className="text-[11px] text-white/60">{featured.role}</p>
+                    </div>
+                  </div>
+
+                  <Link
+                    href={featured.slug}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal text-navy font-bold text-xs hover:bg-teal-dark hover:text-white transition-all shadow-md group-hover:translate-x-1"
+                  >
+                    <span>Read Full Industry Playbook</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Category Filter Pills */}
@@ -128,9 +199,11 @@ export default function BlogPage() {
                     </span>
                   </div>
 
-                  <h2 className="text-base font-bold text-navy leading-snug group-hover:text-teal-dark transition-colors">
-                    {art.title}
-                  </h2>
+                  <Link href={art.slug} className="block">
+                    <h2 className="text-base font-bold text-navy leading-snug group-hover:text-teal-dark transition-colors">
+                      {art.title}
+                    </h2>
+                  </Link>
                   <p className="mt-3 text-xs text-text-muted leading-relaxed line-clamp-3">
                     {art.summary}
                   </p>
@@ -148,7 +221,7 @@ export default function BlogPage() {
                   </div>
 
                   <Link
-                    href="/start-trial"
+                    href={art.slug}
                     className="text-xs font-semibold text-teal-dark group-hover:translate-x-1 transition-transform flex items-center gap-1"
                   >
                     Read
@@ -160,7 +233,7 @@ export default function BlogPage() {
           </div>
 
           {/* Newsletter / CTA box */}
-          <div className="mt-16 max-w-3xl mx-auto rounded-2xl bg-navy text-white p-8 text-center border border-teal/30">
+          <div className="mt-16 max-w-3xl mx-auto rounded-2xl bg-navy text-white p-8 text-center border border-teal/30 shadow-lg">
             <h2 className="text-xl font-bold text-white">Subscribe to The Sales Intelligence Dispatch</h2>
             <p className="mt-2 text-xs text-white/70 max-w-md mx-auto">
               Join 12,000+ CROs and sales development leaders receiving our bi-weekly breakdown of B2B prospecting data.

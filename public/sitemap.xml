@@ -6,6 +6,11 @@
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://lead-intellect.com/blog/ai-b2b-lead-intelligence-industry-playbook</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://lead-intellect.com/book-demo</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
@@ -28,7 +33,7 @@
   <url>
     <loc>https://lead-intellect.com/blog</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://lead-intellect.com/tutorials</loc>
