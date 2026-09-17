@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /api/admin/
 
-Sitemap: https://leadintellect.ai/sitemap.xml
+Sitemap: https://lead-intellect.com/sitemap.xml

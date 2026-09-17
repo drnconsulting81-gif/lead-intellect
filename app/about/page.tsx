@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   Compass,
@@ -15,6 +16,15 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+
+export const metadata: Metadata = {
+  title: "About Us | Mission, Vision & B2B Intelligence",
+  description:
+    "Learn about LeadIntellect's mission to eliminate manual B2B prospecting with AI intelligence, verified decision-maker datasets, and predictive ICP scoring.",
+  alternates: {
+    canonical: "https://lead-intellect.com/about",
+  },
+};
 
 export default function AboutPage() {
   return (

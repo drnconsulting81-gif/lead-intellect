@@ -6,7 +6,6 @@ import {
   InstagramIcon,
   LinkedInIcon,
   YouTubeIcon,
-  TwitterXIcon,
 } from "./SocialIcons";
 
 const columns = [
@@ -51,33 +50,27 @@ const columns = [
 const socialLinks = [
   {
     name: "LinkedIn",
-    href: "https://www.linkedin.com",
+    href: "https://www.linkedin.com/company/leadintellect/about/?viewAsMember=true",
     icon: LinkedInIcon,
     color: "hover:text-[#0a66c2] hover:border-[#0a66c2]/40 hover:bg-[#0a66c2]/5",
   },
   {
-    name: "Twitter / X",
-    href: "https://twitter.com",
-    icon: TwitterXIcon,
-    color: "hover:text-black hover:border-black/40 hover:bg-black/5",
-  },
-  {
-    name: "YouTube",
-    href: "https://www.youtube.com",
-    icon: YouTubeIcon,
-    color: "hover:text-[#ff0000] hover:border-[#ff0000]/40 hover:bg-[#ff0000]/5",
+    name: "Facebook",
+    href: "https://www.facebook.com/profile.php?id=61588271333862",
+    icon: FacebookIcon,
+    color: "hover:text-[#1877f2] hover:border-[#1877f2]/40 hover:bg-[#1877f2]/5",
   },
   {
     name: "Instagram",
-    href: "https://www.instagram.com",
+    href: "https://www.instagram.com/leadintellect/",
     icon: InstagramIcon,
     color: "hover:text-[#e4405f] hover:border-[#e4405f]/40 hover:bg-[#e4405f]/5",
   },
   {
-    name: "Facebook",
-    href: "https://www.facebook.com",
-    icon: FacebookIcon,
-    color: "hover:text-[#1877f2] hover:border-[#1877f2]/40 hover:bg-[#1877f2]/5",
+    name: "YouTube",
+    href: "https://www.youtube.com/@Leadintellect",
+    icon: YouTubeIcon,
+    color: "hover:text-[#ff0000] hover:border-[#ff0000]/40 hover:bg-[#ff0000]/5",
   },
 ];
 
