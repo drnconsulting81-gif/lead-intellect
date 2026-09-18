@@ -36,7 +36,36 @@ export interface UserRecord {
   company?: string;
   password?: string;
   provider: "email" | "google" | "github" | "microsoft";
+  role?: "admin" | "user";
+  credits?: number;
+  emailVerified?: boolean;
   createdAt: string;
+}
+
+export interface EmailLogRecord {
+  id: string;
+  type: "welcome_confirmation" | "ceo_new_user_alert" | "order_receipt";
+  recipient: string;
+  subject: string;
+  status: "sent" | "failed" | "simulated";
+  errorMessage?: string;
+  createdAt: string;
+}
+
+export const CEO_EMAILS = [
+  "drnconsulting81@gmail.com",
+  "raghu96666@gmail.com",
+  "raghud.smartcheck@gmail.com",
+  "ceo@leadintellect.ai",
+];
+
+export function isCeoEmail(email?: string | null): boolean {
+  if (!email) return false;
+  const clean = email.toLowerCase().trim();
+  if (CEO_EMAILS.includes(clean)) return true;
+  const adminEnv = process.env.ADMIN_EMAILS || "";
+  const allowed = adminEnv.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+  return allowed.includes(clean);
 }
 
 export type PaymentStatus = "paid" | "pending" | "failed" | "refunded";
@@ -64,6 +93,7 @@ interface DatabaseSchema {
   contacts: ContactRecord[];
   users: UserRecord[];
   orders: OrderRecord[];
+  emailLogs?: EmailLogRecord[];
 }
 
 const DB_DIR = path.join(process.cwd(), "data");
@@ -258,6 +288,8 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
       if (db) {
         const u = await db.collection<UserRecord>("users").findOne({ email: cleanEmail });
         if (u) {
+          const role = isCeoEmail(u.email) ? "admin" : (u.role || "user");
+          const credits = u.credits ?? (isCeoEmail(u.email) ? 999999 : 100);
           return {
             id: u.id,
             name: u.name,
@@ -266,6 +298,9 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
             company: u.company,
             password: u.password,
             provider: u.provider,
+            role,
+            credits,
+            emailVerified: u.emailVerified ?? false,
             createdAt: u.createdAt,
           };
         }
@@ -278,18 +313,31 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
 
   const local = readLocalDb();
   const found = local.users.find((u) => u.email.toLowerCase() === cleanEmail);
-  return found || null;
+  if (found) {
+    found.role = isCeoEmail(found.email) ? "admin" : (found.role || "user");
+    found.credits = found.credits ?? (isCeoEmail(found.email) ? 999999 : 100);
+    return found;
+  }
+  return null;
 }
 
 export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Promise<UserRecord> {
   const cleanEmail = user.email.toLowerCase().trim();
+  const role = isCeoEmail(cleanEmail) ? "admin" : (user.role || "user");
+  const credits = user.credits ?? (isCeoEmail(cleanEmail) ? 999999 : 100);
+  const emailVerified = user.emailVerified ?? false;
+
   const record: UserRecord = {
     ...user,
     email: cleanEmail,
+    role,
+    credits,
+    emailVerified,
     id: "user_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
     createdAt: new Date().toISOString(),
   };
 
+  // 1. Persist to MongoDB if configured
   if (isMongoConfigured()) {
     try {
       const db = await getMongoDb();
@@ -298,45 +346,108 @@ export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Prom
           .collection<UserRecord>("users")
           .findOne({ email: cleanEmail });
         if (existing) {
-          if (user.password && !existing.password) {
-            await db.collection<UserRecord>("users").updateOne(
-              { email: cleanEmail },
-              { $set: { password: user.password } }
-            );
-            existing.password = user.password;
-          }
-          return {
-            id: existing.id,
-            name: existing.name,
-            email: existing.email,
-            title: existing.title,
-            company: existing.company,
-            password: existing.password,
-            provider: existing.provider,
-            createdAt: existing.createdAt,
-          };
+          const updateFields: Partial<UserRecord> = { role };
+          if (user.password && !existing.password) updateFields.password = user.password;
+          if (user.name) updateFields.name = user.name;
+          if (user.company) updateFields.company = user.company;
+          if (user.title) updateFields.title = user.title;
+
+          await db.collection<UserRecord>("users").updateOne(
+            { email: cleanEmail },
+            { $set: updateFields }
+          );
+          existing.role = role;
+          existing.credits = existing.credits ?? credits;
+        } else {
+          await db.collection<UserRecord>("users").insertOne({ ...record });
         }
-        await db.collection<UserRecord>("users").insertOne({ ...record });
-        return record;
       }
     } catch (err) {
       console.warn("MongoDB user write failed, falling back to local storage:", err);
     }
   }
 
+  // 2. Synchronous local JSON mirror (dual-storage protection)
   const local = readLocalDb();
   const existingIndex = local.users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
   if (existingIndex !== -1) {
+    local.users[existingIndex].role = role;
     if (user.password && !local.users[existingIndex].password) {
       local.users[existingIndex].password = user.password;
-      writeLocalDb(local);
     }
-    return local.users[existingIndex];
+    if (user.name) local.users[existingIndex].name = user.name;
+    if (user.company) local.users[existingIndex].company = user.company;
+    if (user.title) local.users[existingIndex].title = user.title;
+    writeLocalDb(local);
+  } else {
+    local.users.unshift(record);
+    writeLocalDb(local);
   }
 
-  local.users.unshift(record);
-  writeLocalDb(local);
+  // 3. Register user in pipeline leads so CEO sees them in both "Sign-ups" and "Pipeline Leads / Trials"
+  try {
+    await saveLead({
+      type: "trial",
+      fullName: record.name,
+      title: record.title || "Platform User",
+      companyName: record.company || "Self",
+      email: record.email,
+      phone: "",
+      comments: `New Platform User Sign-up (${role.toUpperCase()}). Granted 100 free prospecting credits.`,
+      status: "new",
+    });
+  } catch (err) {
+    console.warn("Failed to create pipeline lead for new user:", err);
+  }
+
   return record;
+}
+
+export async function deductUserCredit(
+  email: string,
+  amount = 1
+): Promise<{ success: boolean; remainingCredits: number }> {
+  const cleanEmail = email.toLowerCase().trim();
+
+  // CEO has unlimited credits
+  if (isCeoEmail(cleanEmail)) {
+    return { success: true, remainingCredits: 999999 };
+  }
+
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        const u = await db.collection<UserRecord>("users").findOne({ email: cleanEmail });
+        if (u) {
+          const currentCredits = u.credits ?? 100;
+          if (currentCredits < amount) {
+            return { success: false, remainingCredits: currentCredits };
+          }
+          const updated = currentCredits - amount;
+          await db.collection<UserRecord>("users").updateOne(
+            { email: cleanEmail },
+            { $set: { credits: updated } }
+          );
+          return { success: true, remainingCredits: updated };
+        }
+      }
+    } catch (err) {
+      console.warn("MongoDB deductUserCredit failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  const idx = local.users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+  if (idx !== -1) {
+    const current = local.users[idx].credits ?? 100;
+    if (current < amount) return { success: false, remainingCredits: current };
+    local.users[idx].credits = current - amount;
+    writeLocalDb(local);
+    return { success: true, remainingCredits: local.users[idx].credits ?? 0 };
+  }
+
+  return { success: true, remainingCredits: 100 - amount };
 }
 
 export async function getUsers(): Promise<UserRecord[]> {
@@ -357,6 +468,9 @@ export async function getUsers(): Promise<UserRecord[]> {
           company: u.company,
           password: u.password,
           provider: u.provider,
+          role: isCeoEmail(u.email) ? "admin" : (u.role || "user"),
+          credits: u.credits ?? (isCeoEmail(u.email) ? 999999 : 100),
+          emailVerified: u.emailVerified ?? false,
           createdAt: u.createdAt,
         }));
       }
@@ -366,7 +480,70 @@ export async function getUsers(): Promise<UserRecord[]> {
   }
 
   const local = readLocalDb();
-  return local.users;
+  return local.users.map((u) => ({
+    ...u,
+    role: isCeoEmail(u.email) ? "admin" : (u.role || "user"),
+    credits: u.credits ?? (isCeoEmail(u.email) ? 999999 : 100),
+  }));
+}
+
+/* ----------------- EMAIL LOGS OPERATIONS ----------------- */
+
+export async function saveEmailLog(
+  log: Omit<EmailLogRecord, "id" | "createdAt">
+): Promise<EmailLogRecord> {
+  const record: EmailLogRecord = {
+    ...log,
+    id: "eml_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+    createdAt: new Date().toISOString(),
+  };
+
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        await db.collection<EmailLogRecord>("email_logs").insertOne(record);
+      }
+    } catch (err) {
+      console.warn("MongoDB email log write failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  if (!local.emailLogs) local.emailLogs = [];
+  local.emailLogs.unshift(record);
+  writeLocalDb(local);
+  return record;
+}
+
+export async function getEmailLogs(): Promise<EmailLogRecord[]> {
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        const logs = await db
+          .collection<EmailLogRecord>("email_logs")
+          .find({})
+          .sort({ createdAt: -1 })
+          .limit(100)
+          .toArray();
+        return logs.map((l) => ({
+          id: l.id,
+          type: l.type,
+          recipient: l.recipient,
+          subject: l.subject,
+          status: l.status,
+          errorMessage: l.errorMessage,
+          createdAt: l.createdAt,
+        }));
+      }
+    } catch (err) {
+      console.warn("MongoDB email logs read failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  return local.emailLogs || [];
 }
 
 /* ----------------- ORDERS / SUBSCRIPTIONS OPERATIONS ----------------- */

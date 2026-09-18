@@ -22,6 +22,8 @@ export async function POST(req: Request) {
           name: user.name,
           email: user.email,
           provider: user.provider,
+          role: user.role,
+          credits: user.credits,
         },
       });
     }
@@ -74,6 +76,8 @@ export async function POST(req: Request) {
         company: user.company,
         title: user.title,
         provider: user.provider,
+        role: user.role,
+        credits: user.credits,
       },
     });
   } catch (error) {

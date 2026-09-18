@@ -15,8 +15,9 @@ const columns = [
       { label: "Product Tour", href: "/#how-it-works" },
       { label: "Features", href: "/#features" },
       { label: "ICP Scoring", href: "/#features" },
-      { label: "Start Free Trial", href: "/start-trial" },
-      { label: "Book a Demo", href: "/book-demo" },
+      { label: "Plans & Pricing", href: "/pricing" },
+      { label: "Prospecting Workspace", href: "/dashboard" },
+      { label: "Start Free Trial", href: "/signup" },
     ],
   },
   {
@@ -25,8 +26,8 @@ const columns = [
       { label: "About Us", href: "/about" },
       { label: "Contact Us", href: "/contact" },
       { label: "Book a Demo", href: "/book-demo" },
-      { label: "Sign Up / Login", href: "/login" },
-      { label: "Admin Portal", href: "/admin" },
+      { label: "Sign In / Register", href: "/login" },
+      { label: "CEO Portal", href: "/admin" },
     ],
   },
   {

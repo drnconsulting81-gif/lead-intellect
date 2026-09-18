@@ -29,6 +29,8 @@ interface AuthUser {
   company?: string;
   title?: string;
   provider: string;
+  role?: "admin" | "user";
+  credits?: number;
 }
 
 export default function LoginPage() {
@@ -83,7 +85,7 @@ export default function LoginPage() {
         setCurrentUser(data.user);
         setSuccessMsg(`Welcome! Authenticated via ${provider.toUpperCase()}. Redirecting...`);
         setTimeout(() => {
-          window.location.href = "/admin";
+          window.location.href = data.user.role === "admin" ? "/admin" : "/dashboard";
         }, 900);
       } else {
         setErrorMsg(data.error || "Social authentication failed.");
@@ -118,9 +120,10 @@ export default function LoginPage() {
       if (res.ok && data.user) {
         localStorage.setItem("leadintellect_user", JSON.stringify(data.user));
         setCurrentUser(data.user);
-        setSuccessMsg("✓ Authentication successful! Redirecting to your dashboard...");
+        setSuccessMsg("✓ Authentication successful! Redirecting to your workspace...");
         setTimeout(() => {
-          window.location.href = "/admin";
+          // Regular users ALWAYS go to /dashboard; only CEO goes to /admin
+          window.location.href = data.user.role === "admin" ? "/admin" : "/dashboard";
         }, 900);
       } else {
         setErrorMsg(data.error || "Authentication failed. Check your credentials.");
@@ -190,36 +193,62 @@ export default function LoginPage() {
                 <div className="space-y-2.5">
                   <p className="text-xs font-bold text-navy uppercase tracking-wider">Quick Actions</p>
 
+                  {/* Primary: Apollo Workspace for all users */}
                   <Link
-                    href="/admin"
-                    className="w-full flex items-center justify-between p-3 rounded-xl border border-border hover:border-teal/50 hover:bg-surface transition-all text-xs font-bold text-navy group"
+                    href="/dashboard"
+                    className="w-full flex items-center justify-between p-3 rounded-xl border-2 border-teal/40 bg-teal/5 hover:bg-teal/10 transition-all text-xs font-bold text-navy group shadow-2xs"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-navy text-teal flex items-center justify-center shrink-0">
-                        <Sliders className="w-4 h-4" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-navy font-bold">Admin Operations &amp; Revenue Portal</p>
-                        <p className="text-[10px] text-text-muted font-normal">View leads, users, database sales &amp; stats</p>
-                      </div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-text-muted group-hover:text-teal-dark transition-colors" />
-                  </Link>
-
-                  <Link
-                    href="/#features"
-                    className="w-full flex items-center justify-between p-3 rounded-xl border border-border hover:border-teal/50 hover:bg-surface transition-all text-xs font-bold text-navy group"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-teal/15 text-teal-dark flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-teal text-navy flex items-center justify-center shrink-0 font-extrabold">
                         <Sparkles className="w-4 h-4" />
                       </div>
                       <div className="text-left">
-                        <p className="text-navy font-bold">AI Prospecting &amp; ICP Scoring Engine</p>
-                        <p className="text-[10px] text-text-muted font-normal">Explore live buyer intelligence models</p>
+                        <p className="text-navy font-bold flex items-center gap-1.5">
+                          <span>Prospecting Workspace &amp; ICP Directory</span>
+                          <span className="text-[10px] bg-teal text-navy px-1.5 py-0.2 rounded-full uppercase">Active</span>
+                        </p>
+                        <p className="text-[10px] text-teal-dark font-normal">Filter decision-makers, verify emails &amp; build lists</p>
                       </div>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-text-muted group-hover:text-teal-dark transition-colors" />
+                    <ArrowRight className="w-4 h-4 text-teal-dark group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
+
+                  {/* Only CEO sees Admin Operations Portal */}
+                  {currentUser.role === "admin" && (
+                    <Link
+                      href="/admin"
+                      className="w-full flex items-center justify-between p-3 rounded-xl border border-border hover:border-teal/50 hover:bg-surface transition-all text-xs font-bold text-navy group"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-navy text-teal flex items-center justify-center shrink-0">
+                          <Sliders className="w-4 h-4" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-navy font-bold flex items-center gap-1.5">
+                            <span>CEO Operations &amp; Revenue Portal</span>
+                            <span className="text-[9px] bg-navy text-teal px-1.5 py-0.2 rounded font-extrabold">CEO ONLY</span>
+                          </p>
+                          <p className="text-[10px] text-text-muted font-normal">View sign-ups, revenue, database orders &amp; diagnostics</p>
+                        </div>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-text-muted group-hover:text-teal-dark transition-colors" />
+                    </Link>
+                  )}
+
+                  <Link
+                    href="/pricing"
+                    className="w-full flex items-center justify-between p-3 rounded-xl border border-border hover:border-amber-400/50 hover:bg-amber-50/40 transition-all text-xs font-bold text-navy group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center shrink-0">
+                        <Zap className="w-4 h-4 text-amber-600 fill-amber-500" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-navy font-bold">Manage Plan &amp; Credits</p>
+                        <p className="text-[10px] text-text-muted font-normal">Explore 4-tier plans, add-ons &amp; billing</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-text-muted group-hover:text-amber-700 transition-colors" />
                   </Link>
 
                   <Link

@@ -55,6 +55,12 @@ export default function Navbar() {
           >
             Features
           </Link>
+          <Link
+            href="/pricing"
+            className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors"
+          >
+            Pricing
+          </Link>
 
           {/* Resources Dropdown requested by user */}
           <div className="relative" ref={dropdownRef}>
@@ -191,6 +197,13 @@ export default function Navbar() {
               className="py-2.5 text-sm font-medium text-navy border-b border-border/60"
             >
               Features
+            </Link>
+            <Link
+              href="/pricing"
+              onClick={() => setOpen(false)}
+              className="py-2.5 text-sm font-medium text-navy border-b border-border/60"
+            >
+              Pricing
             </Link>
 
             {/* Mobile Resources sub-accordion */}
