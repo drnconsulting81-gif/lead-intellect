@@ -39,28 +39,30 @@ export default function Navbar() {
       }`}
     >
       <nav className="container-page flex items-center justify-between h-18">
-        <Logo size="md" />
+        <div className="flex items-center gap-10 xl:gap-14">
+          <Logo size="md" className="shrink-0" />
 
-        {/* Desktop Links */}
-        <div className="hidden lg:flex items-center gap-8">
-          <Link
-            href="/#how-it-works"
-            className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors"
-          >
-            Product
-          </Link>
-          <Link
-            href="/#features"
-            className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors"
-          >
-            Features
-          </Link>
-          <Link
-            href="/pricing"
-            className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors"
-          >
-            Pricing
-          </Link>
+          {/* Desktop Links with generous spacing from Logo */}
+          <div className="hidden lg:flex items-center gap-7">
+            <Link
+              href="/#how-it-works"
+              className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors"
+            >
+              Product
+            </Link>
+            <Link
+              href="/crm"
+              className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors flex items-center gap-1.5"
+            >
+              <span>CRM Pipeline</span>
+              <span className="text-[10px] font-black uppercase tracking-wider bg-teal/15 text-teal-dark px-1.5 py-0.5 rounded">New</span>
+            </Link>
+            <Link
+              href="/pricing"
+              className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors"
+            >
+              Pricing
+            </Link>
 
           {/* Resources Dropdown requested by user */}
           <div className="relative" ref={dropdownRef}>
@@ -146,8 +148,9 @@ export default function Navbar() {
             Contact
           </Link>
         </div>
+      </div>
 
-        {/* Action Buttons */}
+      {/* Action Buttons */}
         <div className="hidden lg:flex items-center gap-4">
           <Link
             href="/login"
@@ -192,11 +195,12 @@ export default function Navbar() {
               Product
             </Link>
             <Link
-              href="/#features"
+              href="/crm"
               onClick={() => setOpen(false)}
-              className="py-2.5 text-sm font-medium text-navy border-b border-border/60"
+              className="py-2.5 text-sm font-medium text-navy border-b border-border/60 flex items-center justify-between"
             >
-              Features
+              <span>CRM Pipeline</span>
+              <span className="text-[10px] font-black uppercase tracking-wider bg-teal/15 text-teal-dark px-1.5 py-0.5 rounded">New</span>
             </Link>
             <Link
               href="/pricing"

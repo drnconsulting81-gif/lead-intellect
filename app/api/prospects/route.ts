@@ -149,13 +149,17 @@ export async function GET(req: Request) {
     const totalDirectPhones = filtered.filter((p) => p.phone && p.phone.trim().length > 0).length;
     const avgScore = total > 0 ? Math.round(filtered.reduce((sum, p) => sum + p.icpScore, 0) / total) : 0;
 
-    // Industries list from full dataset
-    const industrySet = new Set<string>();
+    // Industries list from full dataset ranked by frequency
+    const industryCounts: Record<string, number> = {};
     all.forEach((p) => {
       if (p.industry && p.industry.length > 2) {
-        industrySet.add(p.industry.toLowerCase());
+        const ind = p.industry.trim();
+        industryCounts[ind] = (industryCounts[ind] || 0) + 1;
       }
     });
+    const topIndustries = Object.keys(industryCounts)
+      .sort((a, b) => industryCounts[b] - industryCounts[a])
+      .slice(0, 30);
 
     return NextResponse.json({
       success: true,
@@ -174,7 +178,7 @@ export async function GET(req: Request) {
         avgIcpScore: avgScore,
       },
       facets: {
-        industries: Array.from(industrySet).slice(0, 15),
+        industries: topIndustries,
         seniorities: ["C-Suite", "VP", "Director", "Manager", "Professional / IC"],
       },
     });

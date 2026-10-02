@@ -124,6 +124,42 @@ export default function ApolloDashboardPage() {
   // Saved user profile dropdown
   const [profileOpen, setProfileOpen] = useState(false);
 
+  // CRM integration state
+  const [crmAddedIds, setCrmAddedIds] = useState<string[]>([]);
+  const [crmPushLoading, setCrmPushLoading] = useState<string | null>(null);
+
+  const handlePushToCrm = async (p: Prospect) => {
+    setCrmPushLoading(p.id);
+    try {
+      const activeEmail = revealedData[p.id]?.email || p.email;
+      const activePhone = revealedData[p.id]?.phone || p.phone;
+      const res = await fetch("/api/crm/deals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prospectId: p.id,
+          contactName: p.name,
+          companyName: p.company,
+          title: p.title,
+          email: activeEmail,
+          phone: activePhone,
+          dealValue: p.icpScore >= 85 ? 75000 : 35000,
+          currency: "INR",
+          stage: "identified",
+          priority: p.icpScore >= 85 ? "high" : "medium",
+          notes: `Added from LeadIntellect Database (ICP Fit: ${p.icpTier} - Score ${p.icpScore}). Location: ${p.city || p.location}.`,
+        }),
+      });
+      if (res.ok) {
+        setCrmAddedIds((prev) => [...prev, p.id]);
+      }
+    } catch (err) {
+      console.error("Failed to push to CRM:", err);
+    } finally {
+      setCrmPushLoading(null);
+    }
+  };
+
   // Load user session from localStorage
   useEffect(() => {
     try {
@@ -411,6 +447,15 @@ export default function ApolloDashboardPage() {
             <span>Upgrade</span>
           </Link>
 
+          {/* Built-in CRM Pipeline shortcut */}
+          <Link
+            href="/crm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal/15 hover:bg-teal text-teal-dark hover:text-[#0b1220] text-xs font-black border border-teal/30 transition-all shadow-2xs"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>CRM Pipeline</span>
+          </Link>
+
           {/* AI Assistant shortcut */}
           <button
             onClick={() => {
@@ -582,6 +627,23 @@ export default function ApolloDashboardPage() {
                   <span>Data enrichment</span>
                 </button>
               </div>
+            </div>
+
+            {/* Nav Group: Built-in CRM Deals Pipeline */}
+            <div>
+              <div className="px-3 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                <span>Deal Management</span>
+              </div>
+              <Link
+                href="/crm"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg font-bold text-teal-dark hover:bg-teal/10 transition-colors"
+              >
+                <Layers className="w-4 h-4 text-teal" />
+                <span>CRM Pipeline</span>
+                <span className="ml-auto bg-teal text-[#0b1220] text-[9px] font-black px-1.5 py-0.2 rounded-full">
+                  Kanban
+                </span>
+              </Link>
             </div>
 
             {/* Nav Group 3: Engage */}
@@ -1106,15 +1168,39 @@ export default function ApolloDashboardPage() {
                               )}
                             </td>
 
-                            {/* Actions: AI 1:1 Pitch */}
+                            {/* Actions: AI 1:1 Pitch & Push to CRM */}
                             <td className="p-3.5 text-right">
-                              <button
-                                onClick={() => setPitchModalProspect(p)}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-teal font-bold text-xs transition-colors cursor-pointer"
-                              >
-                                <Sparkles className="w-3.5 h-3.5" />
-                                <span>1:1 Pitch</span>
-                              </button>
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => handlePushToCrm(p)}
+                                  disabled={crmPushLoading === p.id || crmAddedIds.includes(p.id)}
+                                  title="Add to CRM Pipeline"
+                                  className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-bold text-xs transition-colors cursor-pointer ${
+                                    crmAddedIds.includes(p.id)
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : "bg-teal/15 hover:bg-teal text-teal-dark hover:text-[#0b1220]"
+                                  }`}
+                                >
+                                  {crmAddedIds.includes(p.id) ? (
+                                    <>
+                                      <Check className="w-3.5 h-3.5 text-emerald-700" />
+                                      <span>In CRM</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Layers className="w-3.5 h-3.5" />
+                                      <span>+ CRM</span>
+                                    </>
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => setPitchModalProspect(p)}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-teal font-bold text-xs transition-colors cursor-pointer"
+                                >
+                                  <Sparkles className="w-3.5 h-3.5" />
+                                  <span>1:1 Pitch</span>
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );

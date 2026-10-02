@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Check,
@@ -20,6 +20,8 @@ import {
   Phone,
   Layers,
   ChevronRight,
+  Globe,
+  CheckCircle2,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -28,8 +30,10 @@ interface PlanConfig {
   id: "free" | "basic" | "professional" | "organization";
   name: string;
   tagline: string;
-  monthlyPrice: number;
-  annualPrice: number;
+  usdMonthly: number;
+  usdAnnual: number;
+  inrMonthly: number;
+  inrAnnual: number;
   creditsAnnual: string;
   creditsMonthly: string;
   popular?: boolean;
@@ -44,88 +48,114 @@ interface PlanConfig {
 const plans: PlanConfig[] = [
   {
     id: "free",
-    name: "Free",
-    tagline: "Ideal for individuals getting started with outbound prospecting",
-    monthlyPrice: 0,
-    annualPrice: 0,
+    name: "Free Starter",
+    tagline: "Ideal for founders & solo reps getting started with outbound prospecting",
+    usdMonthly: 0,
+    usdAnnual: 0,
+    inrMonthly: 0,
+    inrAnnual: 0,
     creditsAnnual: "100 credits per seat per month",
     creditsMonthly: "100 credits per seat per month",
     features: [
-      { text: "100 credits per seat per month, granted upfront" },
-      { text: "AI Assistant (5 chat limit)" },
-      { text: "AI Research & Account Insights" },
-      { text: "2 Active Outreach Sequences" },
-      { text: "Prospecting & Chrome Extension" },
-      { text: "Basic ICP Filters (Industry, Title)" },
+      { text: "100 verified credits per seat / month" },
+      { text: "Access to 11,000+ Decision-Maker Database", highlight: true },
+      { text: "Built-in Visual CRM (Up to 50 active deals)", badge: "New CRM", highlight: true },
+      { text: "Basic ICP Filters (Seniority, Title, Industry)" },
+      { text: "1 Active Outreach Playbook" },
       { text: "CSV Export (Up to 50 rows)" },
     ],
   },
   {
     id: "basic",
-    name: "Basic",
-    tagline: "Ideal for small teams that want high-converting email outreach",
-    monthlyPrice: 59,
-    annualPrice: 49,
+    name: "Growth Outbound",
+    tagline: "For sales teams that need verified emails, deliverability, and deal pipeline",
+    usdMonthly: 49,
+    usdAnnual: 39,
+    inrMonthly: 2499,
+    inrAnnual: 1999,
     creditsAnnual: "30,000 credits per seat per year, granted upfront",
     creditsMonthly: "2,500 credits per seat per month",
     popular: true,
     features: [
-      { text: "30,000 credits per seat per year, granted upfront" },
-      { text: "AI Assistant", badge: "Introductory Free" },
-      { text: "AI Research & AI Lead Scoring" },
-      { text: "Unlimited Outbound Sequences" },
-      { text: "Prospecting, Gmail & CRM Extensions" },
-      { text: "Deliverability Suite & Email Warmup" },
-      { text: "Advanced ICP Filters (Seniority, Headcount, Location)", highlight: true },
-      { text: "5-Question Context Synthesis (Who, Why, Pain point)", highlight: true },
+      { text: "30,000 credits / seat / yr (or 2,500 / mo)" },
+      { text: "Built-in Visual CRM Pipeline (Kanban Deals)", badge: "Included", highlight: true },
       { text: "Verified Work Email Guarantees (98%+ Confidence)" },
+      { text: "5-Question Context Synthesis (Who, Why, Pain point)", highlight: true },
+      { text: "Unlimited Outbound Playbooks & Cold Emails" },
+      { text: "Advanced ICP Filters (Headcount, Tech Stack, Country)" },
+      { text: "Real-time Email Deliverability & Warmup Verification" },
+      { text: "Instant CSV & CRM Export (No extra tool needed)" },
     ],
   },
   {
     id: "professional",
-    name: "Professional",
-    tagline: "For teams that want multi-channel email and direct phone outreach",
-    monthlyPrice: 99,
-    annualPrice: 79,
-    creditsAnnual: "48,000 credits per seat per year, granted upfront",
-    creditsMonthly: "4,000 credits per seat per month",
+    name: "Multi-Channel Scale",
+    tagline: "Multi-channel phone, WhatsApp & email outreach with full pipeline management",
+    usdMonthly: 89,
+    usdAnnual: 69,
+    inrMonthly: 5499,
+    inrAnnual: 4499,
+    creditsAnnual: "60,000 credits per seat per year, granted upfront",
+    creditsMonthly: "5,000 credits per seat per month",
     features: [
-      { text: "48,000 credits per seat per year, granted upfront" },
-      { text: "AI Assistant", badge: "Introductory Free" },
-      { text: "AI Research & AI Lead Scoring" },
-      { text: "Autonomous Prospecting AI Agents", badge: "New" },
-      { text: "Direct Dial Mobile & Desk Phone Unlocks", highlight: true },
-      { text: "Unlimited Sequences & A/B/Z Testing" },
-      { text: "Deliverability Suite & Multi-Inbox Warmup" },
-      { text: "Salesforce & HubSpot Bi-directional Sync" },
-      { text: "1:1 Multi-Channel Pitch Studio (Email + LinkedIn + Battlecard)", highlight: true },
+      { text: "60,000 credits / seat / yr (or 5,000 / mo)" },
+      { text: "Direct Mobile & WhatsApp Verified Numbers", badge: "Direct Dial", highlight: true },
+      { text: "Advanced Visual CRM with Custom Stages & Revenue Forecasting", highlight: true },
+      { text: "1:1 Multi-Channel Pitch Studio (Email + LinkedIn + WhatsApp + Battlecard)", highlight: true },
+      { text: "Autonomous AI Lead Scoring & Intent Signals" },
+      { text: "Bi-directional CRM Webhooks & Zapier/Make Sync" },
+      { text: "Multi-Inbox Deliverability Suite & DNS Health Monitor" },
+      { text: "Priority Live Support via WhatsApp & Slack" },
     ],
   },
   {
     id: "organization",
-    name: "Organization",
-    tagline: "For scaling enterprises with custom intelligence & dedicated data requirements",
-    monthlyPrice: 149,
-    annualPrice: 119,
-    creditsAnnual: "72,000 credits per seat per year, granted upfront",
-    creditsMonthly: "6,000 credits per seat per month",
+    name: "Enterprise Engine",
+    tagline: "For scaling enterprises with custom CRM workflows & dedicated 3rd-party waterfall data",
+    usdMonthly: 149,
+    usdAnnual: 119,
+    inrMonthly: 12999,
+    inrAnnual: 9999,
+    creditsAnnual: "120,000 credits per seat per year, granted upfront",
+    creditsMonthly: "10,000 credits per seat per month",
     minSeats: 3,
     features: [
-      { text: "72,000 credits per seat per year, granted upfront" },
-      { text: "Everything in Professional +" },
-      { text: "Custom ICP Machine Learning Weights & Deep Scoring", highlight: true },
-      { text: "Deep Database Ingestion (Access to 1M+ Records)", highlight: true },
-      { text: "Custom Bi-directional Webhooks & REST API Access" },
-      { text: "Dedicated Customer Success Manager & SLA" },
-      { text: "Enterprise SSO, SAML & Advanced Security Governance" },
+      { text: "120,000 credits per year (pooled across seats)" },
+      { text: "Custom Tailored CRM Schema & Pipeline Customization", badge: "Custom CRM", highlight: true },
+      { text: "Multi-Provider Waterfall Enrichment API Access", highlight: true },
+      { text: "Deep Ingestion of Custom Enterprise Databases" },
+      { text: "18% Indian GST Compliant Invoicing & Tax Input Credit" },
+      { text: "Dedicated Customer Success Manager & SLA Guarantee" },
+      { text: "Enterprise SSO, SAML & Advanced Team Permissions" },
     ],
   },
 ];
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"annual" | "monthly">("annual");
+  const [currency, setCurrency] = useState<"INR" | "USD">("INR");
   const [selectedPlanId, setSelectedPlanId] = useState<"free" | "basic" | "professional" | "organization">("basic");
   const [seats, setSeats] = useState<number>(1);
+
+  // Auto-detect Indian visitor
+  useEffect(() => {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      const locale = navigator.language || "";
+      if (
+        tz.includes("Calcutta") ||
+        tz.includes("Kolkata") ||
+        locale.includes("en-IN") ||
+        locale.includes("hi")
+      ) {
+        setCurrency("INR");
+      } else {
+        setCurrency("USD");
+      }
+    } catch {
+      setCurrency("USD");
+    }
+  }, []);
 
   // Checkout modal
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -136,14 +166,21 @@ export default function PricingPage() {
     email: "",
     company: "",
     phone: "",
-    paymentMethod: "Credit Card (Stripe)",
+    gstin: "",
+    paymentMethod: "UPI / Razorpay (Instant Activation)",
   });
 
   const selectedPlan = plans.find((p) => p.id === selectedPlanId) || plans[1];
   const effectiveSeats = Math.max(selectedPlan.minSeats || 1, seats);
 
   const pricePerSeat =
-    billingCycle === "annual" ? selectedPlan.annualPrice : selectedPlan.monthlyPrice;
+    currency === "INR"
+      ? billingCycle === "annual"
+        ? selectedPlan.inrAnnual
+        : selectedPlan.inrMonthly
+      : billingCycle === "annual"
+      ? selectedPlan.usdAnnual
+      : selectedPlan.usdMonthly;
 
   const totalDueToday =
     billingCycle === "annual"
@@ -151,6 +188,12 @@ export default function PricingPage() {
       : pricePerSeat * effectiveSeats;
 
   const annualContractValue = pricePerSeat * 12 * effectiveSeats;
+
+  const currencySymbol = currency === "INR" ? "₹" : "$";
+  const formattedTotal =
+    currency === "INR"
+      ? `₹${totalDueToday.toLocaleString("en-IN")}`
+      : `$${totalDueToday.toLocaleString("en-US")}`;
 
   const handleSelectPlan = (planId: "free" | "basic" | "professional" | "organization") => {
     setSelectedPlanId(planId);
@@ -170,14 +213,15 @@ export default function PricingPage() {
         customerEmail: customerForm.email.trim(),
         companyName: customerForm.company.trim(),
         phone: customerForm.phone.trim(),
+        gstin: customerForm.gstin.trim(),
         itemType: "subscription",
         planName: `${selectedPlan.name} Plan (${billingCycle === "annual" ? "Annual" : "Monthly"} - ${effectiveSeats} Seat${effectiveSeats > 1 ? "s" : ""})`,
         amount: totalDueToday,
-        currency: "USD",
+        currency: currency,
         paymentStatus: selectedPlan.id === "free" ? "paid" : "paid",
         paymentMethod: customerForm.paymentMethod,
         transactionId: `TXN_${Date.now().toString().slice(-6)}`,
-        notes: `Customer upgrade order from pricing page: ${billingCycle} subscription for ${effectiveSeats} seat(s).`,
+        notes: `Customer upgrade order: ${currency} ${totalDueToday}, ${billingCycle} subscription for ${effectiveSeats} seat(s).`,
       };
 
       const res = await fetch("/api/admin/orders", {
@@ -209,51 +253,107 @@ export default function PricingPage() {
       <main className="flex-1 pt-32 pb-36">
         <div className="container-page">
           {/* Header */}
-          <div className="text-center max-w-3xl mx-auto mb-12">
+          <div className="text-center max-w-3xl mx-auto mb-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal/15 text-teal-dark font-extrabold text-xs mb-3 border border-teal/30">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Transparent, Predictable Sales Intelligence</span>
+              <span>Transparent, Value-Justified Sales Intelligence</span>
             </div>
             <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-[#0b1220] leading-tight">
-              Unlock Verified B2B Contacts &amp; AI ICP Scoring
+              Predictable Pricing. Zero Tech-Stack Bloat.
             </h1>
             <p className="mt-3 text-sm sm:text-base text-slate-600 leading-relaxed">
-              Every plan includes verified work emails, phone numbers, and LeadIntellect’s proprietary 5-question context synthesis. Upgrade anytime.
+              Replace your $500/mo fragmented stack (Apollo + HubSpot + warmups + Zapier) with LeadIntellect: Verified Contacts, Built-in CRM Pipeline, and AI Outreach Playbooks in one roof.
             </p>
 
-            {/* Annual / Monthly Toggle matching Apollo screenshot */}
-            <div className="mt-8 inline-flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200 shadow-2xs">
-              <button
-                onClick={() => setBillingCycle("annual")}
-                className={`px-5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                  billingCycle === "annual"
-                    ? "bg-[#0b1220] text-teal shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <span>Billed Annually</span>
-                <span className="px-1.5 py-0.5 rounded-full bg-[#e2f300] text-[#0b1220] font-black text-[10px]">
-                  SAVE 20%
-                </span>
-              </button>
-              <button
-                onClick={() => setBillingCycle("monthly")}
-                className={`px-5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  billingCycle === "monthly"
-                    ? "bg-[#0b1220] text-teal shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Billed Monthly
-              </button>
+            {/* Region / Currency Switcher + Billing Toggle */}
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              {/* Currency Selector */}
+              <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200 shadow-2xs">
+                <button
+                  onClick={() => {
+                    setCurrency("INR");
+                    setCustomerForm((prev) => ({
+                      ...prev,
+                      paymentMethod: "UPI / Razorpay (Instant Activation)",
+                    }));
+                  }}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    currency === "INR"
+                      ? "bg-[#0b1220] text-teal shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <span>🇮🇳 India (INR ₹)</span>
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-teal/20 text-teal-dark">
+                    GST Ready
+                  </span>
+                </button>
+                <button
+                  onClick={() => {
+                    setCurrency("USD");
+                    setCustomerForm((prev) => ({
+                      ...prev,
+                      paymentMethod: "Credit Card (Stripe)",
+                    }));
+                  }}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    currency === "USD"
+                      ? "bg-[#0b1220] text-teal shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>🌍 Global (USD $)</span>
+                </button>
+              </div>
+
+              {/* Annual / Monthly Toggle */}
+              <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200 shadow-2xs">
+                <button
+                  onClick={() => setBillingCycle("annual")}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                    billingCycle === "annual"
+                      ? "bg-[#0b1220] text-teal shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <span>Billed Annually</span>
+                  <span className="px-1.5 py-0.5 rounded-full bg-[#e2f300] text-[#0b1220] font-black text-[10px]">
+                    SAVE 20%
+                  </span>
+                </button>
+                <button
+                  onClick={() => setBillingCycle("monthly")}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    billingCycle === "monthly"
+                      ? "bg-[#0b1220] text-teal shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Billed Monthly
+                </button>
+              </div>
             </div>
+
+            {currency === "INR" && (
+              <p className="mt-3 text-xs text-slate-500 font-medium">
+                *Indian pricing tailored for Indian enterprises &amp; startups. 18% GST invoice provided for full Input Tax Credit (ITC).
+              </p>
+            )}
           </div>
 
           {/* ================= 4 TIER PRICING COLUMNS ================= */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
             {plans.map((p) => {
               const isSelected = selectedPlanId === p.id;
-              const price = billingCycle === "annual" ? p.annualPrice : p.monthlyPrice;
+              const price =
+                currency === "INR"
+                  ? billingCycle === "annual"
+                    ? p.inrAnnual
+                    : p.inrMonthly
+                  : billingCycle === "annual"
+                  ? p.usdAnnual
+                  : p.usdMonthly;
 
               return (
                 <div
@@ -270,7 +370,7 @@ export default function PricingPage() {
                   {/* Badge */}
                   {p.popular && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#0b1220] text-teal font-extrabold text-[10px] uppercase tracking-wider px-3 py-1 rounded-full border border-teal/40 shadow-xs">
-                      ★ Most Popular Choice
+                      ★ Best Value for Outbound
                     </div>
                   )}
 
@@ -284,20 +384,23 @@ export default function PricingPage() {
                     {/* Price Display */}
                     <div className="mt-5 pb-5 border-b border-slate-200/80">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-black text-[#0b1220]">${price}</span>
+                        <span className="text-3.5xl sm:text-4xl font-black text-[#0b1220]">
+                          {currencySymbol}
+                          {price.toLocaleString(currency === "INR" ? "en-IN" : "en-US")}
+                        </span>
                         {price > 0 && (
                           <span className="text-xs text-slate-500 font-semibold">
-                            / seat / month
+                            / seat / mo
                           </span>
                         )}
                       </div>
                       <p className="text-[11px] text-slate-500 mt-1 font-medium">
                         {price === 0
-                          ? "Free forever &middot; No card required"
+                          ? "Free forever · No credit card required"
                           : billingCycle === "annual"
-                          ? `Billed annually ($${price * 12}/yr)`
+                          ? `Billed annually (${currencySymbol}${(price * 12).toLocaleString(currency === "INR" ? "en-IN" : "en-US")}/yr)`
                           : "Billed month-to-month"}
-                        {p.minSeats ? ` &middot; Min ${p.minSeats} seats` : ""}
+                        {p.minSeats ? ` · Min ${p.minSeats} seats` : ""}
                       </p>
                     </div>
 
@@ -321,7 +424,11 @@ export default function PricingPage() {
                       >
                         {isSelected ? <Check className="w-4 h-4" /> : null}
                         <span>
-                          {p.id === "free" ? "Start Free Now" : isSelected ? "Plan Selected" : "Select Plan"}
+                          {p.id === "free"
+                            ? "Start Free Forever"
+                            : isSelected
+                            ? "Plan Selected"
+                            : "Select Plan"}
                         </span>
                       </button>
 
@@ -333,12 +440,12 @@ export default function PricingPage() {
                           }}
                           className="w-full text-center text-[11px] font-bold text-slate-500 hover:text-slate-800 mt-2 cursor-pointer"
                         >
-                          Try for free
+                          Try 14-day trial
                         </button>
                       )}
                     </div>
 
-                    {/* Credits Callout matching screenshot */}
+                    {/* Credits Callout */}
                     <div className="mt-6 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
                       <div className="flex items-center gap-2 font-bold text-slate-800">
                         <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
@@ -358,7 +465,7 @@ export default function PricingPage() {
                             {feat.text}
                           </span>
                           {feat.badge && (
-                            <span className="bg-slate-200/80 text-slate-700 text-[9px] font-extrabold px-1.5 py-0.2 rounded shrink-0">
+                            <span className="bg-teal/15 text-teal-dark text-[9px] font-black px-1.5 py-0.2 rounded shrink-0">
                               {feat.badge}
                             </span>
                           )}
@@ -377,33 +484,33 @@ export default function PricingPage() {
             })}
           </div>
 
-          {/* ================= UNIQUE LEADINTELLECT VALUE COMPARISON ================= */}
+          {/* ================= CEO & CMO VALUE PROPOSITION VS OTHERS ================= */}
           <div className="mt-20 max-w-4xl mx-auto rounded-3xl bg-[#0b1220] p-8 sm:p-12 text-white shadow-xl relative overflow-hidden">
             <div className="relative z-10 space-y-6">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal/20 text-teal text-xs font-bold border border-teal/40">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>The LeadIntellect Advantage</span>
+                <span>The All-In-One Revenue Moat</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold leading-snug">
-                Why Sales Teams Win with LeadIntellect over Standard Scrapers
+                Why CEOs &amp; CMOs Switch from Apollo + HubSpot to LeadIntellect
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4">
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                  <div className="font-extrabold text-teal text-sm mb-1">5-Question Context</div>
+                  <div className="font-extrabold text-teal text-sm mb-1">Built-in Visual Deal CRM</div>
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    Standard platforms give you names and emails. LeadIntellect synthesizes Who, Why now, What pain, and How you solve it.
+                    Stop paying $50-$300/mo for HubSpot or Pipedrive. Push verified leads straight into your drag-and-drop deal pipeline with 1 click.
                   </p>
                 </div>
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                  <div className="font-extrabold text-teal text-sm mb-1">Pre-Verified Datasets</div>
+                  <div className="font-extrabold text-teal text-sm mb-1">Waterfall Enrichment</div>
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    Over 450+ curated decision-maker records in our seed network, with 98% verified deliverability and zero phantom bounces.
+                    Zero fake emails. Every record is cross-checked through multi-layer verification before revealing, protecting your domain reputation.
                   </p>
                 </div>
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                  <div className="font-extrabold text-teal text-sm mb-1">1:1 Battlecard Studio</div>
+                  <div className="font-extrabold text-teal text-sm mb-1">India &amp; Global Economics</div>
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    Instantly output cold emails, LinkedIn connection requests, and call scripts tailored to the buyer’s seniority level.
+                    Indian pricing in ₹ with GST input credit and instant UPI, or global USD pricing that costs 60% less than Apollo + ZoomInfo lock-ins.
                   </p>
                 </div>
               </div>
@@ -412,17 +519,16 @@ export default function PricingPage() {
         </div>
       </main>
 
-      {/* ================= 5. FLOATING BOTTOM SUMMARY / UPGRADE BAR (MATCHING APOLLO SCREENSHOT) ================= */}
+      {/* ================= FLOATING UPGRADE BAR ================= */}
       <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 py-3.5 px-4 sm:px-8 z-40 shadow-[0_-4px_25px_rgba(0,0,0,0.08)]">
         <div className="container-page flex flex-col sm:flex-row items-center justify-between gap-4">
-          {/* Summary Details */}
           <div className="flex flex-wrap items-center gap-6 text-xs text-slate-700">
             <div>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                Summary
+                Selected Plan
               </span>
               <span className="text-sm font-extrabold text-slate-900">
-                {selectedPlan.name} Plan
+                {selectedPlan.name}
               </span>
             </div>
 
@@ -455,32 +561,28 @@ export default function PricingPage() {
                   Billed Annually
                 </span>
                 <span className="text-xs font-bold text-slate-700">
-                  ${annualContractValue}/yr*
+                  {currencySymbol}{annualContractValue.toLocaleString(currency === "INR" ? "en-IN" : "en-US")}/yr
                 </span>
               </div>
             )}
 
             <div>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                Due Today
+                Total Due Today
               </span>
               <span className="text-base font-black text-slate-900">
-                ${totalDueToday}*
+                {formattedTotal}
               </span>
             </div>
           </div>
 
-          {/* Action Upgrade Button matching screenshot */}
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-            <span className="text-[10px] text-slate-400 hidden lg:inline">
-              *Sales taxes calculated at checkout
-            </span>
             <button
               onClick={() => setCheckoutOpen(true)}
               className="w-full sm:w-auto px-8 py-3 rounded-xl bg-[#e2f300] hover:bg-[#d0df00] text-[#0b1220] font-black text-sm shadow-md transition-transform active:scale-95 cursor-pointer flex items-center justify-center gap-2"
             >
               <Diamond className="w-4 h-4 fill-[#0b1220]" />
-              <span>Upgrade to {selectedPlan.name}</span>
+              <span>Get Started with {selectedPlan.name}</span>
             </button>
           </div>
         </div>
@@ -493,10 +595,10 @@ export default function PricingPage() {
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
                 <h3 className="text-lg font-black text-[#0b1220]">
-                  Confirm {selectedPlan.name} Subscription
+                  Confirm {selectedPlan.name}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  {billingCycle === "annual" ? "Annual agreement (20% discount)" : "Monthly billing"} &middot; {effectiveSeats} seat(s)
+                  {currency === "INR" ? "🇮🇳 Indian Billing (INR)" : "🌍 Global Billing (USD)"} &middot; {billingCycle === "annual" ? "Annual (20% Off)" : "Monthly"}
                 </p>
               </div>
               <button
@@ -512,20 +614,20 @@ export default function PricingPage() {
                 <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
                   <Check className="w-8 h-8" />
                 </div>
-                <h4 className="text-lg font-extrabold text-slate-900">Payment &amp; Order Recorded!</h4>
+                <h4 className="text-lg font-extrabold text-slate-900">Subscription Confirmed!</h4>
                 <p className="text-xs text-slate-600">
-                  Your {selectedPlan.name} plan has been activated. Credits and features have been applied to your account.
+                  Your {selectedPlan.name} plan has been activated. Credits and CRM pipeline features have been enabled.
                 </p>
                 <p className="text-[11px] text-teal-dark font-bold">Redirecting to your workspace...</p>
               </div>
             ) : (
-              <form onSubmit={handleCheckoutSubmit} className="mt-5 space-y-4 text-xs">
+              <form onSubmit={handleCheckoutSubmit} className="mt-5 space-y-3.5 text-xs">
                 <div>
-                  <label className="font-bold text-slate-800 block mb-1">Your Full Name *</label>
+                  <label className="font-bold text-slate-800 block mb-1">Full Name *</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Rachel Adams"
+                    placeholder="e.g. Rahul Sharma"
                     value={customerForm.name}
                     onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-teal"
@@ -537,7 +639,7 @@ export default function PricingPage() {
                   <input
                     type="email"
                     required
-                    placeholder="rachel@company.com"
+                    placeholder="rahul@company.com"
                     value={customerForm.email}
                     onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-teal"
@@ -549,7 +651,7 @@ export default function PricingPage() {
                     <label className="font-bold text-slate-800 block mb-1">Company</label>
                     <input
                       type="text"
-                      placeholder="Acme Corp"
+                      placeholder="Acme Technologies"
                       value={customerForm.company}
                       onChange={(e) => setCustomerForm({ ...customerForm, company: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-teal"
@@ -559,13 +661,26 @@ export default function PricingPage() {
                     <label className="font-bold text-slate-800 block mb-1">Phone</label>
                     <input
                       type="text"
-                      placeholder="+1 (555) 000-0000"
+                      placeholder={currency === "INR" ? "+91 98765 43210" : "+1 (555) 000-0000"}
                       value={customerForm.phone}
                       onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-teal"
                     />
                   </div>
                 </div>
+
+                {currency === "INR" && (
+                  <div>
+                    <label className="font-bold text-slate-800 block mb-1">GSTIN (Optional for GST input credit)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 29AAAAA0000A1Z5"
+                      value={customerForm.gstin}
+                      onChange={(e) => setCustomerForm({ ...customerForm, gstin: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-teal uppercase"
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label className="font-bold text-slate-800 block mb-1">Payment Method</label>
@@ -574,13 +689,23 @@ export default function PricingPage() {
                     onChange={(e) => setCustomerForm({ ...customerForm, paymentMethod: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-teal"
                   >
-                    <option value="Credit Card (Stripe)">Credit Card (Instant Activation)</option>
-                    <option value="Bank Wire / ACH">Bank Wire Transfer / ACH</option>
-                    <option value="Corporate Invoice (Net 30)">Corporate Invoice (Net 30)</option>
+                    {currency === "INR" ? (
+                      <>
+                        <option value="UPI / Razorpay (Instant Activation)">UPI / GPay / PhonePe / Paytm</option>
+                        <option value="Indian NetBanking / Cards">Indian Debit / Credit Cards</option>
+                        <option value="Corporate Bank NEFT / RTGS (GST Invoice)">Corporate Bank NEFT / RTGS (GST Invoice)</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="Credit Card (Stripe)">Credit Card (Instant Activation)</option>
+                        <option value="PayPal">PayPal</option>
+                        <option value="Bank Wire / ACH">Bank Wire Transfer / ACH</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
-                {/* Pricing Calculation Summary */}
+                {/* Calculation Summary */}
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                   <div className="flex justify-between text-slate-600">
                     <span>Plan:</span>
@@ -592,7 +717,7 @@ export default function PricingPage() {
                   </div>
                   <div className="flex justify-between text-slate-900 font-extrabold text-sm pt-1 border-t border-slate-200">
                     <span>Total Due Today:</span>
-                    <span className="text-teal-dark font-black">${totalDueToday}</span>
+                    <span className="text-teal-dark font-black">{formattedTotal}</span>
                   </div>
                 </div>
 
@@ -601,7 +726,7 @@ export default function PricingPage() {
                   disabled={checkoutLoading}
                   className="w-full py-3 rounded-xl bg-[#e2f300] hover:bg-[#d0df00] text-[#0b1220] font-black text-xs shadow-sm transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {checkoutLoading ? "Processing Upgrade..." : `Complete & Activate ($${totalDueToday}) →`}
+                  {checkoutLoading ? "Activating..." : `Complete & Activate (${formattedTotal}) →`}
                 </button>
               </form>
             )}
