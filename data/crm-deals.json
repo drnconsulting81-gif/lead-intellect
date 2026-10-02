@@ -1,0 +1,94 @@
+[
+  {
+    "id": "deal_1001",
+    "contactName": "Vikram Malhotra",
+    "companyName": "Zenith Cloud Solutions",
+    "title": "VP of Engineering & Cloud",
+    "email": "vikram.m@zenithcloud.io",
+    "phone": "+91 98201 88921",
+    "dealValue": 120000,
+    "currency": "INR",
+    "stage": "proposal",
+    "priority": "high",
+    "notes": [
+      "Met on demo call: highly interested in enterprise waterfall enrichment and custom CRM.",
+      "Sent formal RFP and pricing proposal for 5 seats."
+    ],
+    "lastActivity": "Sent revised enterprise proposal",
+    "createdAt": "2026-09-29T16:35:58.129Z",
+    "expectedCloseDate": "2026-10-15"
+  },
+  {
+    "id": "deal_1002",
+    "contactName": "Sarah Jenkins",
+    "companyName": "Apex FinTech Labs",
+    "title": "Head of Growth & Revenue",
+    "email": "s.jenkins@apexfintech.com",
+    "phone": "+1 (415) 672-9011",
+    "dealValue": 2400,
+    "currency": "USD",
+    "stage": "demo_booked",
+    "priority": "high",
+    "notes": [
+      "Replied to cold email sequence: wants a walkthrough of AI ICP score synthesis.",
+      "Demo scheduled for Friday 2 PM EST."
+    ],
+    "lastActivity": "Confirmed calendar invite for demo",
+    "createdAt": "2026-09-27T16:35:58.129Z",
+    "expectedCloseDate": "2026-10-20"
+  },
+  {
+    "id": "deal_1003",
+    "contactName": "Ananya Deshmukh",
+    "companyName": "Nexus Health Systems",
+    "title": "Director of Digital Operations",
+    "email": "ananya.d@nexushealth.in",
+    "phone": "+91 99302 54120",
+    "dealValue": 65000,
+    "currency": "INR",
+    "stage": "won",
+    "priority": "high",
+    "notes": [
+      "Onboarded onto Professional Plan with WhatsApp direct dials.",
+      "First 500 prospects verified and synced to internal pipeline."
+    ],
+    "lastActivity": "Subscription activated, invoice sent",
+    "createdAt": "2026-09-20T16:35:58.129Z"
+  },
+  {
+    "id": "deal_1004",
+    "contactName": "Marcus Vance",
+    "companyName": "HyperScale Media",
+    "title": "Founder & Chief Executive Officer",
+    "email": "marcus@hyperscalemedia.co",
+    "phone": "+1 (312) 440-8910",
+    "dealValue": 1800,
+    "currency": "USD",
+    "stage": "contacted",
+    "priority": "medium",
+    "notes": [
+      "Personalized outreach generated via 5-Question AI context studio.",
+      "LinkedIn connection request accepted, follow-up sent."
+    ],
+    "lastActivity": "Follow-up email sequence step 2 dispatched",
+    "createdAt": "2026-09-30T16:35:58.129Z"
+  },
+  {
+    "id": "deal_1005",
+    "contactName": "Pooja Reddy",
+    "companyName": "Infiniti HR Tech",
+    "title": "Chief Marketing Officer",
+    "email": "pooja.reddy@infinitihr.com",
+    "phone": "+91 97010 33411",
+    "dealValue": 45000,
+    "currency": "INR",
+    "stage": "identified",
+    "priority": "medium",
+    "notes": [
+      "Scored 94/100 Tier 1 fit from LeadIntellect Database.",
+      "Preparing customized battlecard for enterprise HR pain points."
+    ],
+    "lastActivity": "Added to pipeline from LeadIntellect Database",
+    "createdAt": "2026-10-01T16:35:58.129Z"
+  }
+]
