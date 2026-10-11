@@ -11,7 +11,6 @@ import AgentDemo from "@/components/AgentDemo";
 import DashboardPreview from "@/components/DashboardPreview";
 import Differentiators from "@/components/Differentiators";
 import WhoItsFor from "@/components/WhoItsFor";
-import PricingSection from "@/components/PricingSection";
 import CTA from "@/components/CTA";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
@@ -33,7 +32,6 @@ export default function Home() {
         <DashboardPreview />
         <Differentiators />
         <WhoItsFor />
-        <PricingSection />
         <CTA />
         <FAQ />
       </main>

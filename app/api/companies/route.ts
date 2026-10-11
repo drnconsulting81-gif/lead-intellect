@@ -48,7 +48,12 @@ export async function GET(req: Request) {
     const query = (searchParams.get("query") || "").toLowerCase().trim();
     const industry = (searchParams.get("industry") || "").toLowerCase().trim();
     const country = (searchParams.get("country") || "").toLowerCase().trim();
+    const city = (searchParams.get("city") || "").toLowerCase().trim();
+    const state = (searchParams.get("state") || "").toLowerCase().trim();
     const employeeRange = searchParams.get("employeeRange") || "";
+    const revenueRange = searchParams.get("revenueRange") || "";
+    const ownership = searchParams.get("ownership") || "";
+    const minContacts = Number(searchParams.get("minContacts")) || 0;
     const minScore = Number(searchParams.get("minScore")) || 0;
 
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
@@ -62,7 +67,9 @@ export async function GET(req: Request) {
           c.name.toLowerCase().includes(query) ||
           (c.domain && c.domain.toLowerCase().includes(query)) ||
           (c.industry && c.industry.toLowerCase().includes(query)) ||
-          (c.headquarters && c.headquarters.toLowerCase().includes(query));
+          (c.headquarters && c.headquarters.toLowerCase().includes(query)) ||
+          (c.city && c.city.toLowerCase().includes(query)) ||
+          (c.state && c.state.toLowerCase().includes(query));
         if (!match) return false;
       }
 
@@ -74,9 +81,27 @@ export async function GET(req: Request) {
         if (!c.country || !c.country.toLowerCase().includes(country)) return false;
       }
 
+      if (city && city !== "all") {
+        if (!c.city || !c.city.toLowerCase().includes(city)) return false;
+      }
+
+      if (state && state !== "all") {
+        if (!c.state || !c.state.toLowerCase().includes(state)) return false;
+      }
+
       if (employeeRange && employeeRange !== "all") {
         if (c.employeeRange !== employeeRange) return false;
       }
+
+      if (revenueRange && revenueRange !== "all") {
+        if (c.revenueRange !== revenueRange) return false;
+      }
+
+      if (ownership && ownership !== "all") {
+        if (c.ownership !== ownership) return false;
+      }
+
+      if (minContacts > 0 && c.verifiedContactsCount < minContacts) return false;
 
       if (minScore > 0 && c.icpScore < minScore) return false;
 
@@ -111,9 +136,11 @@ export async function GET(req: Request) {
     // Dynamic Facets
     const industryCounts: Record<string, number> = {};
     const countryCounts: Record<string, number> = {};
+    const stateCounts: Record<string, number> = {};
     all.forEach((c) => {
       if (c.industry) industryCounts[c.industry] = (industryCounts[c.industry] || 0) + 1;
       if (c.country) countryCounts[c.country] = (countryCounts[c.country] || 0) + 1;
+      if (c.state) stateCounts[c.state] = (stateCounts[c.state] || 0) + 1;
     });
 
     const topIndustries = Object.keys(industryCounts)
@@ -123,6 +150,10 @@ export async function GET(req: Request) {
     const topCountries = Object.keys(countryCounts)
       .sort((a, b) => countryCounts[b] - countryCounts[a])
       .slice(0, 15);
+
+    const topStates = Object.keys(stateCounts)
+      .sort((a, b) => stateCounts[b] - stateCounts[a])
+      .slice(0, 20);
 
     return NextResponse.json({
       success: true,
@@ -142,7 +173,9 @@ export async function GET(req: Request) {
       facets: {
         industries: topIndustries,
         countries: topCountries,
+        states: topStates,
         employeeRanges: ["11-50", "51-200", "201-500", "501-1000", "1000+"],
+        revenueRanges: ["$1M - $20M", "$20M - $100M", "$100M+"],
       },
     });
   } catch (error) {

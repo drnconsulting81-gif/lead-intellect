@@ -693,8 +693,13 @@ export async function deductUserCredit(
 export async function saveList(
   list: Omit<ListRecord, "id" | "createdAt" | "updatedAt">
 ): Promise<ListRecord> {
+  const cleanEmail = (list.userEmail || "guest@leadintellect.ai").toLowerCase().trim();
   const record: ListRecord = {
     ...list,
+    userEmail: cleanEmail,
+    name: list.name.trim(),
+    description: (list.description || "").trim(),
+    prospectIds: Array.isArray(list.prospectIds) ? list.prospectIds : [],
     id: "list_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -719,14 +724,19 @@ export async function saveList(
 }
 
 export async function getListsByUser(email: string): Promise<ListRecord[]> {
-  const cleanEmail = email.toLowerCase().trim();
+  const cleanEmail = (email || "guest@leadintellect.ai").toLowerCase().trim();
   if (isMongoConfigured()) {
     try {
       const db = await getMongoDb();
       if (db) {
         return await db
           .collection<ListRecord>("lists")
-          .find({ userEmail: cleanEmail })
+          .find({
+            $or: [
+              { userEmail: cleanEmail },
+              { userEmail: { $regex: new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") } },
+            ],
+          })
           .sort({ updatedAt: -1 })
           .toArray();
       }

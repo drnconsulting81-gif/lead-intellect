@@ -144,8 +144,17 @@ export async function GET(req: Request) {
     const location = (searchParams.get("location") || "").toLowerCase().trim();
     const minScore = Number(searchParams.get("minScore")) || 0;
 
+    const title = (searchParams.get("title") || "").toLowerCase().trim();
+    const city = (searchParams.get("city") || "").toLowerCase().trim();
+    const state = (searchParams.get("state") || "").toLowerCase().trim();
+    const companyName = (searchParams.get("companyName") || "").toLowerCase().trim();
+    const hasLinkedin = searchParams.get("hasLinkedin") === "true";
+    const revenueRange = searchParams.get("revenueRange") || "";
+    const ownership = searchParams.get("ownership") || "";
+    const department = (searchParams.get("department") || "").toLowerCase().trim();
+
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
-    const limit = Math.min(100, Math.max(5, Number(searchParams.get("limit")) || 25));
+    const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit")) || 25));
     const sortBy = searchParams.get("sortBy") || "icpScore";
     const sortOrder = searchParams.get("sortOrder") || "desc";
 
@@ -161,6 +170,31 @@ export async function GET(req: Request) {
           (p.state && p.state.toLowerCase().includes(query)) ||
           (p.country && p.country.toLowerCase().includes(query));
         if (!match) return false;
+      }
+
+      // Title filter
+      if (title) {
+        if (!p.title || !p.title.toLowerCase().includes(title)) return false;
+      }
+
+      // City filter
+      if (city && city !== "all") {
+        if (!p.city || !p.city.toLowerCase().includes(city)) return false;
+      }
+
+      // State filter
+      if (state && state !== "all") {
+        if (!p.state || !p.state.toLowerCase().includes(state)) return false;
+      }
+
+      // Company name filter
+      if (companyName) {
+        if (!p.company || !p.company.toLowerCase().includes(companyName)) return false;
+      }
+
+      // Department filter
+      if (department && department !== "all") {
+        if (!p.department || !p.department.toLowerCase().includes(department)) return false;
       }
 
       // Seniority
@@ -199,6 +233,17 @@ export async function GET(req: Request) {
 
       if (hasEmail && (!p.email || !p.email.includes("@"))) return false;
       if (hasPhone && (!p.phone || p.phone.trim().length === 0)) return false;
+      if (hasLinkedin && (!p.linkedin || !p.linkedin.includes("linkedin.com"))) return false;
+
+      // Revenue range
+      if (revenueRange && revenueRange !== "all") {
+        if (p.revenueRange !== revenueRange) return false;
+      }
+
+      // Ownership
+      if (ownership && ownership !== "all") {
+        if (p.ownership !== ownership) return false;
+      }
 
       // Specific location query
       if (location) {
@@ -252,14 +297,14 @@ export async function GET(req: Request) {
     // Facets ranking
     const industryCounts: Record<string, number> = {};
     const countryCounts: Record<string, number> = {};
+    const stateCounts: Record<string, number> = {};
+    const revenueCounts: Record<string, number> = {};
 
     all.forEach((p) => {
-      if (p.industry) {
-        industryCounts[p.industry] = (industryCounts[p.industry] || 0) + 1;
-      }
-      if (p.country) {
-        countryCounts[p.country] = (countryCounts[p.country] || 0) + 1;
-      }
+      if (p.industry) industryCounts[p.industry] = (industryCounts[p.industry] || 0) + 1;
+      if (p.country) countryCounts[p.country] = (countryCounts[p.country] || 0) + 1;
+      if (p.state) stateCounts[p.state] = (stateCounts[p.state] || 0) + 1;
+      if (p.revenueRange) revenueCounts[p.revenueRange] = (revenueCounts[p.revenueRange] || 0) + 1;
     });
 
     const topIndustries = Object.keys(industryCounts)
@@ -269,6 +314,13 @@ export async function GET(req: Request) {
     const topCountries = Object.keys(countryCounts)
       .sort((a, b) => countryCounts[b] - countryCounts[a])
       .slice(0, 15);
+
+    const topStates = Object.keys(stateCounts)
+      .sort((a, b) => stateCounts[b] - stateCounts[a])
+      .slice(0, 20);
+
+    const topRevenues = Object.keys(revenueCounts)
+      .sort((a, b) => revenueCounts[b] - revenueCounts[a]);
 
     return NextResponse.json({
       success: true,
@@ -290,6 +342,8 @@ export async function GET(req: Request) {
       facets: {
         industries: topIndustries,
         countries: topCountries,
+        states: topStates,
+        revenues: topRevenues,
         seniorities: ["C-Suite", "VP", "Director", "Manager", "Founder / Owner", "Professional / IC"],
         employeeRanges: ["11-50", "51-200", "201-500", "501-1000", "1000+"],
         emailStatuses: ["verified", "deliverable", "all"],

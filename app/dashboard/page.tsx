@@ -63,6 +63,7 @@ export interface Prospect {
   seniority: string;
   department: string;
   jobFunctions?: string;
+  reportsTo?: string;
   company: string;
   domain: string;
   website: string;
@@ -86,6 +87,7 @@ export interface Prospect {
   hasPhone: boolean;
   hasEmail: boolean;
   linkedin: string;
+  ownership?: string;
   icpScore: number;
   icpTier: "Tier 1" | "Tier 2" | "Tier 3";
   source: string;
@@ -105,6 +107,7 @@ export interface Company {
   city: string;
   state: string;
   country: string;
+  ownership?: string;
   decisionMakerCount: number;
   verifiedContactsCount: number;
   icpScore: number;
@@ -215,11 +218,21 @@ export default function LeadIntellectWorkspace() {
   // People Query & Filters State
   const [query, setQuery] = useState("");
   const [seniority, setSeniority] = useState<string[]>([]);
+  const [titleFilter, setTitleFilter] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
+  const [stateFilter, setStateFilter] = useState("");
+  const [companyFilter, setCompanyFilter] = useState("");
   const [industry, setIndustry] = useState("all");
   const [country, setCountry] = useState("all");
   const [employeeRange, setEmployeeRange] = useState("all");
+  const [revenueFilter, setRevenueFilter] = useState("all");
+  const [ownershipFilter, setOwnershipFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
   const [emailStatus, setEmailStatus] = useState("all");
   const [hasPhone, setHasPhone] = useState(false);
+  const [hasEmailFilter, setHasEmailFilter] = useState(false);
+  const [hasLinkedinFilter, setHasLinkedinFilter] = useState(false);
+  const [minContactsFilter, setMinContactsFilter] = useState("all");
   const [minScore, setMinScore] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -242,10 +255,14 @@ export default function LeadIntellectWorkspace() {
     industries: string[];
     countries: string[];
     seniorities: string[];
+    states?: string[];
+    revenues?: string[];
   }>({
     industries: [],
     countries: [],
     seniorities: [],
+    states: [],
+    revenues: [],
   });
 
   // Selection & Detail Panel State
@@ -254,11 +271,14 @@ export default function LeadIntellectWorkspace() {
   const [activeCompanyProfile, setActiveCompanyProfile] = useState<Company | null>(null);
   const [revealedContacts, setRevealedContacts] = useState<Record<string, { email: string; phone: string; linkedin: string }>>({});
   const [revealingId, setRevealingId] = useState<string | null>(null);
+  const [copiedItem, setCopiedItem] = useState<string | null>(null);
 
   // Lists & Saved Searches
   const [userLists, setUserLists] = useState<UserList[]>([]);
   const [listModalOpen, setListModalOpen] = useState(false);
   const [newListName, setNewListName] = useState("");
+  const [newListDescription, setNewListDescription] = useState("");
+  const [savingList, setSavingList] = useState(false);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
 
   // Outreach Draft State
@@ -336,11 +356,20 @@ interface IntegrationHealthItem {
         const params = new URLSearchParams();
         if (query) params.set("query", query);
         if (seniority.length > 0) params.set("seniority", seniority.join(","));
+        if (titleFilter) params.set("title", titleFilter);
+        if (cityFilter) params.set("city", cityFilter);
+        if (stateFilter) params.set("state", stateFilter);
+        if (companyFilter) params.set("companyName", companyFilter);
         if (industry !== "all") params.set("industry", industry);
         if (country !== "all") params.set("country", country);
         if (employeeRange !== "all") params.set("employeeRange", employeeRange);
+        if (revenueFilter !== "all") params.set("revenueRange", revenueFilter);
+        if (ownershipFilter !== "all") params.set("ownership", ownershipFilter);
+        if (departmentFilter !== "all") params.set("department", departmentFilter);
         if (emailStatus !== "all") params.set("emailStatus", emailStatus);
         if (hasPhone) params.set("hasPhone", "true");
+        if (hasEmailFilter) params.set("hasEmail", "true");
+        if (hasLinkedinFilter) params.set("hasLinkedin", "true");
         if (minScore > 0) params.set("minScore", minScore.toString());
         params.set("page", page.toString());
         params.set("limit", "25");
@@ -371,7 +400,12 @@ interface IntegrationHealthItem {
         if (query) params.set("query", query);
         if (industry !== "all") params.set("industry", industry);
         if (country !== "all") params.set("country", country);
+        if (stateFilter) params.set("state", stateFilter);
+        if (cityFilter) params.set("city", cityFilter);
         if (employeeRange !== "all") params.set("employeeRange", employeeRange);
+        if (revenueFilter !== "all") params.set("revenueRange", revenueFilter);
+        if (ownershipFilter !== "all") params.set("ownership", ownershipFilter);
+        if (minContactsFilter !== "all") params.set("minContacts", minContactsFilter);
         params.set("page", page.toString());
         params.set("limit", "25");
 
@@ -399,11 +433,21 @@ interface IntegrationHealthItem {
     discoverMode,
     query,
     seniority,
+    titleFilter,
+    cityFilter,
+    stateFilter,
+    companyFilter,
     industry,
     country,
     employeeRange,
+    revenueFilter,
+    ownershipFilter,
+    departmentFilter,
     emailStatus,
     hasPhone,
+    hasEmailFilter,
+    hasLinkedinFilter,
+    minContactsFilter,
     minScore,
     page,
   ]);
@@ -516,27 +560,41 @@ interface IntegrationHealthItem {
   // Create new list
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newListName.trim()) return;
+    if (!newListName.trim()) {
+      showToast("Please enter a name for your list.", "error");
+      return;
+    }
+    setSavingList(true);
 
     try {
+      const email = currentUser?.email || "guest@leadintellect.ai";
       const res = await fetch("/api/lists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userEmail: currentUser?.email || "guest@leadintellect.ai",
-          name: newListName,
+          userEmail: email,
+          name: newListName.trim(),
+          description: newListDescription.trim(),
           prospectIds: selectedIds,
         }),
       });
-      if (res.ok) {
-        showToast(`Created list "${newListName}" with ${selectedIds.length} prospects.`);
+      const data = await res.json();
+      if (res.ok && data.list) {
+        showToast(`Created list "${newListName}" with ${selectedIds.length} prospects!`);
+        setUserLists((prev) => [data.list, ...prev.filter((l) => l.id !== data.list.id)]);
         setNewListName("");
+        setNewListDescription("");
         setListModalOpen(false);
         setSelectedIds([]);
         fetchLists();
+      } else {
+        showToast(data.error || "Failed to create list.", "error");
       }
-    } catch {
-      showToast("Failed to create list.", "error");
+    } catch (err) {
+      console.error("List creation network error:", err);
+      showToast("Network error creating list. Please try again.", "error");
+    } finally {
+      setSavingList(false);
     }
   };
 
@@ -659,157 +717,449 @@ interface IntegrationHealthItem {
   };
 
   const renderFilterBody = () => (
-    <div className="space-y-6">
+    <div className="space-y-5 text-xs">
       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
         <span className="text-xs font-bold uppercase tracking-wider text-navy flex items-center gap-1.5">
           <Filter className="w-3.5 h-3.5 text-teal-dark" />
-          Filters
+          Filter Criteria
         </span>
         <button
           type="button"
           onClick={() => {
             setSeniority([]);
+            setTitleFilter("");
+            setCityFilter("");
+            setStateFilter("");
+            setCompanyFilter("");
             setIndustry("all");
             setCountry("all");
             setEmployeeRange("all");
+            setRevenueFilter("all");
+            setOwnershipFilter("all");
+            setDepartmentFilter("all");
             setEmailStatus("all");
             setHasPhone(false);
+            setHasEmailFilter(false);
+            setHasLinkedinFilter(false);
+            setMinContactsFilter("all");
             setMinScore(0);
             setQuery("");
             setPage(1);
           }}
-          className="text-[11px] font-medium text-text-muted hover:text-rose-600 cursor-pointer"
+          className="text-[11px] font-semibold text-text-muted hover:text-rose-600 transition-colors cursor-pointer"
         >
           Reset All
         </button>
       </div>
 
-      {/* Seniority Filter */}
-      {discoverMode === "people" && (
-        <div>
-          <label className="block text-xs font-bold text-navy mb-2">Seniority Tier</label>
-          <div className="space-y-1.5">
-            {["C-Suite", "VP", "Director", "Manager", "Founder / Owner", "Professional / IC"].map(
-              (lvl) => {
-                const active = seniority.includes(lvl);
-                return (
-                  <button
-                    key={lvl}
-                    type="button"
-                    onClick={() => {
-                      setSeniority((prev) =>
-                        prev.includes(lvl) ? prev.filter((s) => s !== lvl) : [...prev, lvl]
-                      );
-                      setPage(1);
-                    }}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
-                      active
-                        ? "bg-navy text-white font-semibold shadow-xs"
-                        : "text-slate-600 hover:bg-slate-100"
-                    }`}
-                  >
-                    <span>{lvl}</span>
-                    {active && <Check className="w-3 h-3 text-teal" />}
-                  </button>
-                );
-              }
-            )}
+      {/* PEOPLE MODE FILTERS */}
+      {discoverMode === "people" ? (
+        <>
+          {/* Job Title & Role Search */}
+          <div>
+            <label className="block text-[11px] font-bold text-navy mb-1">Job Title / Role</label>
+            <input
+              type="text"
+              value={titleFilter}
+              onChange={(e) => {
+                setTitleFilter(e.target.value);
+                setPage(1);
+              }}
+              placeholder="e.g. VP Sales, CTO, Director"
+              className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark"
+            />
           </div>
-        </div>
-      )}
 
-      {/* Industry Filter */}
-      <div>
-        <label className="block text-xs font-bold text-navy mb-2">Industry Sector</label>
-        <select
-          value={industry}
-          onChange={(e) => {
-            setIndustry(e.target.value);
-            setPage(1);
-          }}
-          className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
-        >
-          <option value="all">All Industries ({facets.industries.length})</option>
-          {facets.industries.map((ind) => (
-            <option key={ind} value={ind}>
-              {ind}
-            </option>
-          ))}
-        </select>
-      </div>
+          {/* Seniority Tier Selector */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[11px] font-bold text-navy">Seniority Level</label>
+              {seniority.length > 0 && (
+                <span className="text-[10px] text-teal-dark font-bold">{seniority.length} active</span>
+              )}
+            </div>
+            <div className="space-y-1">
+              {["C-Suite", "VP", "Director", "Manager", "Founder / Owner", "Professional / IC"].map(
+                (lvl) => {
+                  const active = seniority.includes(lvl);
+                  return (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => {
+                        setSeniority((prev) =>
+                          prev.includes(lvl) ? prev.filter((s) => s !== lvl) : [...prev, lvl]
+                        );
+                        setPage(1);
+                      }}
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                        active
+                          ? "bg-navy text-white font-semibold shadow-xs"
+                          : "text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      <span>{lvl}</span>
+                      {active && <Check className="w-3 h-3 text-teal" />}
+                    </button>
+                  );
+                }
+              )}
+            </div>
+          </div>
 
-      {/* Country Filter */}
-      <div>
-        <label className="block text-xs font-bold text-navy mb-2">Geography / Country</label>
-        <select
-          value={country}
-          onChange={(e) => {
-            setCountry(e.target.value);
-            setPage(1);
-          }}
-          className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
-        >
-          <option value="all">Global (All Locations)</option>
-          {facets.countries.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-      </div>
+          {/* Department / Function */}
+          <div>
+            <label className="block text-[11px] font-bold text-navy mb-1">Department / Function</label>
+            <select
+              value={departmentFilter}
+              onChange={(e) => {
+                setDepartmentFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
+            >
+              <option value="all">All Departments</option>
+              <option value="Engineering">Engineering &amp; Technical</option>
+              <option value="Sales">Sales &amp; Business Development</option>
+              <option value="Marketing">Marketing &amp; Growth</option>
+              <option value="Product">Product Management</option>
+              <option value="Operations">Operations &amp; Delivery</option>
+              <option value="Finance">Finance &amp; Accounting</option>
+              <option value="Human Resources">Human Resources &amp; Talent</option>
+              <option value="Legal">Legal &amp; Compliance</option>
+              <option value="Information Technology">Information Technology (IT)</option>
+              <option value="Executive">Executive Leadership</option>
+            </select>
+          </div>
 
-      {/* Employee Headcount Range */}
-      <div>
-        <label className="block text-xs font-bold text-navy mb-2">Company Headcount</label>
-        <select
-          value={employeeRange}
-          onChange={(e) => {
-            setEmployeeRange(e.target.value);
-            setPage(1);
-          }}
-          className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
-        >
-          <option value="all">All Sizes</option>
-          <option value="11-50">11 - 50 Employees</option>
-          <option value="51-200">51 - 200 Employees (Growth)</option>
-          <option value="201-500">201 - 500 Employees</option>
-          <option value="501-1000">501 - 1,000 Employees</option>
-          <option value="1000+">1,000+ Enterprise</option>
-        </select>
-      </div>
+          {/* Company Name */}
+          <div>
+            <label className="block text-[11px] font-bold text-navy mb-1">Company Name</label>
+            <input
+              type="text"
+              value={companyFilter}
+              onChange={(e) => {
+                setCompanyFilter(e.target.value);
+                setPage(1);
+              }}
+              placeholder="e.g. Acme, Stripe, Datadog"
+              className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark"
+            />
+          </div>
 
-      {/* Contact Reachability Filters */}
-      {discoverMode === "people" && (
-        <div className="pt-2 border-t border-slate-100 space-y-3">
-          <label className="block text-xs font-bold text-navy">Contact Verification</label>
+          {/* Location: Country, State, City */}
+          <div className="pt-2 border-t border-slate-100 space-y-2">
+            <label className="block text-[11px] font-bold text-navy">Location (City, State, Country)</label>
+            <select
+              value={country}
+              onChange={(e) => {
+                setCountry(e.target.value);
+                setPage(1);
+              }}
+              className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
+            >
+              <option value="all">All Countries (Global)</option>
+              {facets.countries.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+
+            <div className="grid grid-cols-2 gap-1.5">
+              <input
+                type="text"
+                value={stateFilter}
+                onChange={(e) => {
+                  setStateFilter(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="State / Region"
+                className="text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark"
+              />
+              <input
+                type="text"
+                value={cityFilter}
+                onChange={(e) => {
+                  setCityFilter(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="City"
+                className="text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark"
+              />
+            </div>
+          </div>
+
+          {/* Industry Sector */}
+          <div>
+            <label className="block text-[11px] font-bold text-navy mb-1">Industry Sector</label>
+            <select
+              value={industry}
+              onChange={(e) => {
+                setIndustry(e.target.value);
+                setPage(1);
+              }}
+              className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
+            >
+              <option value="all">All Industries ({facets.industries.length})</option>
+              {facets.industries.map((ind) => (
+                <option key={ind} value={ind}>
+                  {ind}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Company Scale: Headcount & Revenue */}
+          <div className="pt-2 border-t border-slate-100 space-y-2.5">
+            <label className="block text-[11px] font-bold text-navy">Company Scale</label>
+            <div>
+              <span className="text-[10px] text-slate-500 mb-1 block">Employee Headcount</span>
+              <select
+                value={employeeRange}
+                onChange={(e) => {
+                  setEmployeeRange(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
+              >
+                <option value="all">All Headcounts</option>
+                <option value="1-10">1 - 10 Employees (Seed)</option>
+                <option value="11-50">11 - 50 Employees (Early)</option>
+                <option value="51-200">51 - 200 Employees (Growth)</option>
+                <option value="201-500">201 - 500 Employees (Mid-Market)</option>
+                <option value="501-1000">501 - 1,000 Employees</option>
+                <option value="1000+">1,000+ Enterprise</option>
+              </select>
+            </div>
+
+            <div>
+              <span className="text-[10px] text-slate-500 mb-1 block">Annual Revenue</span>
+              <select
+                value={revenueFilter}
+                onChange={(e) => {
+                  setRevenueFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
+              >
+                <option value="all">All Revenue Ranges</option>
+                <option value="< $1M">&lt; $1M ARR</option>
+                <option value="$1M - $10M">$1M - $10M ARR</option>
+                <option value="$10M - $50M">$10M - $50M ARR</option>
+                <option value="$50M - $250M">$50M - $250M ARR</option>
+                <option value="$250M - $1B">$250M - $1B ARR</option>
+                <option value="$1B+">$1B+ Enterprise ARR</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Contact Reachability & Verification */}
+          <div className="pt-2 border-t border-slate-100 space-y-2">
+            <label className="block text-[11px] font-bold text-navy">Contact Reachability</label>
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer hover:text-navy">
+                <input
+                  type="checkbox"
+                  checked={emailStatus === "verified"}
+                  onChange={(e) => {
+                    setEmailStatus(e.target.checked ? "verified" : "all");
+                    setPage(1);
+                  }}
+                  className="rounded text-teal-dark focus:ring-teal-dark cursor-pointer"
+                />
+                <span>Verified Deliverable Email Only</span>
+              </label>
+
+              <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer hover:text-navy">
+                <input
+                  type="checkbox"
+                  checked={hasEmailFilter}
+                  onChange={(e) => {
+                    setHasEmailFilter(e.target.checked);
+                    setPage(1);
+                  }}
+                  className="rounded text-teal-dark focus:ring-teal-dark cursor-pointer"
+                />
+                <span>Work Email Available</span>
+              </label>
+
+              <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer hover:text-navy">
+                <input
+                  type="checkbox"
+                  checked={hasPhone}
+                  onChange={(e) => {
+                    setHasPhone(e.target.checked);
+                    setPage(1);
+                  }}
+                  className="rounded text-teal-dark focus:ring-teal-dark cursor-pointer"
+                />
+                <span>Direct Dial Available</span>
+              </label>
+
+              <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer hover:text-navy">
+                <input
+                  type="checkbox"
+                  checked={hasLinkedinFilter}
+                  onChange={(e) => {
+                    setHasLinkedinFilter(e.target.checked);
+                    setPage(1);
+                  }}
+                  className="rounded text-teal-dark focus:ring-teal-dark cursor-pointer"
+                />
+                <span>LinkedIn Profile URL Available</span>
+              </label>
+            </div>
+          </div>
+        </>
+      ) : (
+        /* COMPANIES MODE FILTERS */
+        <>
+          {/* Industry Filter */}
+          <div>
+            <label className="block text-[11px] font-bold text-navy mb-1">Industry Sector</label>
+            <select
+              value={industry}
+              onChange={(e) => {
+                setIndustry(e.target.value);
+                setPage(1);
+              }}
+              className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
+            >
+              <option value="all">All Industries ({facets.industries.length})</option>
+              {facets.industries.map((ind) => (
+                <option key={ind} value={ind}>
+                  {ind}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Location: Country, State, City */}
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={emailStatus === "verified"}
-                onChange={(e) => {
-                  setEmailStatus(e.target.checked ? "verified" : "all");
-                  setPage(1);
-                }}
-                className="rounded text-teal-dark focus:ring-teal-dark cursor-pointer"
-              />
-              <span>Verified Deliverable Only</span>
-            </label>
+            <label className="block text-[11px] font-bold text-navy">Headquarters Location</label>
+            <select
+              value={country}
+              onChange={(e) => {
+                setCountry(e.target.value);
+                setPage(1);
+              }}
+              className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
+            >
+              <option value="all">Global (All Locations)</option>
+              {facets.countries.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
 
-            <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+            <div className="grid grid-cols-2 gap-1.5">
               <input
-                type="checkbox"
-                checked={hasPhone}
+                type="text"
+                value={stateFilter}
                 onChange={(e) => {
-                  setHasPhone(e.target.checked);
+                  setStateFilter(e.target.value);
                   setPage(1);
                 }}
-                className="rounded text-teal-dark focus:ring-teal-dark cursor-pointer"
+                placeholder="State / Region"
+                className="text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark"
               />
-              <span>Direct Dial Available</span>
-            </label>
+              <input
+                type="text"
+                value={cityFilter}
+                onChange={(e) => {
+                  setCityFilter(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="City"
+                className="text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark"
+              />
+            </div>
           </div>
-        </div>
+
+          {/* Company Scale: Headcount & Revenue */}
+          <div className="pt-2 border-t border-slate-100 space-y-2.5">
+            <label className="block text-[11px] font-bold text-navy">Scale &amp; Revenue</label>
+            <div>
+              <span className="text-[10px] text-slate-500 mb-1 block">Headcount Range</span>
+              <select
+                value={employeeRange}
+                onChange={(e) => {
+                  setEmployeeRange(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
+              >
+                <option value="all">All Sizes</option>
+                <option value="1-10">1 - 10 Employees</option>
+                <option value="11-50">11 - 50 Employees</option>
+                <option value="51-200">51 - 200 Employees (Growth)</option>
+                <option value="201-500">201 - 500 Employees</option>
+                <option value="501-1000">501 - 1,000 Employees</option>
+                <option value="1000+">1,000+ Enterprise</option>
+              </select>
+            </div>
+
+            <div>
+              <span className="text-[10px] text-slate-500 mb-1 block">Annual Revenue</span>
+              <select
+                value={revenueFilter}
+                onChange={(e) => {
+                  setRevenueFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
+              >
+                <option value="all">All Revenue Ranges</option>
+                <option value="< $1M">&lt; $1M ARR</option>
+                <option value="$1M - $10M">$1M - $10M ARR</option>
+                <option value="$10M - $50M">$10M - $50M ARR</option>
+                <option value="$50M - $250M">$50M - $250M ARR</option>
+                <option value="$250M - $1B">$250M - $1B ARR</option>
+                <option value="$1B+">$1B+ Enterprise ARR</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Minimum Decision-Makers */}
+          <div className="pt-2 border-t border-slate-100">
+            <label className="block text-[11px] font-bold text-navy mb-1">Decision-Makers in Account</label>
+            <select
+              value={minContactsFilter}
+              onChange={(e) => {
+                setMinContactsFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
+            >
+              <option value="all">Any Decision-Makers</option>
+              <option value="1">At least 1+ Contact</option>
+              <option value="5">At least 5+ Contacts</option>
+              <option value="10">At least 10+ Contacts</option>
+              <option value="20">At least 20+ Contacts</option>
+            </select>
+          </div>
+
+          {/* Ownership */}
+          <div>
+            <label className="block text-[11px] font-bold text-navy mb-1">Ownership Type</label>
+            <select
+              value={ownershipFilter}
+              onChange={(e) => {
+                setOwnershipFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-slate-50 text-navy focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
+            >
+              <option value="all">All Ownership Types</option>
+              <option value="Privately Held">Privately Held</option>
+              <option value="Public Company">Public Company</option>
+              <option value="Venture Backed">Venture Backed</option>
+              <option value="Bootstrapped">Bootstrapped</option>
+            </select>
+          </div>
+        </>
       )}
     </div>
   );
@@ -1277,6 +1627,316 @@ interface IntegrationHealthItem {
                       </span>
                     </div>
                   </div>
+
+                  {/* Active Filter Pills Bar (Apollo / B2B Experience) */}
+                  {(titleFilter ||
+                    cityFilter ||
+                    stateFilter ||
+                    companyFilter ||
+                    seniority.length > 0 ||
+                    industry !== "all" ||
+                    country !== "all" ||
+                    employeeRange !== "all" ||
+                    revenueFilter !== "all" ||
+                    ownershipFilter !== "all" ||
+                    departmentFilter !== "all" ||
+                    emailStatus !== "all" ||
+                    hasPhone ||
+                    hasEmailFilter ||
+                    hasLinkedinFilter ||
+                    minContactsFilter !== "all") && (
+                    <div className="flex flex-wrap items-center gap-1.5 mb-4 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                      <span className="text-[11px] font-bold text-navy mr-1 flex items-center gap-1">
+                        <Sliders className="w-3 h-3 text-teal-dark" />
+                        Active Filters:
+                      </span>
+
+                      {titleFilter && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-slate-300 text-navy text-[11px] shadow-2xs font-medium">
+                          Role: <b>{titleFilter}</b>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTitleFilter("");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 text-slate-400 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {seniority.map((lvl) => (
+                        <span
+                          key={lvl}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-navy text-white text-[11px] shadow-2xs font-medium"
+                        >
+                          {lvl}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSeniority((prev) => prev.filter((s) => s !== lvl));
+                              setPage(1);
+                            }}
+                            className="hover:text-teal text-slate-300 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+
+                      {departmentFilter !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-slate-300 text-navy text-[11px] shadow-2xs font-medium">
+                          Dept: <b>{departmentFilter}</b>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDepartmentFilter("all");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 text-slate-400 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {companyFilter && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-slate-300 text-navy text-[11px] shadow-2xs font-medium">
+                          Company: <b>{companyFilter}</b>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCompanyFilter("");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 text-slate-400 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {country !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-slate-300 text-navy text-[11px] shadow-2xs font-medium">
+                          Country: <b>{country}</b>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCountry("all");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 text-slate-400 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {stateFilter && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-slate-300 text-navy text-[11px] shadow-2xs font-medium">
+                          State: <b>{stateFilter}</b>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStateFilter("");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 text-slate-400 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {cityFilter && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-slate-300 text-navy text-[11px] shadow-2xs font-medium">
+                          City: <b>{cityFilter}</b>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCityFilter("");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 text-slate-400 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {industry !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-slate-300 text-navy text-[11px] shadow-2xs font-medium">
+                          Industry: <b>{industry}</b>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIndustry("all");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 text-slate-400 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {employeeRange !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-slate-300 text-navy text-[11px] shadow-2xs font-medium">
+                          Emps: <b>{employeeRange}</b>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEmployeeRange("all");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 text-slate-400 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {revenueFilter !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-slate-300 text-navy text-[11px] shadow-2xs font-medium">
+                          Rev: <b>{revenueFilter}</b>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRevenueFilter("all");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 text-slate-400 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {ownershipFilter !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-slate-300 text-navy text-[11px] shadow-2xs font-medium">
+                          Ownership: <b>{ownershipFilter}</b>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOwnershipFilter("all");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 text-slate-400 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {emailStatus === "verified" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-[11px] shadow-2xs font-semibold">
+                          Verified Email
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEmailStatus("all");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 text-emerald-600 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {hasEmailFilter && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-teal/10 border border-teal/30 text-teal-dark text-[11px] shadow-2xs font-semibold">
+                          Has Email
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setHasEmailFilter(false);
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 text-teal-dark cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {hasPhone && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-teal/10 border border-teal/30 text-teal-dark text-[11px] shadow-2xs font-semibold">
+                          Has Direct Dial
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setHasPhone(false);
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 text-teal-dark cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {hasLinkedinFilter && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-sky-50 border border-sky-300 text-sky-800 text-[11px] shadow-2xs font-semibold">
+                          LinkedIn Profile
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setHasLinkedinFilter(false);
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 text-sky-600 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {minContactsFilter !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-slate-300 text-navy text-[11px] shadow-2xs font-medium">
+                          Min Contacts: <b>{minContactsFilter}+</b>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMinContactsFilter("all");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 text-slate-400 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSeniority([]);
+                          setTitleFilter("");
+                          setCityFilter("");
+                          setStateFilter("");
+                          setCompanyFilter("");
+                          setIndustry("all");
+                          setCountry("all");
+                          setEmployeeRange("all");
+                          setRevenueFilter("all");
+                          setOwnershipFilter("all");
+                          setDepartmentFilter("all");
+                          setEmailStatus("all");
+                          setHasPhone(false);
+                          setHasEmailFilter(false);
+                          setHasLinkedinFilter(false);
+                          setMinContactsFilter("all");
+                          setPage(1);
+                        }}
+                        className="ml-auto text-[11px] font-bold text-rose-600 hover:underline cursor-pointer"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                  )}
 
                   {/* Results Table */}
                   {loading ? (
@@ -2161,125 +2821,376 @@ interface IntegrationHealthItem {
         )}
       </div>
 
-      {/* Slide-Over Drawer: Prospect Detail Profile (WHO, WHY, FIT, SIGNALS, NEXT) */}
+      {/* Slide-Over Drawer: Complete Prospect Intelligence Dossier */}
       {activeProfile && (
-        <div className="fixed inset-0 z-50 overflow-hidden flex justify-end bg-navy/30 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-lg bg-white h-full shadow-2xl p-6 overflow-y-auto flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
+        <div className="fixed inset-0 z-50 overflow-hidden flex justify-end bg-navy/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-xl bg-white h-full shadow-2xl p-6 overflow-y-auto flex flex-col justify-between">
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <span className="text-xs font-bold uppercase tracking-wider text-teal-dark flex items-center gap-1.5">
-                  <UserCheck className="w-4 h-4" />
-                  Prospect Intelligence Workspace
+                  <UserCheck className="w-4 h-4 text-teal-dark" />
+                  Full Contact Intelligence Dossier
                 </span>
                 <button
                   onClick={() => setActiveProfile(null)}
-                  className="text-slate-400 hover:text-navy p-1 cursor-pointer"
+                  className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-navy cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* WHO Section */}
-              <div className="space-y-4">
-                <div>
-                  <h2 className="text-xl font-extrabold text-navy">{activeProfile.name}</h2>
-                  <p className="text-xs font-semibold text-slate-700 mt-0.5">
-                    {activeProfile.title} &middot; {activeProfile.seniority}
-                  </p>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    {activeProfile.company} &middot; {activeProfile.location}
-                  </p>
+              {/* Profile Identity Card */}
+              <div className="flex items-start gap-4 p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100/70 border border-slate-200">
+                <div className="w-13 h-13 rounded-2xl bg-navy text-teal font-extrabold text-base flex items-center justify-center shrink-0 shadow-xs border-2 border-teal/30">
+                  {activeProfile.firstName?.[0] || activeProfile.name?.[0] || "U"}
+                  {activeProfile.lastName?.[0] || activeProfile.name?.split(" ")?.[1]?.[0] || ""}
                 </div>
 
-                {/* FIT Score Bar */}
-                <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-navy">ICP Fit Analysis:</span>
-                    <span className="text-sm font-extrabold text-emerald-700">
-                      {activeProfile.icpScore}/100 ({activeProfile.icpTier})
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-lg font-extrabold text-navy truncate">{activeProfile.name}</h2>
+                    {activeProfile.linkedin && (
+                      <a
+                        href={activeProfile.linkedin}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-slate-400 hover:text-[#0a66c2] p-1 inline-flex items-center transition-colors"
+                        title="Open LinkedIn Profile"
+                      >
+                        <LinkedInIcon className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
+                  <p className="text-xs font-semibold text-slate-700 mt-0.5">{activeProfile.title}</p>
+
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <span className="text-[10px] font-bold bg-navy text-white px-2 py-0.5 rounded-md">
+                      {activeProfile.seniority}
+                    </span>
+                    <span className="text-[10px] font-semibold bg-white border border-slate-200 text-slate-700 px-2 py-0.5 rounded-md">
+                      {activeProfile.department}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                        activeProfile.icpTier === "Tier 1"
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                          : "bg-slate-100 text-slate-700 border-slate-200"
+                      }`}
+                    >
+                      {activeProfile.icpTier} &middot; Score {activeProfile.icpScore}/100
                     </span>
                   </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2">
-                    <div
-                      className="bg-emerald-600 h-2 rounded-full"
-                      style={{ width: `${activeProfile.icpScore}%` }}
-                    />
-                  </div>
                 </div>
+              </div>
 
-                {/* 5-Question Framework */}
-                <div className="space-y-3 pt-2">
-                  <div className="rounded-xl border border-slate-200 p-3 bg-white">
-                    <p className="text-[10px] font-bold uppercase text-navy">WHO</p>
-                    <p className="text-xs text-slate-700 mt-0.5">
-                      {activeProfile.seniority} leader managing {activeProfile.department} at {activeProfile.company}.
-                    </p>
+              {/* Direct Reachability (Email & Phone) */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-navy flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-teal-dark" />
+                  Direct Reachability &amp; Channels
+                </h3>
+
+                {/* Work Email Card */}
+                <div className="p-3.5 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                      <Mail className="w-3.5 h-3.5 text-slate-400" />
+                      Work Email
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        activeProfile.emailStatus === "verified"
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : "bg-sky-50 text-sky-700 border border-sky-200"
+                      }`}
+                    >
+                      {activeProfile.emailStatus === "verified" ? "Verified Deliverable" : "Deliverable MX"}
+                      {" "}({activeProfile.emailConfidence}% confidence)
+                    </span>
                   </div>
 
-                  <div className="rounded-xl border border-slate-200 p-3 bg-white">
-                    <p className="text-[10px] font-bold uppercase text-navy">WHY MATCHES</p>
-                    <p className="text-xs text-slate-700 mt-0.5">
-                      Company scale ({activeProfile.employeeRange} employees, {activeProfile.revenueRange}) aligns with target ICP criteria in {activeProfile.industry}.
-                    </p>
-                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    {revealedContacts[activeProfile.id] ? (
+                      <span className="text-sm font-bold text-navy select-all font-mono">
+                        {revealedContacts[activeProfile.id].email || activeProfile.email}
+                      </span>
+                    ) : (
+                      <span className="text-sm font-mono text-slate-500">
+                        {activeProfile.email
+                          ? activeProfile.email.replace(/(.{2})(.*)(@.*)/, "$1***$3")
+                          : "Verified mailbox available"}
+                      </span>
+                    )}
 
-                  <div className="rounded-xl border border-slate-200 p-3 bg-white">
-                    <p className="text-[10px] font-bold uppercase text-navy">DATA PROVENANCE</p>
-                    <p className="text-xs text-slate-700 mt-0.5">
-                      Status: <b className="text-navy">{activeProfile.emailStatus}</b> ({activeProfile.emailConfidence}% confidence). Source: {activeProfile.verificationSource}.
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-200 p-3 bg-white">
-                    <p className="text-[10px] font-bold uppercase text-navy">CONTACT DETAILS</p>
-                    <div className="mt-1 space-y-1 text-xs">
+                    <div className="flex items-center gap-1.5">
                       {revealedContacts[activeProfile.id] ? (
-                        <>
-                          <p className="text-emerald-700 font-semibold flex items-center gap-1.5">
-                            <Mail className="w-3.5 h-3.5" />
-                            {revealedContacts[activeProfile.id].email || activeProfile.email}
-                          </p>
-                          {revealedContacts[activeProfile.id].phone && (
-                            <p className="text-slate-700 flex items-center gap-1.5">
-                              <Phone className="w-3.5 h-3.5 text-teal-dark" />
-                              {revealedContacts[activeProfile.id].phone}
-                            </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = revealedContacts[activeProfile.id].email || activeProfile.email;
+                            navigator.clipboard.writeText(val);
+                            setCopiedItem("email");
+                            setTimeout(() => setCopiedItem(null), 2500);
+                          }}
+                          className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center gap-1 cursor-pointer"
+                        >
+                          {copiedItem === "email" ? (
+                            <>
+                              <Check className="w-3 h-3 text-emerald-600" />
+                              <span className="text-emerald-700 font-bold">Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3 text-slate-500" />
+                              <span>Copy</span>
+                            </>
                           )}
-                        </>
+                        </button>
                       ) : (
-                        <p className="text-text-muted">
-                          Email and direct dial hidden. Click &quot;Reveal Contact Details&quot; below to access.
-                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleRevealContact(activeProfile)}
+                          disabled={revealingId === activeProfile.id}
+                          className="px-2.5 py-1 rounded-lg bg-teal/15 hover:bg-teal/25 text-teal-dark text-[11px] font-bold flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        >
+                          {revealingId === activeProfile.id ? (
+                            <RefreshCw className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Eye className="w-3 h-3" />
+                          )}
+                          <span>Reveal Email (1 Cr)</span>
+                        </button>
                       )}
                     </div>
+                  </div>
+
+                  <p className="text-[10px] text-text-muted pt-1 border-t border-slate-100">
+                    Provenance: {activeProfile.verificationSource} &middot; Verified on {activeProfile.verificationDate}
+                  </p>
+                </div>
+
+                {/* Direct Dial Phone Card */}
+                <div className="p-3.5 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                      <Phone className="w-3.5 h-3.5 text-slate-400" />
+                      Direct Phone / Dial
+                    </span>
+                    <span className="text-[10px] font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">
+                      {activeProfile.phoneType || (activeProfile.hasPhone ? "Direct Mobile" : "HQ Line")}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    {revealedContacts[activeProfile.id] ? (
+                      <span className="text-sm font-bold text-navy select-all font-mono">
+                        {revealedContacts[activeProfile.id].phone || activeProfile.phone || "+1 (Direct Mobile)"}
+                      </span>
+                    ) : (
+                      <span className="text-sm font-mono text-slate-500">
+                        {activeProfile.hasPhone ? "+1 (***) ***-**" + (activeProfile.phone ? activeProfile.phone.slice(-2) : "88") : "Available upon reveal"}
+                      </span>
+                    )}
+
+                    <div className="flex items-center gap-1.5">
+                      {revealedContacts[activeProfile.id] ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = revealedContacts[activeProfile.id].phone || activeProfile.phone;
+                            if (val) navigator.clipboard.writeText(val);
+                            setCopiedItem("phone");
+                            setTimeout(() => setCopiedItem(null), 2500);
+                          }}
+                          className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center gap-1 cursor-pointer"
+                        >
+                          {copiedItem === "phone" ? (
+                            <>
+                              <Check className="w-3 h-3 text-emerald-600" />
+                              <span className="text-emerald-700 font-bold">Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3 text-slate-500" />
+                              <span>Copy</span>
+                            </>
+                          )}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleRevealContact(activeProfile)}
+                          disabled={revealingId === activeProfile.id}
+                          className="px-2.5 py-1 rounded-lg bg-teal/15 hover:bg-teal/25 text-teal-dark text-[11px] font-bold flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        >
+                          {revealingId === activeProfile.id ? (
+                            <RefreshCw className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Eye className="w-3 h-3" />
+                          )}
+                          <span>Reveal Phone (1 Cr)</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Role & Reporting Structure */}
+              <div className="rounded-xl border border-slate-200 p-4 bg-white space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-navy flex items-center gap-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-teal-dark" />
+                  Role &amp; Reporting Scope
+                </h3>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Reports To</span>
+                    <p className="font-semibold text-navy mt-0.5">
+                      {activeProfile.reportsTo || "Executive Leadership / C-Suite"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Department</span>
+                    <p className="font-semibold text-navy mt-0.5">{activeProfile.department}</p>
+                  </div>
+                </div>
+                {activeProfile.jobFunctions && (
+                  <div className="pt-2 border-t border-slate-100">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
+                      Functional Responsibilities
+                    </span>
+                    <p className="text-xs text-slate-600 leading-relaxed">{activeProfile.jobFunctions}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Company & Firmographics Intel */}
+              <div className="rounded-xl border border-slate-200 p-4 bg-white space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-navy flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-teal-dark" />
+                    Account &amp; Firmographics
+                  </h3>
+                  {activeProfile.website && (
+                    <a
+                      href={activeProfile.website}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] font-semibold text-teal-dark hover:underline flex items-center gap-1"
+                    >
+                      <span>{activeProfile.domain || "Website"}</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Company Name</span>
+                    <p className="font-bold text-navy mt-0.5">{activeProfile.company}</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Industry</span>
+                    <p className="font-semibold text-navy mt-0.5">{activeProfile.industry}</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Headcount Scale</span>
+                    <p className="font-semibold text-navy mt-0.5">
+                      {activeProfile.employees?.toLocaleString()} emps ({activeProfile.employeeRange})
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Annual Revenue</span>
+                    <p className="font-semibold text-navy mt-0.5">
+                      {activeProfile.revenueRange} (${activeProfile.revenueMil}M ARR)
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Location / HQ</span>
+                    <p className="font-semibold text-navy mt-0.5">
+                      {activeProfile.city ? `${activeProfile.city}, ${activeProfile.state}` : activeProfile.location},{" "}
+                      {activeProfile.country}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Ownership</span>
+                    <p className="font-semibold text-navy mt-0.5">
+                      {activeProfile.ownership || "Privately Held"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ICP Fit Analysis Score Bar */}
+              <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-navy flex items-center gap-1.5">
+                    <Target className="w-3.5 h-3.5 text-teal-dark" />
+                    ICP Fit Analysis:
+                  </span>
+                  <span className="text-sm font-extrabold text-emerald-700">
+                    {activeProfile.icpScore}/100 ({activeProfile.icpTier})
+                  </span>
+                </div>
+                <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-emerald-600 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${activeProfile.icpScore}%` }}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 pt-1">
+                  <div>
+                    • Role Match: <b className="text-navy">{activeProfile.icpScore >= 80 ? "High Alignment" : "Moderate"}</b>
+                  </div>
+                  <div>
+                    • Firmographic Fit: <b className="text-navy">{activeProfile.employeeRange} Target</b>
+                  </div>
+                  <div>
+                    • Geo Proximity: <b className="text-navy">{activeProfile.country}</b>
+                  </div>
+                  <div>
+                    • Data Source: <b className="text-navy">{activeProfile.source || "B2B Master"}</b>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Profile Drawer Footer Actions */}
-            <div className="pt-6 border-t border-slate-100 flex items-center gap-3">
+            <div className="pt-6 border-t border-slate-100 flex items-center gap-2.5 mt-6">
               {!revealedContacts[activeProfile.id] ? (
                 <button
+                  type="button"
                   onClick={() => handleRevealContact(activeProfile)}
                   disabled={revealingId === activeProfile.id}
-                  className="flex-1 py-3 rounded-xl bg-navy text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-xl bg-navy text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-xs"
                 >
                   <Eye className="w-4 h-4" />
                   <span>Reveal Contact (1 Credit)</span>
                 </button>
               ) : (
                 <button
+                  type="button"
                   onClick={() => {
                     handleGenerateOutreach(activeProfile);
                     setActiveProfile(null);
                   }}
-                  className="flex-1 py-3 rounded-xl bg-navy text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 py-2.5 rounded-xl bg-navy text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <Send className="w-4 h-4" />
                   <span>Generate Outreach</span>
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={() => handleAddToPipeline(activeProfile)}
+                title="Add to sales pipeline"
+                className="px-3.5 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              >
+                <Kanban className="w-3.5 h-3.5 text-teal-dark" />
+                <span>Add to CRM</span>
+              </button>
             </div>
           </div>
         </div>
@@ -2289,9 +3200,14 @@ interface IntegrationHealthItem {
       {listModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-xl border border-slate-200">
-            <h3 className="text-base font-bold text-navy">Create New Prospect List</h3>
+            <h3 className="text-base font-bold text-navy flex items-center gap-2">
+              <BookmarkPlus className="w-4 h-4 text-teal-dark" />
+              Create New Prospect List
+            </h3>
             <p className="text-xs text-text-muted mt-1">
-              Add {selectedIds.length > 0 ? `${selectedIds.length} selected leads` : "leads"} to a saved list.
+              {selectedIds.length > 0
+                ? `Organize ${selectedIds.length} selected decision-makers into a targeted list.`
+                : "Create a list to organize prospective accounts and contacts."}
             </p>
 
             <form onSubmit={handleCreateList} className="mt-4 space-y-4">
@@ -2302,24 +3218,44 @@ interface IntegrationHealthItem {
                   required
                   value={newListName}
                   onChange={(e) => setNewListName(e.target.value)}
-                  placeholder="e.g. Q4 Target Accounts"
+                  placeholder="e.g. Q4 Growth Leaders"
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal-dark"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-navy mb-1">Description (Optional)</label>
+                <textarea
+                  rows={2}
+                  value={newListDescription}
+                  onChange={(e) => setNewListDescription(e.target.value)}
+                  placeholder="e.g. Verified target accounts for outbound sequence"
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal-dark resize-none"
                 />
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
+                  disabled={savingList}
                   onClick={() => setListModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-navy text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 cursor-pointer"
+                  disabled={savingList || !newListName.trim()}
+                  className="px-5 py-2 rounded-xl bg-navy text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
                 >
-                  Save List
+                  {savingList ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-teal" />
+                      <span>Creating List...</span>
+                    </>
+                  ) : (
+                    <span>Save List</span>
+                  )}
                 </button>
               </div>
             </form>

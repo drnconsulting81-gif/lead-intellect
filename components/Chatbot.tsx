@@ -215,27 +215,20 @@ export default function Chatbot() {
     <>
       {/* Floating Launcher Button */}
       <div className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end">
-        {!isOpen && (
-          <div className="mb-2 hidden sm:flex items-center gap-2 bg-navy text-white text-xs px-3.5 py-1.5 rounded-full shadow-lg border border-teal/30 animate-bounce duration-1000">
-            <span className="w-2 h-2 rounded-full bg-teal animate-pulse" />
-            <span className="font-medium">Chat with AI Assistant</span>
-          </div>
-        )}
-
         <button
           onClick={handleToggleOpen}
           aria-label={isOpen ? "Close AI Chatbot" : "Open AI Chatbot"}
-          className="relative group flex items-center justify-center w-14 h-14 rounded-full bg-navy text-teal shadow-[0_8px_30px_rgb(11,18,32,0.35)] border-2 border-teal/40 hover:border-teal hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-teal/20 cursor-pointer"
+          className="relative group flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-navy text-teal shadow-[0_6px_20px_rgb(11,18,32,0.3)] border-2 border-teal/40 hover:border-teal hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal/20 cursor-pointer"
         >
           {isOpen ? (
-            <X className="w-6 h-6 text-white" />
+            <X className="w-5 h-5 text-white" />
           ) : (
             <>
-              <Bot className="w-7 h-7 text-teal group-hover:rotate-6 transition-transform" />
+              <Bot className="w-5 h-5 text-teal group-hover:rotate-6 transition-transform" />
               {hasUnread && (
-                <span className="absolute top-0.5 right-0.5 flex h-3.5 w-3.5">
+                <span className="absolute top-0 right-0 flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal opacity-75" />
-                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-teal border-2 border-navy" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-teal border-2 border-navy" />
                 </span>
               )}
             </>
@@ -243,24 +236,24 @@ export default function Chatbot() {
         </button>
       </div>
 
-      {/* Chat Window Dialog */}
+      {/* Chat Window Dialog (Compact Size) */}
       {isOpen && (
         <div
           role="dialog"
           aria-modal="true"
           aria-label="LeadIntellect AI Chatbot"
-          className="fixed bottom-22 right-3 sm:right-6 z-50 w-[calc(100vw-1.5rem)] sm:w-[410px] max-h-[82vh] h-[580px] bg-white rounded-2xl shadow-[0_25px_60px_-15px_rgba(11,18,32,0.35)] border border-border flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200"
+          className="fixed bottom-20 right-3 sm:right-6 z-50 w-[calc(100vw-1.5rem)] sm:w-[350px] max-h-[72vh] h-[470px] bg-white rounded-2xl shadow-[0_20px_50px_-10px_rgba(11,18,32,0.35)] border border-border flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200 text-xs"
         >
           {/* Header */}
-          <div className="bg-navy px-4 py-3.5 text-white flex items-center justify-between border-b border-white/10 shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="relative w-9 h-9 rounded-xl bg-gradient-to-tr from-teal to-violet flex items-center justify-center text-navy shadow-inner">
-                <Bot className="w-5 h-5 text-navy" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-teal border-2 border-navy" />
+          <div className="bg-navy px-3.5 py-2.5 text-white flex items-center justify-between border-b border-white/10 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="relative w-7 h-7 rounded-lg bg-gradient-to-tr from-teal to-violet flex items-center justify-center text-navy shadow-inner">
+                <Bot className="w-4 h-4 text-navy" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-teal border border-navy" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <h3 className="text-sm font-bold text-white leading-tight">
+                  <h3 className="text-xs font-bold text-white leading-tight">
                     LeadIntellect AI
                   </h3>
                   <span className="text-[10px] bg-teal/20 text-teal px-1.5 py-0.5 rounded font-medium">

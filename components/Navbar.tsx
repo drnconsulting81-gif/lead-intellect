@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { Menu, X, ChevronDown, BookOpen, Video, HelpCircle, ArrowRight } from "lucide-react";
+import { Menu, X, ChevronDown, BookOpen, Video, HelpCircle } from "lucide-react";
 import Logo from "./Logo";
 
 export default function Navbar() {
@@ -42,115 +42,102 @@ export default function Navbar() {
         <div className="flex items-center gap-10 xl:gap-14">
           <Logo size="md" className="shrink-0" />
 
-          {/* Desktop Links with generous spacing from Logo */}
+          {/* Desktop Links */}
           <div className="hidden lg:flex items-center gap-7">
+            <Link
+              href="/"
+              className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors"
+            >
+              Home
+            </Link>
             <Link
               href="/product"
               className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors"
             >
               Product
             </Link>
+
+            {/* Resources Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setResourcesOpen((prev) => !prev)}
+                onMouseEnter={() => setResourcesOpen(true)}
+                className="flex items-center gap-1.5 text-sm font-semibold text-text-muted hover:text-navy transition-colors py-2 cursor-pointer"
+              >
+                Resources
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                    resourcesOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {resourcesOpen && (
+                <div
+                  onMouseLeave={() => setResourcesOpen(false)}
+                  className="absolute top-full left-0 mt-1 w-64 rounded-xl bg-white border border-border shadow-[0_15px_40px_-10px_rgba(11,18,32,0.15)] p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
+                >
+                  <Link
+                    href="/#faq"
+                    onClick={() => setResourcesOpen(false)}
+                    className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-surface text-navy transition-colors group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-teal/10 text-teal-dark flex items-center justify-center shrink-0 group-hover:bg-teal group-hover:text-navy transition-colors">
+                      <HelpCircle className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-navy">FAQ</div>
+                      <p className="text-[11px] text-text-muted leading-tight mt-0.5">
+                        Answers about ICP, verification & data
+                      </p>
+                    </div>
+                  </Link>
+
+                  <Link
+                    href="/blog"
+                    onClick={() => setResourcesOpen(false)}
+                    className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-surface text-navy transition-colors group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-violet/10 text-violet flex items-center justify-center shrink-0 group-hover:bg-violet group-hover:text-white transition-colors">
+                      <BookOpen className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-navy">Blogs & Articles</div>
+                      <p className="text-[11px] text-text-muted leading-tight mt-0.5">
+                        B2B sales strategy & intelligence
+                      </p>
+                    </div>
+                  </Link>
+
+                  <Link
+                    href="/tutorials"
+                    onClick={() => setResourcesOpen(false)}
+                    className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-surface text-navy transition-colors group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-teal/10 text-teal-dark flex items-center justify-center shrink-0 group-hover:bg-teal group-hover:text-navy transition-colors">
+                      <Video className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-navy">Video Tutorials</div>
+                      <p className="text-[11px] text-text-muted leading-tight mt-0.5">
+                        Watch how LeadIntellect works
+                      </p>
+                    </div>
+                  </Link>
+                </div>
+              )}
+            </div>
+
             <Link
-              href="/dashboard"
-              className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors flex items-center gap-1.5"
-            >
-              <span>Discover</span>
-              <span className="text-[10px] font-black uppercase tracking-wider bg-teal/15 text-teal-dark px-1.5 py-0.5 rounded">50K+</span>
-            </Link>
-            <Link
-              href="/pricing"
+              href="/contact"
               className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors"
             >
-              Pricing
+              Contact
             </Link>
-
-          {/* Resources Dropdown requested by user */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setResourcesOpen((prev) => !prev)}
-              onMouseEnter={() => setResourcesOpen(true)}
-              className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-navy transition-colors py-2 cursor-pointer"
-            >
-              Resources
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                  resourcesOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            {resourcesOpen && (
-              <div
-                onMouseLeave={() => setResourcesOpen(false)}
-                className="absolute top-full left-0 mt-1 w-64 rounded-xl bg-white border border-border shadow-[0_15px_40px_-10px_rgba(11,18,32,0.15)] p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
-              >
-                <Link
-                  href="/#faq"
-                  onClick={() => setResourcesOpen(false)}
-                  className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-surface text-navy transition-colors group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-teal/10 text-teal-dark flex items-center justify-center shrink-0 group-hover:bg-teal group-hover:text-navy transition-colors">
-                    <HelpCircle className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-navy">FAQ</div>
-                    <p className="text-[11px] text-text-muted leading-tight mt-0.5">
-                      Answers about ICP, scraping & data
-                    </p>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/blog"
-                  onClick={() => setResourcesOpen(false)}
-                  className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-surface text-navy transition-colors group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-violet/10 text-violet flex items-center justify-center shrink-0 group-hover:bg-violet group-hover:text-white transition-colors">
-                    <BookOpen className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-navy">Blogs & Articles</div>
-                    <p className="text-[11px] text-text-muted leading-tight mt-0.5">
-                      B2B sales strategy & intelligence
-                    </p>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/tutorials"
-                  onClick={() => setResourcesOpen(false)}
-                  className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-surface text-navy transition-colors group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-teal/10 text-teal-dark flex items-center justify-center shrink-0 group-hover:bg-teal group-hover:text-navy transition-colors">
-                    <Video className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-navy">Video Tutorials</div>
-                    <p className="text-[11px] text-text-muted leading-tight mt-0.5">
-                      Watch how LeadIntellect works
-                    </p>
-                  </div>
-                </Link>
-              </div>
-            )}
           </div>
-
-          <Link
-            href="/about"
-            className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors"
-          >
-            About Us
-          </Link>
-          <Link
-            href="/contact"
-            className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors"
-          >
-            Contact
-          </Link>
         </div>
-      </div>
 
-      {/* Action Buttons */}
+        {/* Action Buttons: Strictly Login and Book a Demo (No Start Free button) */}
         <div className="hidden lg:flex items-center gap-4">
           <Link
             href="/login"
@@ -160,15 +147,9 @@ export default function Navbar() {
           </Link>
           <Link
             href="/book-demo"
-            className="text-sm font-semibold text-navy px-4 py-2 rounded-lg border border-border hover:border-navy hover:bg-surface transition-colors"
+            className="text-sm font-bold text-white bg-navy px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all shadow-xs"
           >
             Book a Demo
-          </Link>
-          <Link
-            href="/signup"
-            className="text-xs font-bold uppercase tracking-wider text-white bg-navy px-5 py-2.5 rounded-lg hover:bg-slate-800 transition-all shadow-xs"
-          >
-            START FREE
           </Link>
         </div>
 
@@ -188,26 +169,18 @@ export default function Navbar() {
         <div className="lg:hidden bg-white border-t border-border shadow-xl">
           <div className="container-page flex flex-col py-4 gap-1">
             <Link
-              href="/#how-it-works"
+              href="/"
+              onClick={() => setOpen(false)}
+              className="py-2.5 text-sm font-medium text-navy border-b border-border/60"
+            >
+              Home
+            </Link>
+            <Link
+              href="/product"
               onClick={() => setOpen(false)}
               className="py-2.5 text-sm font-medium text-navy border-b border-border/60"
             >
               Product
-            </Link>
-            <Link
-              href="/crm"
-              onClick={() => setOpen(false)}
-              className="py-2.5 text-sm font-medium text-navy border-b border-border/60 flex items-center justify-between"
-            >
-              <span>CRM Pipeline</span>
-              <span className="text-[10px] font-black uppercase tracking-wider bg-teal/15 text-teal-dark px-1.5 py-0.5 rounded">New</span>
-            </Link>
-            <Link
-              href="/pricing"
-              onClick={() => setOpen(false)}
-              className="py-2.5 text-sm font-medium text-navy border-b border-border/60"
-            >
-              Pricing
             </Link>
 
             {/* Mobile Resources sub-accordion */}
@@ -251,13 +224,6 @@ export default function Navbar() {
             </div>
 
             <Link
-              href="/about"
-              onClick={() => setOpen(false)}
-              className="py-2.5 text-sm font-medium text-navy border-b border-border/60"
-            >
-              About Us
-            </Link>
-            <Link
               href="/contact"
               onClick={() => setOpen(false)}
               className="py-2.5 text-sm font-medium text-navy border-b border-border/60"
@@ -276,17 +242,9 @@ export default function Navbar() {
               <Link
                 href="/book-demo"
                 onClick={() => setOpen(false)}
-                className="text-center text-sm font-semibold text-navy px-4 py-2.5 rounded-lg border border-border bg-surface"
+                className="text-center text-sm font-bold text-white bg-navy px-4 py-2.5 rounded-xl hover:bg-slate-800 transition-all shadow-xs"
               >
                 Book a Demo
-              </Link>
-              <Link
-                href="/start-trial"
-                onClick={() => setOpen(false)}
-                className="text-center text-sm font-semibold text-navy bg-teal px-4 py-3 rounded-lg flex items-center justify-center gap-1.5"
-              >
-                Start Free Trial
-                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>
