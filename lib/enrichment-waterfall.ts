@@ -106,17 +106,17 @@ export async function executeWaterfallEnrichment(req: EnrichmentRequest): Promis
   cascaded.push("LeadIntellect Seed Engine");
 
   // Step 2 & 3: Check Third-Party API integrations if keys exist
-  let activeEmail = predictedEmail;
-  let providerUsed: EnrichmentResult["sourceProvider"] = "Apollo API";
+  const activeEmail = predictedEmail;
+  const providerUsed: EnrichmentResult["sourceProvider"] = process.env.ZEROBOUNCE_API_KEY
+    ? "ZeroBounce Verified"
+    : "Cache";
 
   if (process.env.APOLLO_API_KEY) {
     cascaded.push("Apollo.io API Gateway");
-    // e.g. await fetch("https://api.apollo.io/v1/people/match", ...)
   }
 
   if (process.env.HUNTER_API_KEY) {
     cascaded.push("Hunter.io Domain Search API");
-    // e.g. await fetch(`https://api.hunter.io/v2/email-finder?...`)
   }
 
   // Step 4: Run verification gateway
@@ -126,9 +126,9 @@ export async function executeWaterfallEnrichment(req: EnrichmentRequest): Promis
     email: verification.status === "invalid" ? null : activeEmail,
     emailStatus: verification.status,
     deliverabilityConfidence: verification.confidence,
-    phone: `+91 ${Math.floor(7000000000 + Math.random() * 2999999999)}`,
-    phoneType: "Direct Mobile",
-    sourceProvider: "ZeroBounce Verified",
+    phone: null,
+    phoneType: "Unknown",
+    sourceProvider: providerUsed,
     verifiedAt: new Date().toISOString(),
     qualityBadge: verification.status === "verified" ? "A+ Verified" : "B (Catch-All)",
     meta: {

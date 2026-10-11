@@ -105,7 +105,7 @@ const CEO_EMAILS = [
   "ceo@leadintellect.ai",
 ];
 
-function checkIsCeo(user: any): boolean {
+function checkIsCeo(user: { email?: string; role?: string } | null | undefined): boolean {
   if (!user || !user.email) return false;
   if (user.role === "admin") return true;
   const clean = user.email.toLowerCase().trim();
@@ -118,14 +118,33 @@ export default function AdminDashboardPage() {
     "users" | "orders" | "demos" | "trials" | "contacts" | "emails" | "settings"
   >("users");
 
-  const [authorized, setAuthorized] = useState<boolean | null>(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [authorized, setAuthorized] = useState<boolean | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const stored = localStorage.getItem("leadintellect_user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (checkIsCeo(parsed)) return true;
+      }
+    } catch {}
+    return false;
+  });
+  const [checkingAuth, setCheckingAuth] = useState(false);
+
+interface EmailLog {
+  id: string;
+  recipient: string;
+  subject: string;
+  type: string;
+  status: string;
+  createdAt: string;
+}
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [users, setUsers] = useState<RegisteredUser[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [emailLogs, setEmailLogs] = useState<any[]>([]);
+  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
   const [diagnostics, setDiagnostics] = useState<DbDiagnostics | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -156,7 +175,6 @@ export default function AdminDashboardPage() {
 
   // Load all data (only for authorized CEO)
   const fetchData = async () => {
-    setLoading(true);
     try {
       const [leadsRes, contactsRes, diagRes, usersRes, ordersRes, emailsRes] = await Promise.all([
         fetch("/api/admin/leads"),
@@ -199,24 +217,54 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("leadintellect_user");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (checkIsCeo(parsed)) {
-          setAuthorized(true);
-          setCheckingAuth(false);
-          fetchData();
-          return;
-        }
-      }
-      setAuthorized(false);
-      setCheckingAuth(false);
-    } catch {
-      setAuthorized(false);
-      setCheckingAuth(false);
+    let ignore = false;
+    if (authorized) {
+      Promise.all([
+        fetch("/api/admin/leads"),
+        fetch("/api/contact"),
+        fetch("/api/admin/db-status"),
+        fetch("/api/admin/users"),
+        fetch("/api/admin/orders"),
+        fetch("/api/admin/emails"),
+      ])
+        .then(async ([leadsRes, contactsRes, diagRes, usersRes, ordersRes, emailsRes]) => {
+          if (ignore) return;
+          if (leadsRes.ok) {
+            const data = await leadsRes.json();
+            if (!ignore) setLeads(data.leads || []);
+          }
+          if (contactsRes.ok) {
+            const data = await contactsRes.json();
+            if (!ignore) setContacts(data.contacts || []);
+          }
+          if (diagRes.ok) {
+            const diagData = await diagRes.json();
+            if (!ignore) setDiagnostics(diagData);
+          }
+          if (usersRes.ok) {
+            const usersData = await usersRes.json();
+            if (!ignore) setUsers(usersData.users || []);
+          }
+          if (ordersRes.ok) {
+            const ordersData = await ordersRes.json();
+            if (!ignore) setOrders(ordersData.orders || []);
+          }
+          if (emailsRes.ok) {
+            const emailsData = await emailsRes.json();
+            if (!ignore) setEmailLogs(emailsData.emailLogs || []);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to fetch admin data:", err);
+        })
+        .finally(() => {
+          if (!ignore) setLoading(false);
+        });
     }
-  }, []);
+    return () => {
+      ignore = true;
+    };
+  }, [authorized]);
 
   // Update lead status
   const handleStatusChange = async (id: string, newStatus: string) => {
@@ -384,8 +432,8 @@ export default function AdminDashboardPage() {
 
   // Export CSV
   const exportCsv = (type: string) => {
-    let rows: string[][] = [];
-    let filename = `leadintellect_${type}_${new Date().toISOString().split("T")[0]}.csv`;
+    const rows: string[][] = [];
+    const filename = `leadintellect_${type}_${new Date().toISOString().split("T")[0]}.csv`;
 
     if (type === "users") {
       rows.push(["User ID", "Full Name", "Email", "Company", "Title", "Auth Provider", "Joined Date"]);

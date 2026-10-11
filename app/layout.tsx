@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -128,18 +127,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="h-full antialiased">
       <head>
-        {/* Chatzy AI Assistant Widget Stylesheet & Script */}
-        <link
-          rel="stylesheet"
-          href="https://chatzy-kb-store.s3.amazonaws.com/icons/5ab07987-b5db-477c-82ff-1287e0883acb"
-        />
-        <script
-          src="https://chatzy-kb-store.s3.amazonaws.com/icons/56706cc4-b3ba-4eba-9610-f2fb07008a5c"
-          id="06521a81-313d-468a-8fd3-528ed81ae27a"
-          className="chatzy_widget_script"
-          defer
-        />
-
         {/* JSON-LD Structured Data for Google Search Engine Optimization */}
         <script
           type="application/ld+json"

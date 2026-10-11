@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
-  MessageSquare,
   Bot,
   Send,
   X,
@@ -22,6 +21,12 @@ interface Message {
     label: string;
     href: string;
   };
+}
+
+let messageCounter = 0;
+function nextMessageId(prefix: string) {
+  messageCounter += 1;
+  return `${prefix}_${messageCounter}_${Math.random().toString(36).substring(2, 7)}`;
 }
 
 const initialMessages: Message[] = [
@@ -76,11 +81,10 @@ function getBotResponse(input: string): { text: string; action?: Message["action
     query.includes("provider") ||
     query.includes("data") ||
     query.includes("source") ||
-    query.includes("apollo") ||
     query.includes("enrich")
   ) {
     return {
-      text: "LeadIntellect connects with **approved third-party data providers** (including Apollo and planned future sources like SalesTarget).\n\nInstead of locked-in static lists, our engine queries real-time databases and cross-verifies business emails and LinkedIn presence before recommending them to your reps.",
+      text: "LeadIntellect features a **provider-neutral data architecture**.\n\nOur system indexes verified B2B decision-maker records and transparently reports provenance, mailbox deliverability status, and MX check validity without locked-in proprietary vendor dependencies.",
     };
   }
 
@@ -163,17 +167,16 @@ export default function Chatbot() {
   useEffect(() => {
     if (isOpen) {
       scrollToBottom();
-      setHasUnread(false);
       setTimeout(() => inputRef.current?.focus(), 150);
     }
-  }, [isOpen, messages, isTyping]);
+  }, [isOpen, messages.length, isTyping]);
 
   const handleSend = (textToSend?: string) => {
     const text = (textToSend || inputValue).trim();
     if (!text || isTyping) return;
 
     const userMsg: Message = {
-      id: Date.now().toString(),
+      id: nextMessageId("user"),
       sender: "user",
       text,
     };
@@ -185,7 +188,7 @@ export default function Chatbot() {
     setTimeout(() => {
       const response = getBotResponse(text);
       const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
+        id: nextMessageId("bot"),
         sender: "bot",
         text: response.text,
         action: response.action,
@@ -200,6 +203,14 @@ export default function Chatbot() {
     setIsTyping(false);
   };
 
+  const handleToggleOpen = () => {
+    setIsOpen((prev) => {
+      const next = !prev;
+      if (next) setHasUnread(false);
+      return next;
+    });
+  };
+
   return (
     <>
       {/* Floating Launcher Button */}
@@ -212,7 +223,7 @@ export default function Chatbot() {
         )}
 
         <button
-          onClick={() => setIsOpen((prev) => !prev)}
+          onClick={handleToggleOpen}
           aria-label={isOpen ? "Close AI Chatbot" : "Open AI Chatbot"}
           className="relative group flex items-center justify-center w-14 h-14 rounded-full bg-navy text-teal shadow-[0_8px_30px_rgb(11,18,32,0.35)] border-2 border-teal/40 hover:border-teal hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-teal/20 cursor-pointer"
         >

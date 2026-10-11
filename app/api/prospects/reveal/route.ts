@@ -9,43 +9,55 @@ export async function POST(req: Request) {
     const { userEmail, prospectId } = body;
 
     if (!prospectId) {
-      return NextResponse.json({ error: "Prospect ID required." }, { status: 400 });
+      return NextResponse.json({ error: "Prospect ID is required." }, { status: 400 });
     }
 
-    const emailToCharge = userEmail || "demo.user@leadintellect.ai";
-    const deduction = await deductUserCredit(emailToCharge, 1);
+    const emailToCharge = userEmail || "guest@leadintellect.ai";
+
+    // Lookup prospect first to verify existence
+    const filePath = path.join(process.cwd(), "data", "prospects.json");
+    let foundProspect: Record<string, unknown> | null = null;
+    if (fs.existsSync(filePath)) {
+      const all: Record<string, unknown>[] = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+      foundProspect = all.find((p) => p.id === prospectId) || null;
+    }
+
+    if (!foundProspect) {
+      return NextResponse.json(
+        { error: "Prospect record not found in database." },
+        { status: 404 }
+      );
+    }
+
+    // Deduct credit server-side
+    const deduction = await deductUserCredit(
+      emailToCharge,
+      1,
+      "reveal",
+      `Revealed contact details for ${foundProspect.name} (${foundProspect.company})`,
+      prospectId
+    );
 
     if (!deduction.success) {
       return NextResponse.json(
         {
-          error: "Insufficient credits. Please upgrade your plan to unlock more contacts.",
+          error: "Insufficient credits. Your account has reached its credit allowance limit.",
           remainingCredits: deduction.remainingCredits,
         },
         { status: 402 }
       );
     }
 
-    // Lookup full prospect contact from dataset
-    const filePath = path.join(process.cwd(), "data", "prospects.json");
-    if (fs.existsSync(filePath)) {
-      const all = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-      const found = all.find((p: any) => p.id === prospectId);
-      if (found) {
-        return NextResponse.json({
-          success: true,
-          email: found.email,
-          phone: found.phone || "+1 (415) 890-4100",
-          linkedin: found.linkedin,
-          remainingCredits: deduction.remainingCredits,
-        });
-      }
-    }
-
+    // Return truthful contact information
     return NextResponse.json({
       success: true,
-      email: "verified.lead@company.com",
-      phone: "+1 (415) 890-4100",
-      linkedin: "https://linkedin.com",
+      email: foundProspect.email || "",
+      emailStatus: foundProspect.emailStatus || "unknown",
+      emailConfidence: foundProspect.emailConfidence || 0,
+      verificationSource: foundProspect.verificationSource || "Sourced Record",
+      phone: foundProspect.phone || "",
+      phoneType: foundProspect.phoneType || "Not Available",
+      linkedin: foundProspect.linkedin || "",
       remainingCredits: deduction.remainingCredits,
     });
   } catch (err) {

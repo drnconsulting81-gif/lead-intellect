@@ -52,6 +52,54 @@ export interface EmailLogRecord {
   createdAt: string;
 }
 
+export interface ListRecord {
+  id: string;
+  userEmail: string;
+  name: string;
+  description?: string;
+  prospectIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SavedSearchRecord {
+  id: string;
+  userEmail: string;
+  name: string;
+  searchType: "people" | "companies";
+  filters: Record<string, unknown>;
+  resultCount?: number;
+  createdAt: string;
+}
+
+export interface CreditLedgerRecord {
+  id: string;
+  userEmail: string;
+  action: "reveal" | "enrichment" | "verification" | "export" | "bonus" | "subscription";
+  amount: number;
+  balanceAfter: number;
+  description: string;
+  recordId?: string;
+  createdAt: string;
+}
+
+export interface SuppressionRecord {
+  id: string;
+  email: string;
+  domain?: string;
+  reason: string;
+  createdAt: string;
+}
+
+export interface ExportLogRecord {
+  id: string;
+  userEmail: string;
+  recordCount: number;
+  exportType: "people" | "companies";
+  format: "csv";
+  createdAt: string;
+}
+
 export const CEO_EMAILS = [
   "drnconsulting81@gmail.com",
   "raghu96666@gmail.com",
@@ -78,11 +126,11 @@ export interface OrderRecord {
   companyName?: string;
   phone?: string;
   itemType: OrderItemType;
-  planName: string; // e.g. "Growth Subscription (Monthly)", "50,000 Verified B2B Database Pack"
+  planName: string;
   amount: number;
   currency: string;
   paymentStatus: PaymentStatus;
-  paymentMethod: string; // e.g. "Bank Transfer / Wire", "Stripe", "Razorpay", "Invoice"
+  paymentMethod: string;
   transactionId?: string;
   notes?: string;
   createdAt: string;
@@ -94,6 +142,11 @@ interface DatabaseSchema {
   users: UserRecord[];
   orders: OrderRecord[];
   emailLogs?: EmailLogRecord[];
+  lists?: ListRecord[];
+  savedSearches?: SavedSearchRecord[];
+  creditLedger?: CreditLedgerRecord[];
+  suppression?: SuppressionRecord[];
+  exportLogs?: ExportLogRecord[];
 }
 
 const DB_DIR = path.join(process.cwd(), "data");
@@ -112,6 +165,11 @@ function readLocalDb(): DatabaseSchema {
       contacts: [],
       users: [],
       orders: [],
+      lists: [],
+      savedSearches: [],
+      creditLedger: [],
+      suppression: [],
+      exportLogs: [],
     };
     fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2), "utf-8");
     return initialData;
@@ -125,10 +183,26 @@ function readLocalDb(): DatabaseSchema {
       contacts: parsed.contacts || [],
       users: parsed.users || [],
       orders: parsed.orders || [],
+      emailLogs: parsed.emailLogs || [],
+      lists: parsed.lists || [],
+      savedSearches: parsed.savedSearches || [],
+      creditLedger: parsed.creditLedger || [],
+      suppression: parsed.suppression || [],
+      exportLogs: parsed.exportLogs || [],
     };
   } catch (err) {
     console.error("Error reading local db.json, returning empty defaults:", err);
-    return { leads: [], contacts: [], users: [], orders: [] };
+    return {
+      leads: [],
+      contacts: [],
+      users: [],
+      orders: [],
+      lists: [],
+      savedSearches: [],
+      creditLedger: [],
+      suppression: [],
+      exportLogs: [],
+    };
   }
 }
 
@@ -139,9 +213,11 @@ function writeLocalDb(data: DatabaseSchema): void {
   fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), "utf-8");
 }
 
-/* ----------------- DUAL-MODE EXPORTED OPERATIONS ----------------- */
+/* ----------------- LEADS & CONTACTS ----------------- */
 
-export async function saveLead(lead: Omit<LeadRecord, "id" | "createdAt" | "status"> & { status?: LeadStatus }): Promise<LeadRecord> {
+export async function saveLead(
+  lead: Omit<LeadRecord, "id" | "createdAt" | "status"> & { status?: LeadStatus }
+): Promise<LeadRecord> {
   const record: LeadRecord = {
     ...lead,
     id: "lead_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
@@ -161,7 +237,6 @@ export async function saveLead(lead: Omit<LeadRecord, "id" | "createdAt" | "stat
     }
   }
 
-  // Fallback to local JSON
   const local = readLocalDb();
   local.leads.unshift(record);
   writeLocalDb(local);
@@ -225,7 +300,9 @@ export async function updateLeadStatus(id: string, status: LeadStatus): Promise<
   return false;
 }
 
-export async function saveContact(contact: Omit<ContactRecord, "id" | "createdAt">): Promise<ContactRecord> {
+export async function saveContact(
+  contact: Omit<ContactRecord, "id" | "createdAt">
+): Promise<ContactRecord> {
   const record: ContactRecord = {
     ...contact,
     id: "contact_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
@@ -279,6 +356,8 @@ export async function getContacts(): Promise<ContactRecord[]> {
   const local = readLocalDb();
   return local.contacts;
 }
+
+/* ----------------- USERS & AUTH ----------------- */
 
 export async function findUserByEmail(email: string): Promise<UserRecord | null> {
   const cleanEmail = email.toLowerCase().trim();
@@ -367,7 +446,7 @@ export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Prom
     }
   }
 
-  // 2. Synchronous local JSON mirror (dual-storage protection)
+  // 2. Synchronous local JSON mirror
   const local = readLocalDb();
   const existingIndex = local.users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
   if (existingIndex !== -1) {
@@ -384,7 +463,7 @@ export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Prom
     writeLocalDb(local);
   }
 
-  // 3. Register user in pipeline leads so CEO sees them in both "Sign-ups" and "Pipeline Leads / Trials"
+  // 3. Register user in pipeline leads
   try {
     await saveLead({
       type: "trial",
@@ -403,51 +482,29 @@ export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Prom
   return record;
 }
 
-export async function deductUserCredit(
-  email: string,
-  amount = 1
-): Promise<{ success: boolean; remainingCredits: number }> {
+export async function deleteUserAccount(email: string): Promise<boolean> {
   const cleanEmail = email.toLowerCase().trim();
-
-  // CEO has unlimited credits
-  if (isCeoEmail(cleanEmail)) {
-    return { success: true, remainingCredits: 999999 };
-  }
-
   if (isMongoConfigured()) {
     try {
       const db = await getMongoDb();
       if (db) {
-        const u = await db.collection<UserRecord>("users").findOne({ email: cleanEmail });
-        if (u) {
-          const currentCredits = u.credits ?? 100;
-          if (currentCredits < amount) {
-            return { success: false, remainingCredits: currentCredits };
-          }
-          const updated = currentCredits - amount;
-          await db.collection<UserRecord>("users").updateOne(
-            { email: cleanEmail },
-            { $set: { credits: updated } }
-          );
-          return { success: true, remainingCredits: updated };
-        }
+        await db.collection("users").deleteOne({ email: cleanEmail });
+        await db.collection("lists").deleteMany({ userEmail: cleanEmail });
+        await db.collection("saved_searches").deleteMany({ userEmail: cleanEmail });
       }
     } catch (err) {
-      console.warn("MongoDB deductUserCredit failed:", err);
+      console.warn("MongoDB deleteUserAccount error:", err);
     }
   }
 
   const local = readLocalDb();
-  const idx = local.users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
-  if (idx !== -1) {
-    const current = local.users[idx].credits ?? 100;
-    if (current < amount) return { success: false, remainingCredits: current };
-    local.users[idx].credits = current - amount;
-    writeLocalDb(local);
-    return { success: true, remainingCredits: local.users[idx].credits ?? 0 };
+  local.users = local.users.filter((u) => u.email.toLowerCase() !== cleanEmail);
+  if (local.lists) local.lists = local.lists.filter((l) => l.userEmail.toLowerCase() !== cleanEmail);
+  if (local.savedSearches) {
+    local.savedSearches = local.savedSearches.filter((s) => s.userEmail.toLowerCase() !== cleanEmail);
   }
-
-  return { success: true, remainingCredits: 100 - amount };
+  writeLocalDb(local);
+  return true;
 }
 
 export async function getUsers(): Promise<UserRecord[]> {
@@ -487,7 +544,452 @@ export async function getUsers(): Promise<UserRecord[]> {
   }));
 }
 
-/* ----------------- EMAIL LOGS OPERATIONS ----------------- */
+/* ----------------- CREDIT SYSTEM & LEDGER ----------------- */
+
+export async function logCreditTransaction(
+  tx: Omit<CreditLedgerRecord, "id" | "createdAt">
+): Promise<CreditLedgerRecord> {
+  const record: CreditLedgerRecord = {
+    ...tx,
+    id: "crd_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+    createdAt: new Date().toISOString(),
+  };
+
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        await db.collection<CreditLedgerRecord>("credit_ledger").insertOne(record);
+      }
+    } catch (err) {
+      console.warn("MongoDB credit log failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  if (!local.creditLedger) local.creditLedger = [];
+  local.creditLedger.unshift(record);
+  writeLocalDb(local);
+  return record;
+}
+
+export async function getCreditHistoryByUser(email: string): Promise<CreditLedgerRecord[]> {
+  const cleanEmail = email.toLowerCase().trim();
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        const res = await db
+          .collection<CreditLedgerRecord>("credit_ledger")
+          .find({ userEmail: cleanEmail })
+          .sort({ createdAt: -1 })
+          .limit(100)
+          .toArray();
+        return res;
+      }
+    } catch (err) {
+      console.warn("MongoDB getCreditHistoryByUser failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  return (local.creditLedger || []).filter((c) => c.userEmail.toLowerCase() === cleanEmail);
+}
+
+export async function deductUserCredit(
+  email: string,
+  amount = 1,
+  action: CreditLedgerRecord["action"] = "reveal",
+  description = "Contact detail reveal",
+  recordId?: string
+): Promise<{ success: boolean; remainingCredits: number }> {
+  const cleanEmail = email.toLowerCase().trim();
+
+  // CEO has unlimited credits
+  if (isCeoEmail(cleanEmail)) {
+    await logCreditTransaction({
+      userEmail: cleanEmail,
+      action,
+      amount: 0,
+      balanceAfter: 999999,
+      description: `${description} (Admin Unlimited Privilege)`,
+      recordId,
+    });
+    return { success: true, remainingCredits: 999999 };
+  }
+
+  let currentCredits = 100;
+  let userFound = false;
+
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        const u = await db.collection<UserRecord>("users").findOne({ email: cleanEmail });
+        if (u) {
+          userFound = true;
+          currentCredits = u.credits ?? 100;
+          if (currentCredits < amount) {
+            return { success: false, remainingCredits: currentCredits };
+          }
+          const updated = currentCredits - amount;
+          await db.collection<UserRecord>("users").updateOne(
+            { email: cleanEmail },
+            { $set: { credits: updated } }
+          );
+          await logCreditTransaction({
+            userEmail: cleanEmail,
+            action,
+            amount,
+            balanceAfter: updated,
+            description,
+            recordId,
+          });
+          return { success: true, remainingCredits: updated };
+        }
+      }
+    } catch (err) {
+      console.warn("MongoDB deductUserCredit failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  const idx = local.users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+  if (idx !== -1) {
+    userFound = true;
+    currentCredits = local.users[idx].credits ?? 100;
+    if (currentCredits < amount) return { success: false, remainingCredits: currentCredits };
+    local.users[idx].credits = currentCredits - amount;
+    writeLocalDb(local);
+    await logCreditTransaction({
+      userEmail: cleanEmail,
+      action,
+      amount,
+      balanceAfter: local.users[idx].credits ?? 0,
+      description,
+      recordId,
+    });
+    return { success: true, remainingCredits: local.users[idx].credits ?? 0 };
+  }
+
+  if (!userFound) {
+    const fallback = Math.max(0, 100 - amount);
+    await logCreditTransaction({
+      userEmail: cleanEmail,
+      action,
+      amount,
+      balanceAfter: fallback,
+      description,
+      recordId,
+    });
+    return { success: true, remainingCredits: fallback };
+  }
+
+  return { success: false, remainingCredits: 0 };
+}
+
+/* ----------------- LISTS MANAGEMENT ----------------- */
+
+export async function saveList(
+  list: Omit<ListRecord, "id" | "createdAt" | "updatedAt">
+): Promise<ListRecord> {
+  const record: ListRecord = {
+    ...list,
+    id: "list_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        await db.collection<ListRecord>("lists").insertOne(record);
+      }
+    } catch (err) {
+      console.warn("MongoDB saveList failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  if (!local.lists) local.lists = [];
+  local.lists.unshift(record);
+  writeLocalDb(local);
+  return record;
+}
+
+export async function getListsByUser(email: string): Promise<ListRecord[]> {
+  const cleanEmail = email.toLowerCase().trim();
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        return await db
+          .collection<ListRecord>("lists")
+          .find({ userEmail: cleanEmail })
+          .sort({ updatedAt: -1 })
+          .toArray();
+      }
+    } catch (err) {
+      console.warn("MongoDB getListsByUser failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  return (local.lists || []).filter((l) => l.userEmail.toLowerCase() === cleanEmail);
+}
+
+export async function addProspectsToList(listId: string, prospectIds: string[]): Promise<boolean> {
+  const now = new Date().toISOString();
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        await db.collection<ListRecord>("lists").updateOne(
+          { id: listId },
+          {
+            $addToSet: { prospectIds: { $each: prospectIds } },
+            $set: { updatedAt: now },
+          }
+        );
+      }
+    } catch (err) {
+      console.warn("MongoDB addProspectsToList failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  if (!local.lists) return false;
+  const target = local.lists.find((l) => l.id === listId);
+  if (target) {
+    const set = new Set([...target.prospectIds, ...prospectIds]);
+    target.prospectIds = Array.from(set);
+    target.updatedAt = now;
+    writeLocalDb(local);
+    return true;
+  }
+  return false;
+}
+
+export async function removeProspectFromList(listId: string, prospectId: string): Promise<boolean> {
+  const now = new Date().toISOString();
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        await db.collection<ListRecord>("lists").updateOne(
+          { id: listId },
+          {
+            $pull: { prospectIds: prospectId },
+            $set: { updatedAt: now },
+          }
+        );
+      }
+    } catch (err) {
+      console.warn("MongoDB removeProspectFromList failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  if (!local.lists) return false;
+  const target = local.lists.find((l) => l.id === listId);
+  if (target) {
+    target.prospectIds = target.prospectIds.filter((id) => id !== prospectId);
+    target.updatedAt = now;
+    writeLocalDb(local);
+    return true;
+  }
+  return false;
+}
+
+export async function deleteList(listId: string, userEmail: string): Promise<boolean> {
+  const cleanEmail = userEmail.toLowerCase().trim();
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        await db.collection("lists").deleteOne({ id: listId, userEmail: cleanEmail });
+      }
+    } catch (err) {
+      console.warn("MongoDB deleteList failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  if (!local.lists) return false;
+  local.lists = local.lists.filter((l) => !(l.id === listId && l.userEmail.toLowerCase() === cleanEmail));
+  writeLocalDb(local);
+  return true;
+}
+
+/* ----------------- SAVED SEARCHES ----------------- */
+
+export async function saveSavedSearch(
+  search: Omit<SavedSearchRecord, "id" | "createdAt">
+): Promise<SavedSearchRecord> {
+  const record: SavedSearchRecord = {
+    ...search,
+    id: "srch_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+    createdAt: new Date().toISOString(),
+  };
+
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        await db.collection<SavedSearchRecord>("saved_searches").insertOne(record);
+      }
+    } catch (err) {
+      console.warn("MongoDB saveSavedSearch failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  if (!local.savedSearches) local.savedSearches = [];
+  local.savedSearches.unshift(record);
+  writeLocalDb(local);
+  return record;
+}
+
+export async function getSavedSearchesByUser(email: string): Promise<SavedSearchRecord[]> {
+  const cleanEmail = email.toLowerCase().trim();
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        return await db
+          .collection<SavedSearchRecord>("saved_searches")
+          .find({ userEmail: cleanEmail })
+          .sort({ createdAt: -1 })
+          .toArray();
+      }
+    } catch (err) {
+      console.warn("MongoDB getSavedSearchesByUser failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  return (local.savedSearches || []).filter((s) => s.userEmail.toLowerCase() === cleanEmail);
+}
+
+export async function deleteSavedSearch(id: string, userEmail: string): Promise<boolean> {
+  const cleanEmail = userEmail.toLowerCase().trim();
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        await db.collection("saved_searches").deleteOne({ id, userEmail: cleanEmail });
+      }
+    } catch (err) {
+      console.warn("MongoDB deleteSavedSearch failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  if (!local.savedSearches) return false;
+  local.savedSearches = local.savedSearches.filter(
+    (s) => !(s.id === id && s.userEmail.toLowerCase() === cleanEmail)
+  );
+  writeLocalDb(local);
+  return true;
+}
+
+/* ----------------- SUPPRESSION LIST ----------------- */
+
+export async function addSuppression(email: string, reason = "User opt-out request"): Promise<SuppressionRecord> {
+  const cleanEmail = email.toLowerCase().trim();
+  const record: SuppressionRecord = {
+    id: "sup_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+    email: cleanEmail,
+    reason,
+    createdAt: new Date().toISOString(),
+  };
+
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        await db.collection("suppression").updateOne({ email: cleanEmail }, { $set: record }, { upsert: true });
+      }
+    } catch (err) {
+      console.warn("MongoDB addSuppression failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  if (!local.suppression) local.suppression = [];
+  if (!local.suppression.some((s) => s.email.toLowerCase() === cleanEmail)) {
+    local.suppression.push(record);
+    writeLocalDb(local);
+  }
+  return record;
+}
+
+export async function isEmailSuppressed(email: string): Promise<boolean> {
+  const cleanEmail = email.toLowerCase().trim();
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        const found = await db.collection("suppression").findOne({ email: cleanEmail });
+        if (found) return true;
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  const local = readLocalDb();
+  return (local.suppression || []).some((s) => s.email.toLowerCase() === cleanEmail);
+}
+
+/* ----------------- EXPORT LOGS ----------------- */
+
+export async function logExport(
+  entry: Omit<ExportLogRecord, "id" | "createdAt">
+): Promise<ExportLogRecord> {
+  const record: ExportLogRecord = {
+    ...entry,
+    id: "exp_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+    createdAt: new Date().toISOString(),
+  };
+
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        await db.collection("export_logs").insertOne(record);
+      }
+    } catch (err) {
+      console.warn("MongoDB logExport failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  if (!local.exportLogs) local.exportLogs = [];
+  local.exportLogs.unshift(record);
+  writeLocalDb(local);
+  return record;
+}
+
+export async function getExportLogsByUser(email: string): Promise<ExportLogRecord[]> {
+  const cleanEmail = email.toLowerCase().trim();
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        return await db.collection<ExportLogRecord>("export_logs").find({ userEmail: cleanEmail }).sort({ createdAt: -1 }).toArray();
+      }
+    } catch (err) {
+      console.warn("MongoDB getExportLogsByUser failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  return (local.exportLogs || []).filter((e) => e.userEmail.toLowerCase() === cleanEmail);
+}
+
+/* ----------------- EMAIL LOGS ----------------- */
 
 export async function saveEmailLog(
   log: Omit<EmailLogRecord, "id" | "createdAt">
@@ -546,7 +1048,7 @@ export async function getEmailLogs(): Promise<EmailLogRecord[]> {
   return local.emailLogs || [];
 }
 
-/* ----------------- ORDERS / SUBSCRIPTIONS OPERATIONS ----------------- */
+/* ----------------- ORDERS / SUBSCRIPTIONS ----------------- */
 
 export async function saveOrder(order: Omit<OrderRecord, "id" | "createdAt">): Promise<OrderRecord> {
   const record: OrderRecord = {

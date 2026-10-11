@@ -45,17 +45,17 @@ export default function Navbar() {
           {/* Desktop Links with generous spacing from Logo */}
           <div className="hidden lg:flex items-center gap-7">
             <Link
-              href="/#how-it-works"
+              href="/product"
               className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors"
             >
               Product
             </Link>
             <Link
-              href="/crm"
+              href="/dashboard"
               className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors flex items-center gap-1.5"
             >
-              <span>CRM Pipeline</span>
-              <span className="text-[10px] font-black uppercase tracking-wider bg-teal/15 text-teal-dark px-1.5 py-0.5 rounded">New</span>
+              <span>Discover</span>
+              <span className="text-[10px] font-black uppercase tracking-wider bg-teal/15 text-teal-dark px-1.5 py-0.5 rounded">50K+</span>
             </Link>
             <Link
               href="/pricing"
@@ -165,10 +165,10 @@ export default function Navbar() {
             Book a Demo
           </Link>
           <Link
-            href="/start-trial"
-            className="text-sm font-semibold text-navy bg-teal px-4.5 py-2.5 rounded-lg hover:bg-teal-dark hover:text-white transition-colors shadow-xs"
+            href="/signup"
+            className="text-xs font-bold uppercase tracking-wider text-white bg-navy px-5 py-2.5 rounded-lg hover:bg-slate-800 transition-all shadow-xs"
           >
-            Start Free Trial
+            START FREE
           </Link>
         </div>
 

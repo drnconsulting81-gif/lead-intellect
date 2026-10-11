@@ -2,9 +2,9 @@ import { Layers } from "lucide-react";
 import Reveal from "./Reveal";
 
 const providers = [
-  { name: "Apollo", status: "Integration Ready", tone: "teal" },
-  { name: "SalesTarget", status: "Future Integration", tone: "violet" },
-  { name: "Additional Providers", status: "Coming Soon", tone: "muted" },
+  { name: "Master B2B Database", status: "Native & Verified", tone: "teal" },
+  { name: "Provider-Neutral Adapters", status: "Configurable Connectors", tone: "violet" },
+  { name: "Extensible Schema", status: "Modular Architecture", tone: "muted" },
 ];
 
 const toneClass: Record<string, string> = {

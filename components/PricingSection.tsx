@@ -1,136 +1,119 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { Check, Zap, Sparkles, Diamond, ArrowRight, Globe } from "lucide-react";
+import { Check, Sparkles, ArrowRight, ShieldCheck, Database } from "lucide-react";
 
-interface PlanConfig {
-  id: "free" | "basic" | "professional" | "organization";
-  name: string;
-  tagline: string;
-  usdMonthly: number;
-  usdAnnual: number;
-  inrMonthly: number;
-  inrAnnual: number;
-  creditsAnnual: string;
-  creditsMonthly: string;
-  popular?: boolean;
-  minSeats?: number;
-  features: {
-    text: string;
-    badge?: string;
-    highlight?: boolean;
-  }[];
+interface PlanFeature {
+  text: string;
+  highlight?: boolean;
+  badge?: string;
 }
 
-const plans: PlanConfig[] = [
+interface Plan {
+  id: string;
+  name: string;
+  tagline: string;
+  monthlyPriceUSD: number;
+  annualPriceUSD: number;
+  monthlyPriceINR: number;
+  annualPriceINR: number;
+  creditsLabel: string;
+  popular?: boolean;
+  ctaText: string;
+  ctaHref: string;
+  features: PlanFeature[];
+}
+
+const plans: Plan[] = [
   {
     id: "free",
-    name: "Free Starter",
-    tagline: "Ideal for founders & solo reps getting started with outbound prospecting",
-    usdMonthly: 0,
-    usdAnnual: 0,
-    inrMonthly: 0,
-    inrAnnual: 0,
-    creditsAnnual: "100 credits per seat / month",
-    creditsMonthly: "100 credits per seat / month",
+    name: "Free",
+    tagline: "For exploration, testing filters, and initial prospect evaluation",
+    monthlyPriceUSD: 0,
+    annualPriceUSD: 0,
+    monthlyPriceINR: 0,
+    annualPriceINR: 0,
+    creditsLabel: "50 credits / month",
+    ctaText: "Start Free",
+    ctaHref: "/signup",
     features: [
-      { text: "100 verified credits / seat / month" },
-      { text: "Access to 11,000+ Decision-Maker Database", highlight: true },
-      { text: "Built-in Visual CRM (Up to 50 active deals)", badge: "New CRM", highlight: true },
-      { text: "Basic ICP Filters (Seniority, Title, Industry)" },
-      { text: "1 Active Outreach Playbook" },
-      { text: "CSV Export (Up to 50 rows)" },
+      { text: "50 monthly verified prospect reveals" },
+      { text: "Search 50,000+ Cleaned Decision-Maker Database", highlight: true },
+      { text: "People & Company Search Modes" },
+      { text: "Structured Filters (Seniority, Industry, Location, Size)" },
+      { text: "Natural-Language Search Query Translation" },
+      { text: "Saved Lists & Search History" },
+      { text: "CSV Import with Column Auto-Mapping" },
     ],
   },
   {
-    id: "basic",
-    name: "Growth Outbound",
-    tagline: "For sales teams that need verified emails, deliverability, and deal pipeline",
-    usdMonthly: 49,
-    usdAnnual: 39,
-    inrMonthly: 2499,
-    inrAnnual: 1999,
-    creditsAnnual: "30,000 credits per seat per year",
-    creditsMonthly: "2,500 credits per seat per month",
+    id: "pro",
+    name: "Pro",
+    tagline: "For sales professionals, founders, and consultants generating active pipeline",
+    monthlyPriceUSD: 49,
+    annualPriceUSD: 39,
+    monthlyPriceINR: 3499,
+    annualPriceINR: 2799,
+    creditsLabel: "500 credits / month",
     popular: true,
+    ctaText: "Get Started with Pro",
+    ctaHref: "/signup?plan=pro",
     features: [
-      { text: "30,000 credits / seat / yr (or 2,500 / mo)" },
-      { text: "Built-in Visual CRM Pipeline (Kanban Deals)", badge: "Included", highlight: true },
-      { text: "Verified Work Email Guarantees (98%+ Confidence)" },
-      { text: "5-Question Context Synthesis (Who, Why, Pain point)", highlight: true },
-      { text: "Unlimited Outbound Playbooks & Cold Emails" },
-      { text: "Advanced ICP Filters (Headcount, Tech Stack, Country)" },
-      { text: "Real-time Email Deliverability & Warmup Verification" },
-      { text: "Instant CSV & CRM Export (No extra tool needed)" },
+      { text: "500 verified contact credits / month", highlight: true },
+      { text: "Complete Prospect Profiles (WHO, WHY, FIT, SIGNALS)" },
+      { text: "Transparent Email Verification & Provenance Statuses" },
+      { text: "AI Outreach Studio (Personalized Cold & Follow-Up Drafts)" },
+      { text: "Lightweight Sales Pipeline (Kanban & Deal Stages)" },
+      { text: "Standard CSV Export of Filtered Records" },
+      { text: "Direct Dial & Corporate Line Visibility" },
+      { text: "Server-Enforced Credit Ledger & Activity Audit" },
     ],
   },
   {
-    id: "professional",
-    name: "Multi-Channel Scale",
-    tagline: "Multi-channel phone, WhatsApp & email outreach with full pipeline management",
-    usdMonthly: 89,
-    usdAnnual: 69,
-    inrMonthly: 5499,
-    inrAnnual: 4499,
-    creditsAnnual: "60,000 credits per seat per year",
-    creditsMonthly: "5,000 credits per seat per month",
+    id: "business",
+    name: "Business",
+    tagline: "For revenue teams requiring custom data quotas, collaboration, and high-volume exports",
+    monthlyPriceUSD: 129,
+    annualPriceUSD: 99,
+    monthlyPriceINR: 8999,
+    annualPriceINR: 6999,
+    creditsLabel: "1,500 credits / month",
+    ctaText: "Talk to Sales",
+    ctaHref: "/contact?reason=business_plan",
     features: [
-      { text: "60,000 credits / seat / yr (or 5,000 / mo)" },
-      { text: "Direct Mobile & WhatsApp Verified Numbers", badge: "Direct Dial", highlight: true },
-      { text: "Advanced Visual CRM with Custom Stages & Revenue Forecasting", highlight: true },
-      { text: "1:1 Multi-Channel Pitch Studio (Email + LinkedIn + WhatsApp + Battlecard)", highlight: true },
-      { text: "Autonomous AI Lead Scoring & Intent Signals" },
-      { text: "Bi-directional CRM Webhooks & Zapier/Make Sync" },
-      { text: "Multi-Inbox Deliverability Suite & DNS Health Monitor" },
-      { text: "Priority Live Support via WhatsApp & Slack" },
-    ],
-  },
-  {
-    id: "organization",
-    name: "Enterprise Engine",
-    tagline: "For scaling enterprises with custom CRM workflows & dedicated 3rd-party waterfall data",
-    usdMonthly: 149,
-    usdAnnual: 119,
-    inrMonthly: 12999,
-    inrAnnual: 9999,
-    creditsAnnual: "120,000 credits per seat per year",
-    creditsMonthly: "10,000 credits per seat per month",
-    minSeats: 3,
-    features: [
-      { text: "120,000 credits per year (pooled across seats)" },
-      { text: "Custom Tailored CRM Schema & Pipeline Customization", badge: "Custom CRM", highlight: true },
-      { text: "Multi-Provider Waterfall Enrichment API Access", highlight: true },
-      { text: "Deep Ingestion of Custom Enterprise Databases" },
-      { text: "18% Indian GST Compliant Invoicing & Tax Input Credit" },
-      { text: "Dedicated Customer Success Manager & SLA Guarantee" },
-      { text: "Enterprise SSO, SAML & Advanced Team Permissions" },
+      { text: "1,500 credits / month (poolable across team seats)" },
+      { text: "Everything in Pro included", highlight: true },
+      { text: "High-Volume CSV Imports & Bulk Exports" },
+      { text: "Provider-Neutral Webhook & Custom API Adapter Configuration" },
+      { text: "Custom ICP Fit Scoring Criteria Configuration" },
+      { text: "Global Suppression Registry Enforcement" },
+      { text: "Priority Support & Technical Onboarding" },
     ],
   },
 ];
 
 export default function PricingSection() {
   const [billingCycle, setBillingCycle] = useState<"annual" | "monthly">("annual");
-  const [currency, setCurrency] = useState<"INR" | "USD">("INR");
-
-  useEffect(() => {
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-      const locale = navigator.language || "";
-      if (
-        tz.includes("Calcutta") ||
-        tz.includes("Kolkata") ||
-        locale.includes("en-IN") ||
-        locale.includes("hi")
-      ) {
-        setCurrency("INR");
-      } else {
-        setCurrency("USD");
+  const [currency, setCurrency] = useState<"INR" | "USD">(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+        const locale = navigator.language || "";
+        if (
+          tz.includes("Calcutta") ||
+          tz.includes("Kolkata") ||
+          locale.includes("en-IN") ||
+          locale.includes("hi")
+        ) {
+          return "INR";
+        }
+      } catch {
+        return "USD";
       }
-    } catch {
-      setCurrency("USD");
     }
-  }, []);
+    return "USD";
+  });
 
   const currencySymbol = currency === "INR" ? "₹" : "$";
 
@@ -138,195 +121,163 @@ export default function PricingSection() {
     <section id="pricing" className="py-20 sm:py-28 bg-[#fdfdfd] border-t border-slate-200">
       <div className="container-page">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal/15 text-teal-dark font-extrabold text-xs mb-3 border border-teal/30">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="inline-flex items-center gap-2 text-xs font-semibold text-teal-dark bg-teal/10 border border-teal/20 px-3.5 py-1.5 rounded-full mb-4">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Transparent, Value-Justified Pricing</span>
+            TRANSPARENT, USAGE-BASED PLANS
           </div>
-          <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-[#0b1220] leading-tight">
-            Predictable Pricing. Zero Tech-Stack Bloat.
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-navy tracking-tight">
+            Predictable Pricing. Truthful Credits.
           </h2>
-          <p className="mt-3 text-sm sm:text-base text-slate-600 leading-relaxed">
-            Replace your $500/mo fragmented stack (Apollo + HubSpot + warmups + Zapier) with LeadIntellect: Verified Contacts, Built-in CRM Pipeline, and AI Outreach Playbooks in one roof.
+          <p className="mt-4 text-base sm:text-lg text-text-muted leading-relaxed">
+            Every plan includes access to our 50,000+ cleaned B2B database. Credits are deducted only
+            when contact details are successfully revealed or verified.
           </p>
 
-          {/* Region / Currency Switcher + Billing Toggle */}
+          {/* Controls: Billing Cycle + Currency Switcher */}
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            {/* Currency Selector */}
-            <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200 shadow-2xs">
-              <button
-                onClick={() => setCurrency("INR")}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  currency === "INR"
-                    ? "bg-[#0b1220] text-teal shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <span>🇮🇳 India (INR ₹)</span>
-                <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-teal/20 text-teal-dark">
-                  GST Ready
-                </span>
-              </button>
-              <button
-                onClick={() => setCurrency("USD")}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  currency === "USD"
-                    ? "bg-[#0b1220] text-teal shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <Globe className="w-3.5 h-3.5" />
-                <span>🌍 Global (USD $)</span>
-              </button>
-            </div>
-
-            {/* Annual / Monthly Toggle */}
-            <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200 shadow-2xs">
+            <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
               <button
                 onClick={() => setBillingCycle("annual")}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                   billingCycle === "annual"
-                    ? "bg-[#0b1220] text-teal shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "bg-white text-navy shadow-xs"
+                    : "text-slate-600 hover:text-navy"
                 }`}
               >
-                <span>Billed Annually</span>
-                <span className="px-1.5 py-0.5 rounded-full bg-[#e2f300] text-[#0b1220] font-black text-[10px]">
-                  SAVE 20%
-                </span>
+                Annual <span className="text-teal-dark font-bold">(Save 20%)</span>
               </button>
               <button
                 onClick={() => setBillingCycle("monthly")}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                   billingCycle === "monthly"
-                    ? "bg-[#0b1220] text-teal shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "bg-white text-navy shadow-xs"
+                    : "text-slate-600 hover:text-navy"
                 }`}
               >
-                Billed Monthly
+                Monthly
+              </button>
+            </div>
+
+            <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <button
+                onClick={() => setCurrency("USD")}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  currency === "USD"
+                    ? "bg-white text-navy shadow-xs"
+                    : "text-slate-600 hover:text-navy"
+                }`}
+              >
+                USD ($)
+              </button>
+              <button
+                onClick={() => setCurrency("INR")}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  currency === "INR"
+                    ? "bg-white text-navy shadow-xs"
+                    : "text-slate-600 hover:text-navy"
+                }`}
+              >
+                INR (₹)
               </button>
             </div>
           </div>
-
-          {currency === "INR" && (
-            <p className="mt-3 text-xs text-slate-500 font-medium">
-              *Indian pricing tailored for Indian enterprises &amp; startups. 18% GST invoice provided for full Input Tax Credit (ITC).
-            </p>
-          )}
         </div>
 
-        {/* 4 Tier Pricing Columns */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
-          {plans.map((p) => {
+        {/* Pricing Cards */}
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
+          {plans.map((plan) => {
             const price =
               currency === "INR"
                 ? billingCycle === "annual"
-                  ? p.inrAnnual
-                  : p.inrMonthly
+                  ? plan.annualPriceINR
+                  : plan.monthlyPriceINR
                 : billingCycle === "annual"
-                ? p.usdAnnual
-                : p.usdMonthly;
+                ? plan.annualPriceUSD
+                : plan.monthlyPriceUSD;
 
             return (
               <div
-                key={p.id}
-                className={`relative rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all ${
-                  p.popular
-                    ? "bg-[#fcfdec] border-2 border-[#e2f300] shadow-[0_12px_35px_-10px_rgba(226,243,0,0.35)]"
-                    : "bg-white border border-slate-200 hover:border-slate-300 shadow-xs"
+                key={plan.id}
+                className={`rounded-2xl border p-7 sm:p-8 flex flex-col justify-between transition-all relative ${
+                  plan.popular
+                    ? "border-teal-dark/60 bg-white shadow-xl shadow-teal-dark/5 ring-2 ring-teal-dark/20"
+                    : "border-slate-200 bg-white hover:border-slate-300 shadow-sm"
                 }`}
               >
-                {/* Badge */}
-                {p.popular && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#0b1220] text-teal font-extrabold text-[10px] uppercase tracking-wider px-3 py-1 rounded-full border border-teal/40 shadow-xs">
-                    ★ Best Value for Outbound
+                {plan.popular && (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-navy text-teal text-[11px] font-extrabold tracking-wider uppercase px-3 py-1 rounded-full shadow-sm border border-teal/40">
+                    Recommended Plan
                   </div>
                 )}
 
                 <div>
-                  {/* Title & Tagline */}
-                  <h3 className="text-xl font-black text-[#0b1220]">{p.name}</h3>
-                  <p className="text-xs text-slate-500 mt-1 min-h-[36px] leading-relaxed">
-                    {p.tagline}
+                  <h3 className="text-xl font-bold text-navy">{plan.name}</h3>
+                  <p className="text-xs text-text-muted mt-2 min-h-[32px] leading-relaxed">
+                    {plan.tagline}
                   </p>
 
-                  {/* Price Display */}
-                  <div className="mt-5 pb-5 border-b border-slate-200/80">
+                  <div className="mt-6 pb-6 border-b border-slate-100">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3.5xl sm:text-4xl font-black text-[#0b1220]">
-                        {currencySymbol}
-                        {price.toLocaleString(currency === "INR" ? "en-IN" : "en-US")}
+                      <span className="text-3xl sm:text-4xl font-extrabold text-navy">
+                        {plan.monthlyPriceUSD === 0 ? "Free" : `${currencySymbol}${price}`}
                       </span>
-                      {price > 0 && (
-                        <span className="text-xs text-slate-500 font-semibold">
-                          / seat / mo
-                        </span>
+                      {plan.monthlyPriceUSD > 0 && (
+                        <span className="text-xs text-text-muted font-medium">/ seat / month</span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1 font-medium">
-                      {price === 0
-                        ? "Free forever · No credit card required"
-                        : billingCycle === "annual"
-                        ? `Billed annually (${currencySymbol}${(price * 12).toLocaleString(currency === "INR" ? "en-IN" : "en-US")}/yr)`
-                        : "Billed month-to-month"}
-                      {p.minSeats ? ` · Min ${p.minSeats} seats` : ""}
-                    </p>
-                  </div>
-
-                  {/* Primary CTA */}
-                  <div className="mt-5">
-                    <Link
-                      href="/pricing"
-                      className={`w-full py-2.5 px-4 rounded-xl font-extrabold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer ${
-                        p.id === "free"
-                          ? "bg-slate-100 hover:bg-slate-200 text-slate-800"
-                          : p.popular
-                          ? "bg-[#e2f300] hover:bg-[#d0df00] text-[#0b1220]"
-                          : "bg-[#0b1220] hover:bg-slate-800 text-white"
-                      }`}
-                    >
-                      <span>{p.id === "free" ? "Start Free Forever" : "Get Started Now"}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-
-                  {/* Credits Callout */}
-                  <div className="mt-6 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-                    <div className="flex items-center gap-2 font-bold text-slate-800">
-                      <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
-                      <span>{billingCycle === "annual" ? p.creditsAnnual : p.creditsMonthly}</span>
+                    <div className="mt-2 text-xs font-semibold text-teal-dark flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>{plan.creditsLabel}</span>
                     </div>
                   </div>
 
-                  {/* Feature list */}
-                  <div className="mt-6 space-y-2.5">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Included Features
-                    </p>
-                    {p.features.map((feat, i) => (
-                      <div key={i} className="flex items-start gap-2.5 text-xs text-slate-700">
-                        <Check className="w-3.5 h-3.5 text-teal-dark shrink-0 mt-0.5" />
-                        <span className={feat.highlight ? "font-bold text-slate-900" : ""}>
-                          {feat.text}
+                  <ul className="mt-6 space-y-3">
+                    {plan.features.map((f, i) => (
+                      <li key={i} className="flex items-start gap-2.5 text-xs text-slate-700">
+                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <span className={f.highlight ? "font-semibold text-navy" : ""}>
+                          {f.text}
                         </span>
-                        {feat.badge && (
-                          <span className="bg-teal/15 text-teal-dark text-[9px] font-black px-1.5 py-0.2 rounded shrink-0">
-                            {feat.badge}
-                          </span>
-                        )}
-                      </div>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
 
-                <div className="mt-8 pt-4 border-t border-slate-100 text-center">
-                  <Link href="/pricing" className="text-[11px] text-teal-dark font-bold hover:underline">
-                    View detailed comparison &rarr;
+                <div className="mt-8 pt-4">
+                  <Link
+                    href={plan.ctaHref}
+                    className={`w-full py-3 px-4 rounded-xl text-xs font-bold transition-all text-center flex items-center justify-center gap-2 ${
+                      plan.popular
+                        ? "bg-navy text-white hover:bg-slate-800 shadow-md shadow-navy/10"
+                        : "bg-slate-100 text-navy hover:bg-slate-200"
+                    }`}
+                  >
+                    <span>{plan.ctaText}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
               </div>
             );
           })}
+        </div>
+
+        {/* Credit System Transparency Explanation */}
+        <div className="mt-16 max-w-4xl mx-auto rounded-2xl bg-slate-50 border border-slate-200 p-6 sm:p-8">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-teal/15 text-teal-dark flex items-center justify-center shrink-0">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-navy">How LeadIntellect Credits Work</h4>
+              <p className="text-xs text-text-muted mt-1.5 leading-relaxed">
+                A credit represents a verified information lookup. 1 credit is consumed when you reveal a
+                contact&apos;s direct email or phone line, or run a live verification check. You are never
+                charged for searching, applying filters, or viewing company profiles. Failed lookups or
+                records without contact data are never deducted from your balance.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </section>

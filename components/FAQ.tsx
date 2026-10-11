@@ -26,8 +26,8 @@ const faqs = [
     a: "LeadIntellect is built to work with approved third-party data providers rather than a single fixed source, so coverage can expand over time as new providers are connected.",
   },
   {
-    q: "Does LeadIntellect integrate with Apollo?",
-    a: "Apollo is an integration-ready data source for LeadIntellect. Additional providers, including SalesTarget, are planned as future integrations.",
+    q: "How does LeadIntellect connect with external data providers?",
+    a: "LeadIntellect features a provider-neutral adapter architecture designed to integrate with verification and enrichment partners (such as XMagnet, ZeroBounce, and Hunter) via server-side API keys, with graceful fallback to our internal master dataset.",
   },
   {
     q: "Does LeadIntellect work with LinkedIn?",

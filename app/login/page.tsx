@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -38,7 +38,19 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const stored = localStorage.getItem("leadintellect_user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.email) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  });
 
   // Form states
   const [email, setEmail] = useState("");
@@ -46,21 +58,6 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [title, setTitle] = useState("");
-
-  // Restore session from localStorage if available
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("leadintellect_user");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed && parsed.email) {
-          setCurrentUser(parsed);
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("leadintellect_user");
@@ -364,7 +361,7 @@ export default function LoginPage() {
                       <path fill="#05a6f0" d="M1 12h10v10H1z" />
                       <path fill="#ffba08" d="M12 12h10v10H12z" />
                     </svg>
-                    <span>Continue with Microsoft / SSO</span>
+                    <span>Continue with Microsoft</span>
                   </button>
                 </div>
 

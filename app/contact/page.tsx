@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import {
   Mail,
   Phone,
@@ -13,7 +12,6 @@ import {
   Building,
   MessageSquare,
   Sparkles,
-  HelpCircle,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -78,7 +76,7 @@ export default function ContactPage() {
               We&apos;re Here to Help Accelerate Your Pipeline
             </h1>
             <p className="mt-3 text-sm text-text-muted">
-              Have questions about integrations, enterprise security, or pricing? Send us a message and a sales engineer will reply within 2 hours.
+              Have questions about dataset coverage, verification, or commercial plans? Send us a message and our team will get back to you promptly.
             </p>
           </div>
 
@@ -173,7 +171,7 @@ export default function ContactPage() {
                             name="fullName"
                             value={form.fullName}
                             onChange={handleChange}
-                            placeholder="Rachel Green"
+                            placeholder="Your name"
                             className="w-full bg-surface border border-border rounded-xl pl-10 pr-3 py-2.5 text-xs text-navy placeholder:text-text-muted focus:outline-none focus:border-teal"
                           />
                         </div>
@@ -191,7 +189,7 @@ export default function ContactPage() {
                             name="email"
                             value={form.email}
                             onChange={handleChange}
-                            placeholder="rachel@company.com"
+                            placeholder="Work email"
                             className="w-full bg-surface border border-border rounded-xl pl-10 pr-3 py-2.5 text-xs text-navy placeholder:text-text-muted focus:outline-none focus:border-teal"
                           />
                         </div>
@@ -208,7 +206,7 @@ export default function ContactPage() {
                             name="company"
                             value={form.company}
                             onChange={handleChange}
-                            placeholder="Acme Global"
+                            placeholder="Company name"
                             className="w-full bg-surface border border-border rounded-xl pl-10 pr-3 py-2.5 text-xs text-navy placeholder:text-text-muted focus:outline-none focus:border-teal"
                           />
                         </div>
@@ -223,7 +221,7 @@ export default function ContactPage() {
                             name="phone"
                             value={form.phone}
                             onChange={handleChange}
-                            placeholder="+1 (555) 000-0000"
+                            placeholder="Phone number, optional"
                             className="w-full bg-surface border border-border rounded-xl pl-10 pr-3 py-2.5 text-xs text-navy placeholder:text-text-muted focus:outline-none focus:border-teal"
                           />
                         </div>
@@ -258,7 +256,7 @@ export default function ContactPage() {
                           name="message"
                           value={form.message}
                           onChange={handleChange}
-                          placeholder="How can we assist you today? Provide any details on your sales goals..."
+                          placeholder="How can we help?"
                           className="w-full bg-surface border border-border rounded-xl pl-10 pr-3 py-2.5 text-xs sm:text-sm text-navy placeholder:text-text-muted focus:outline-none focus:border-teal resize-none"
                         />
                       </div>

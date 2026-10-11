@@ -93,7 +93,6 @@ export default function CRMPage() {
 
   const loadDeals = async () => {
     try {
-      setLoading(true);
       const res = await fetch("/api/crm/deals");
       const data = await res.json();
       if (data.deals) setDeals(data.deals);
@@ -105,7 +104,21 @@ export default function CRMPage() {
   };
 
   useEffect(() => {
-    loadDeals();
+    let ignore = false;
+    fetch("/api/crm/deals")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!ignore && data.deals) setDeals(data.deals);
+      })
+      .catch((e) => {
+        console.error("Failed to load CRM deals:", e);
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   const handleCreateDeal = async (e: React.FormEvent) => {
@@ -269,7 +282,7 @@ export default function CRMPage() {
                 className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs flex items-center gap-1.5"
               >
                 <Search className="w-3.5 h-3.5 text-teal-dark" />
-                <span>Search 11,000+ Database</span>
+                <span>Search Master Database</span>
               </Link>
 
               <button
@@ -383,7 +396,7 @@ export default function CRMPage() {
               <div>
                 <div className="text-xs font-black">Need Custom CRM Stages or Bi-Directional Salesforce/HubSpot Sync?</div>
                 <div className="text-[11px] text-slate-300">
-                  This CRM comes free with your plan. If your sales process requires custom stages, automated WhatsApp triggers, or custom fields, we customize it for you.
+                  This CRM comes free with your plan. If your sales process requires custom stages, automated webhook alerts, or custom fields, we customize it for you.
                 </div>
               </div>
             </div>

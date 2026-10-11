@@ -43,8 +43,8 @@ const features = [
   },
   {
     icon: Plug,
-    title: "Multi-Provider Enrichment",
-    text: "Start with providers such as Apollo and allow additional providers to be added over time.",
+    title: "Provider-Neutral Architecture",
+    text: "Access verified database prospects and connect modular data adapters and APIs over time.",
   },
   {
     icon: Bot,

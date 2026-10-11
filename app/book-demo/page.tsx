@@ -126,7 +126,7 @@ export default function BookDemoPage() {
 
               <div className="mt-8 flex items-center gap-6 text-xs text-text-muted">
                 <span className="flex items-center gap-1.5">
-                  <Shield className="w-4 h-4 text-teal-dark" /> No spam guarantee
+                  <Shield className="w-4 h-4 text-teal-dark" /> Privacy respected. No spam.
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Calendar className="w-4 h-4 text-teal-dark" /> Flexible scheduling

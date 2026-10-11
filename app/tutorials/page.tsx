@@ -7,12 +7,7 @@ import {
   Play,
   Clock,
   CheckCircle2,
-  Sparkles,
   ArrowRight,
-  Sliders,
-  Database,
-  Bot,
-  Layers,
   X,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -50,12 +45,12 @@ const tutorials = [
   },
   {
     id: "tut-3",
-    title: "Multi-Source Enrichment: Activating Apollo & Business Email Verification",
+    title: "Multi-Source Enrichment: Business Email Verification and Contact Revelation",
     duration: "5:45",
     level: "Intermediate",
     category: "Data Enrichment",
     summary:
-      "How LeadIntellect connects with approved data partners like Apollo to retrieve verified corporate emails without unauthorized scraping.",
+      "How LeadIntellect validates business email deliverability through multi-tier verification and provider-neutral data enrichment without unauthorized scraping.",
     steps: [
       "Connecting your API keys or using native LeadIntellect credits",
       "Checking data verification flags (Verified, Deliverable, High Confidence)",

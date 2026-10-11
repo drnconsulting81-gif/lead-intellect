@@ -4,15 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
-  CheckCircle2,
   Lock,
   Mail,
   Building,
   User,
   Briefcase,
-  ArrowRight,
-  ShieldCheck,
-  Sparkles,
   Zap,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -120,7 +116,7 @@ export default function SignupPage() {
               Create Your Account
             </h1>
             <p className="mt-2 text-sm text-text-muted">
-              Start prospecting with verified B2B contacts &amp; Apollo-style ICP filters.
+              Start discovering verified B2B prospects and target decision-makers with granular ICP filters.
             </p>
           </div>
 

@@ -82,7 +82,7 @@ export async function sendWelcomeConfirmationEmail({
     </div>
     <div class="content">
       <h1>Welcome aboard, ${firstName}! 👋</h1>
-      <p>Your LeadIntellect sales intelligence workspace is ready. You now have instant access to our verified B2B contact database, Apollo-style ICP filtering engine, and 1:1 outreach pitch generator.</p>
+      <p>Your LeadIntellect sales intelligence workspace is ready. You now have instant access to our verified B2B contact database, granular ICP filtering engine, and 1:1 outreach pitch generator.</p>
       
       <div class="credit-badge">
         <div class="credit-count">${credits} FREE CREDITS</div>

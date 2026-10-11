@@ -8,42 +8,33 @@ import {
   YouTubeIcon,
 } from "./SocialIcons";
 
-const columns = [
+const footerColumns = [
   {
     title: "Product",
     links: [
-      { label: "Product Tour", href: "/#how-it-works" },
-      { label: "Features", href: "/#features" },
-      { label: "ICP Scoring", href: "/#features" },
-      { label: "Plans & Pricing", href: "/pricing" },
-      { label: "Prospecting Workspace", href: "/dashboard" },
-      { label: "Start Free Trial", href: "/signup" },
+      { label: "Product Tour", href: "/product" },
+      { label: "People & Company Search", href: "/dashboard" },
+      { label: "Pricing & Plans", href: "/pricing" },
+      { label: "Data Quality & Provenance", href: "/data-use" },
+      { label: "Start Free", href: "/signup" },
     ],
   },
   {
     title: "Company",
     links: [
-      { label: "About Us", href: "/about" },
+      { label: "About LeadIntellect", href: "/about" },
       { label: "Contact Us", href: "/contact" },
-      { label: "Book a Demo", href: "/book-demo" },
-      { label: "Sign In / Register", href: "/login" },
-      { label: "CEO Portal", href: "/admin" },
+      { label: "Documentation", href: "/docs" },
+      { label: "Sign In", href: "/login" },
     ],
   },
   {
-    title: "Resources",
+    title: "Data & Privacy",
     links: [
-      { label: "Frequently Asked Questions", href: "/#faq" },
-      { label: "Blogs & Insights", href: "/blog" },
-      { label: "Video Tutorials", href: "/tutorials" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { label: "Privacy Policy", href: "#" },
-      { label: "Terms of Service", href: "#" },
-      { label: "Security & Compliance", href: "#" },
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Terms of Service", href: "/terms" },
+      { label: "Data Use & Provenance", href: "/data-use" },
+      { label: "Security & Protections", href: "/security" },
     ],
   },
 ];
@@ -82,28 +73,35 @@ export default function Footer() {
         <div className="grid lg:grid-cols-[1.4fr_2.6fr] gap-12">
           <div>
             <Logo size="md" />
-            <p className="mt-3 text-sm text-text-muted max-w-xs leading-relaxed">
-              Turning Sales Research into Sales Intelligence. Discover, enrich, and prioritize high-conversion B2B buyers with AI.
+            <p className="mt-3 text-sm text-text-muted max-w-sm leading-relaxed">
+              Find the companies. Find the people. Know who matters. Actionable B2B prospect intelligence
+              with transparent verification and provider-neutral architecture.
             </p>
             <div className="mt-6 flex flex-col gap-2 text-xs text-text-muted">
-              <span className="font-semibold text-navy">Location:</span>
-              <span className="font-medium text-navy">India</span>
+              <span className="font-semibold text-navy">Global B2B Intelligence</span>
               <span className="mt-1 flex items-center gap-1.5 font-medium text-navy">
                 <Phone className="w-3.5 h-3.5 text-teal-dark shrink-0" />
-                <a href="tel:+919985926971" className="hover:text-teal-dark transition-colors">+91 9985926971</a>
+                <a href="tel:+919985926971" className="hover:text-teal-dark transition-colors">
+                  +91 9985926971
+                </a>
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
-            {columns.map((col) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8">
+            {footerColumns.map((col) => (
               <div key={col.title}>
-                <p className="text-xs font-bold tracking-wide text-navy uppercase">{col.title}</p>
-                <ul className="mt-4 flex flex-col gap-2.5">
-                  {col.links.map((l) => (
-                    <li key={l.label}>
-                      <Link href={l.href} className="text-sm text-text-muted hover:text-navy transition-colors">
-                        {l.label}
+                <h4 className="text-xs font-bold uppercase tracking-wider text-navy mb-4">
+                  {col.title}
+                </h4>
+                <ul className="space-y-2.5">
+                  {col.links.map((link) => (
+                    <li key={link.label}>
+                      <Link
+                        href={link.href}
+                        className="text-xs text-text-muted hover:text-navy transition-colors"
+                      >
+                        {link.label}
                       </Link>
                     </li>
                   ))}
@@ -113,26 +111,24 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Social channels bar requested by user */}
-        <div className="mt-14 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-text-muted">
+            &copy; {new Date().getFullYear()} LeadIntellect. All rights reserved. Sourced and managed responsibly.
+          </p>
+
           <div className="flex items-center gap-3">
-            <span className="text-xs font-semibold text-navy mr-1">Connect with us:</span>
-            {socialLinks.map((social) => (
+            {socialLinks.map((s) => (
               <a
-                key={social.name}
-                href={social.href}
+                key={s.name}
+                href={s.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={`Visit LeadIntellect on ${social.name}`}
-                className={`w-10 h-10 rounded-xl border border-border bg-surface flex items-center justify-center text-text-muted transition-all duration-200 ${social.color}`}
+                aria-label={s.name}
+                className={`w-8 h-8 rounded-lg border border-border flex items-center justify-center text-text-muted transition-all ${s.color}`}
               >
-                <social.icon className="w-4.5 h-4.5" />
+                <s.icon className="w-4 h-4" />
               </a>
             ))}
-          </div>
-
-          <div className="text-xs text-text-muted text-center sm:text-right">
-            &copy; {new Date().getFullYear()} LeadIntellect Inc. All rights reserved. Built for B2B Revenue Teams.
           </div>
         </div>
       </div>

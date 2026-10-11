@@ -13,15 +13,15 @@ import {
 import Reveal from "./Reveal";
 
 const sidebar = [
-  { label: "Dashboard", icon: LayoutDashboard, active: true },
-  { label: "Discover", icon: Compass },
-  { label: "Accounts", icon: Building2 },
-  { label: "Leads", icon: Users },
-  { label: "Intelligence", icon: BrainCircuit },
+  { label: "Home", icon: LayoutDashboard },
+  { label: "Discover", icon: Compass, active: true },
+  { label: "People", icon: Users },
+  { label: "Companies", icon: Building2 },
   { label: "Lists", icon: ListChecks },
+  { label: "Intelligence", icon: BrainCircuit },
   { label: "Outreach", icon: Send },
   { label: "Pipeline", icon: GitBranch },
-  { label: "Integrations", icon: Plug },
+  { label: "Data & Credits", icon: Plug },
   { label: "Settings", icon: Settings },
 ];
 
