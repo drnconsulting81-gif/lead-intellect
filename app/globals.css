@@ -79,12 +79,12 @@ h1, h2, h3, h4 {
 /* Custom Scrollbar for Filters and Table Views */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 #f8fafc;
+  scrollbar-color: #94a3b8 #f1f5f9;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -95,9 +95,10 @@ h1, h2, h3, h4 {
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 9999px;
+  border: 1px solid #f1f5f9;
   transition: background 0.2s ease;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #64748b;
 }

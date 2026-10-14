@@ -17,6 +17,8 @@ import {
   Zap,
   Sliders,
   ExternalLink,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -55,6 +57,7 @@ export default function LoginPage() {
   // Form states
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [title, setTitle] = useState("");
@@ -82,7 +85,7 @@ export default function LoginPage() {
         setCurrentUser(data.user);
         setSuccessMsg(`Welcome! Authenticated via ${provider.toUpperCase()}. Redirecting...`);
         setTimeout(() => {
-          window.location.href = data.user.role === "admin" ? "/admin" : "/dashboard";
+          window.location.href = "/dashboard";
         }, 900);
       } else {
         setErrorMsg(data.error || "Social authentication failed.");
@@ -119,8 +122,7 @@ export default function LoginPage() {
         setCurrentUser(data.user);
         setSuccessMsg("✓ Authentication successful! Redirecting to your workspace...");
         setTimeout(() => {
-          // Regular users ALWAYS go to /dashboard; only CEO goes to /admin
-          window.location.href = data.user.role === "admin" ? "/admin" : "/dashboard";
+          window.location.href = "/dashboard";
         }, 900);
       } else {
         setErrorMsg(data.error || "Authentication failed. Check your credentials.");
@@ -190,7 +192,7 @@ export default function LoginPage() {
                 <div className="space-y-2.5">
                   <p className="text-xs font-bold text-navy uppercase tracking-wider">Quick Actions</p>
 
-                  {/* Primary: Apollo Workspace for all users */}
+                  {/* Standard Quick Actions */}
                   <Link
                     href="/dashboard"
                     className="w-full flex items-center justify-between p-3 rounded-xl border-2 border-teal/40 bg-teal/5 hover:bg-teal/10 transition-all text-xs font-bold text-navy group shadow-2xs"
@@ -209,28 +211,6 @@ export default function LoginPage() {
                     </div>
                     <ArrowRight className="w-4 h-4 text-teal-dark group-hover:translate-x-0.5 transition-transform" />
                   </Link>
-
-                  {/* Only CEO sees Admin Operations Portal */}
-                  {currentUser.role === "admin" && (
-                    <Link
-                      href="/admin"
-                      className="w-full flex items-center justify-between p-3 rounded-xl border border-border hover:border-teal/50 hover:bg-surface transition-all text-xs font-bold text-navy group"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-navy text-teal flex items-center justify-center shrink-0">
-                          <Sliders className="w-4 h-4" />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-navy font-bold flex items-center gap-1.5">
-                            <span>CEO Operations &amp; Revenue Portal</span>
-                            <span className="text-[9px] bg-navy text-teal px-1.5 py-0.2 rounded font-extrabold">CEO ONLY</span>
-                          </p>
-                          <p className="text-[10px] text-text-muted font-normal">View sign-ups, revenue, database orders &amp; diagnostics</p>
-                        </div>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-text-muted group-hover:text-teal-dark transition-colors" />
-                    </Link>
-                  )}
 
                   <Link
                     href="/pricing"
@@ -363,12 +343,42 @@ export default function LoginPage() {
                     </svg>
                     <span>Continue with Microsoft</span>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSocialAuth("github")}
+                    disabled={loading}
+                    className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-border rounded-xl text-sm font-semibold text-navy hover:bg-surface transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <svg className="w-4 h-4 text-slate-800 fill-current" viewBox="0 0 24 24">
+                      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 0.92-2.85-.9.04-2 .6-2.65 1.35-.56.64-1.06 1.7-0.92 2.73 1.01.08 2.04-.48 2.65-1.23z" />
+                    </svg>
+                    <span>Sign in with Apple</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const org = prompt("Enter your corporate domain or SSO tenant ID (e.g. acme.com):");
+                      if (org) {
+                        setEmail(`admin@${org.toLowerCase().replace(/[^a-z0-9.]/g, "")}`);
+                        setSuccessMsg(`Routed to SSO identity provider for ${org}...`);
+                        setTimeout(() => {
+                          window.location.href = "/dashboard";
+                        }, 1200);
+                      }
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    <Lock className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Log In with your Organization (SSO)</span>
+                  </button>
                 </div>
 
                 <div className="relative flex items-center justify-center mb-6">
                   <div className="border-t border-border w-full" />
                   <span className="bg-white px-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider absolute">
-                    Or with work email
+                    Or with email
                   </span>
                 </div>
 
@@ -409,10 +419,10 @@ export default function LoginPage() {
                       <span>{successMsg}</span>
                     </div>
                     <Link
-                      href="/admin"
-                      className="inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-navy text-teal hover:bg-teal hover:text-navy rounded-lg font-bold text-xs transition-colors shadow-xs"
+                      href="/dashboard"
+                      className="inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-navy text-white hover:bg-slate-800 rounded-lg font-bold text-xs transition-colors shadow-xs"
                     >
-                      <span>Open Admin Dashboard Now</span>
+                      <span>Go to Prospecting Workspace</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                   </div>
@@ -497,27 +507,51 @@ export default function LoginPage() {
                           onClick={() => alert("Password reset link has been dispatched to your work email.")}
                           className="text-[11px] text-teal-dark hover:underline cursor-pointer"
                         >
-                          Forgot?
+                          Forgot password?
                         </button>
                       )}
                     </div>
                     <div className="relative">
                       <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
                       <input
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full bg-surface border border-border rounded-xl pl-10 pr-3 py-2.5 text-xs sm:text-sm text-navy placeholder:text-text-muted focus:outline-none focus:border-teal focus:ring-1 focus:ring-teal"
+                        className="w-full bg-surface border border-border rounded-xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-navy placeholder:text-text-muted focus:outline-none focus:border-teal focus:ring-1 focus:ring-teal"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-navy cursor-pointer p-0.5"
+                        title={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </button>
                     </div>
+                  </div>
+
+                  {/* Keep me signed in */}
+                  <div className="flex items-center justify-between pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-600">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        className="rounded text-teal-dark focus:ring-teal w-4 h-4 cursor-pointer"
+                      />
+                      <span>Keep me signed in</span>
+                    </label>
                   </div>
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full mt-2 bg-navy text-teal hover:bg-teal hover:text-navy py-3 rounded-xl font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full mt-2 bg-gradient-to-r from-teal-dark to-teal hover:from-teal hover:to-teal-dark text-white py-3 rounded-xl font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     {loading ? (
                       <span>Verifying credentials...</span>

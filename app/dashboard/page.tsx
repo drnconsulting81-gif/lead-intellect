@@ -430,7 +430,10 @@ export default function LeadIntellectWorkspace() {
   // Intelligence State
   const [intelligenceTab, setIntelligenceTab] = useState<"intent" | "icp" | "signals" | "recommendations">("intent");
 
-  // CSV Import Modal
+  // Collapsible AI Search Suggestions Banner (Maximizes prospect list view)
+  const [aiBannerOpen, setAiBannerOpen] = useState(false);
+
+  // CSV Import & Data Enrichment Modal States
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importFileContent, setImportFileContent] = useState("");
   const [importPreview, setImportPreview] = useState<{
@@ -438,10 +441,115 @@ export default function LeadIntellectWorkspace() {
     sampleRows: string[][];
     suggestedMapping: Record<string, string>;
     totalRows: number;
+    masterHeaders?: string[];
   } | null>(null);
   const [importMapping, setImportMapping] = useState<Record<string, string>>({});
   const [importListName, setImportListName] = useState("");
   const [importing, setImporting] = useState(false);
+  const [enrichmentResult, setEnrichmentResult] = useState<{
+    totalRows: number;
+    matchedCount: number;
+    matchRate: number;
+    enrichedEmailsCount: number;
+    enrichedPhonesCount: number;
+    csvContent: string;
+  } | null>(null);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        setImportFileContent(text);
+        setImportPreview(null);
+        setEnrichmentResult(null);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handlePreviewImport = async () => {
+    if (!importFileContent.trim()) {
+      showToast("Please paste CSV data or choose a file first.", "error");
+      return;
+    }
+    setImporting(true);
+    try {
+      const res = await fetch("/api/data/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "preview", csvContent: importFileContent }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setImportPreview(data);
+        setImportMapping(data.suggestedMapping || {});
+        setEnrichmentResult(null);
+        showToast(`Loaded ${data.totalRows} rows. Column auto-mapping suggested.`);
+      } else {
+        showToast(data.error || "Failed to parse CSV.", "error");
+      }
+    } catch {
+      showToast("Connection failed parsing CSV.", "error");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleEnrichAndImport = async () => {
+    if (!importFileContent.trim()) {
+      showToast("No CSV content provided.", "error");
+      return;
+    }
+    setImporting(true);
+    try {
+      const res = await fetch("/api/data/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "enrich",
+          csvContent: importFileContent,
+          mapping: importMapping,
+          listName: importListName || undefined,
+          userEmail: "ceo@leadintellect.ai",
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEnrichmentResult({
+          totalRows: data.totalRows,
+          matchedCount: data.matchedCount,
+          matchRate: data.matchRate,
+          enrichedEmailsCount: data.enrichedEmailsCount,
+          enrichedPhonesCount: data.enrichedPhonesCount,
+          csvContent: data.csvContent,
+        });
+        showToast(`Enrichment complete! ${data.matchedCount} records matched & standardized.`);
+      } else {
+        showToast(data.error || "Enrichment failed.", "error");
+      }
+    } catch {
+      showToast("Error processing enrichment.", "error");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleDownloadEnrichedCsv = () => {
+    if (!enrichmentResult?.csvContent) return;
+    const blob = new Blob([enrichmentResult.csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `leadintellect_master_enriched_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast("Downloaded standardized master enriched CSV!");
+  };
 
   // Feedback Notification Banner
   const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "error" | "info" } | null>(null);
@@ -2012,15 +2120,15 @@ export default function LeadIntellectWorkspace() {
 
                 {/* Right Results & Content Area with dedicated custom scroller (Requirement 6) */}
                 <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 sm:p-6 space-y-4">
-                  {/* Search Hero / Quick Filters Card (Screenshot 3) */}
-                  {!query && seniority.length === 0 && industry === "all" && country === "all" && (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs shrink-0 space-y-3">
-                      <div>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                          Use LeadIntellect AI to find the right prospects
-                        </h3>
-                        {/* Example Search Pill Bar */}
-                        <div className="mt-2 flex flex-wrap gap-2">
+                  {/* Compact Collapsible AI Search Assistant & Quick Filters (Maximizes List View) */}
+                  <div className="shrink-0 rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
+                    <div className="p-2.5 px-4 flex items-center justify-between gap-3 bg-gradient-to-r from-slate-50 to-white">
+                      <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar py-0.5 min-w-0">
+                        <span className="text-xs font-bold text-navy flex items-center gap-1.5 shrink-0">
+                          <Sparkles className="w-3.5 h-3.5 text-teal-dark" />
+                          <span>AI Search:</span>
+                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
                           {[
                             "Data Scientists in Boston",
                             "VP Sales in SaaS",
@@ -2034,140 +2142,151 @@ export default function LeadIntellectWorkspace() {
                                 setQuery(examplePrompt);
                                 setPage(1);
                               }}
-                              className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 flex items-center gap-1.5 cursor-pointer transition-colors"
+                              className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-teal/10 hover:border-teal/30 hover:text-teal-dark text-[11px] font-semibold text-slate-700 flex items-center gap-1 cursor-pointer transition-all"
                             >
-                              <Sparkles className="w-3.5 h-3.5 text-teal-dark" />
-                              <span>Example: {examplePrompt}</span>
+                              <span>{examplePrompt}</span>
                             </button>
                           ))}
                         </div>
                       </div>
 
-                      {/* Quick Filters Block */}
-                      <div className="pt-2 border-t border-slate-100 grid sm:grid-cols-4 gap-3 text-xs">
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                            Locations
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {["United States", "Canada"].map((loc) => (
-                              <button
-                                key={loc}
-                                type="button"
-                                onClick={() => {
-                                  setCountry(loc);
-                                  setPage(1);
-                                }}
-                                className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
-                                  country === loc
-                                    ? "bg-teal/15 text-teal-dark border-teal/30"
-                                    : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                                }`}
-                              >
-                                {loc}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                            Email Status
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {["Verified", "Deliverable"].map((st) => (
-                              <button
-                                key={st}
-                                type="button"
-                                onClick={() => {
-                                  setEmailStatus(st.toLowerCase());
-                                  setPage(1);
-                                }}
-                                className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
-                                  emailStatus === st.toLowerCase()
-                                    ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                                    : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                                }`}
-                              >
-                                {st}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                            Job Titles
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {["founder", "sales manager", "marketing director"].map((jt) => (
-                              <button
-                                key={jt}
-                                type="button"
-                                onClick={() => {
-                                  setTitleFilter(jt);
-                                  setPage(1);
-                                }}
-                                className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
-                                  titleFilter === jt
-                                    ? "bg-indigo-50 text-indigo-700 border-indigo-300"
-                                    : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                                }`}
-                              >
-                                {jt}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                            Industry
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {["Computer Software", "Professional Services"].map((ind) => (
-                              <button
-                                key={ind}
-                                type="button"
-                                onClick={() => {
-                                  setIndustry(ind);
-                                  setPage(1);
-                                }}
-                                className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
-                                  industry === ind
-                                    ? "bg-amber-50 text-amber-700 border-amber-300"
-                                    : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                                }`}
-                              >
-                                {ind}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Unlock Advanced Filters Banner (Screenshot 3) */}
-                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between bg-amber-50/60 -mx-5 -mb-5 p-3 px-5 rounded-b-2xl text-xs">
-                        <div className="flex items-center gap-2 text-slate-700 font-medium">
-                          <Lock className="w-3.5 h-3.5 text-amber-600" />
-                          <span>
-                            Unlock advanced filters: <strong className="text-navy font-bold">$ Revenue</strong>,{" "}
-                            <strong className="text-navy font-bold">🏢 Funding</strong>,{" "}
-                            <strong className="text-navy font-bold">👥 Company Lookalikes</strong>
-                          </span>
-                        </div>
-                        <Link
-                          href="/pricing"
-                          className="px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold text-xs"
-                        >
-                          View plans
-                        </Link>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAiBannerOpen(!aiBannerOpen)}
+                        className="text-[11px] font-bold text-teal-dark hover:underline flex items-center gap-1 shrink-0 cursor-pointer"
+                      >
+                        <span>{aiBannerOpen ? "Hide Quick Filters ▴" : "Quick Filters Guide ▾"}</span>
+                      </button>
                     </div>
-                  )}
 
-                  {/* PROSPECTS DATA TABLE CONTAINER (with dedicated custom scroller and sticky header) */}
-                  <div className="flex-1 overflow-y-auto max-h-[calc(100vh-230px)] custom-scrollbar rounded-2xl border border-slate-200 bg-white shadow-xs">
+                    {/* Expanded Quick Filters Drawer (only if toggled open) */}
+                    {aiBannerOpen && (
+                      <div className="p-4 border-t border-slate-100 bg-slate-50/50 space-y-3 animate-in fade-in duration-150">
+                        <div className="grid sm:grid-cols-4 gap-3 text-xs">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                              Locations
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {["United States", "Canada"].map((loc) => (
+                                <button
+                                  key={loc}
+                                  type="button"
+                                  onClick={() => {
+                                    setCountry(loc);
+                                    setPage(1);
+                                  }}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
+                                    country === loc
+                                      ? "bg-teal/15 text-teal-dark border-teal/30"
+                                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100"
+                                  }`}
+                                >
+                                  {loc}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                              Email Status
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {["Verified", "Deliverable"].map((st) => (
+                                <button
+                                  key={st}
+                                  type="button"
+                                  onClick={() => {
+                                    setEmailStatus(st.toLowerCase());
+                                    setPage(1);
+                                  }}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
+                                    emailStatus === st.toLowerCase()
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100"
+                                  }`}
+                                >
+                                  {st}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                              Job Titles
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {["founder", "sales manager", "marketing director"].map((jt) => (
+                                <button
+                                  key={jt}
+                                  type="button"
+                                  onClick={() => {
+                                    setTitleFilter(jt);
+                                    setPage(1);
+                                  }}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
+                                    titleFilter === jt
+                                      ? "bg-indigo-50 text-indigo-700 border-indigo-300"
+                                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100"
+                                  }`}
+                                >
+                                  {jt}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                              Industry
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {["Computer Software", "Professional Services"].map((ind) => (
+                                <button
+                                  key={ind}
+                                  type="button"
+                                  onClick={() => {
+                                    setIndustry(ind);
+                                    setPage(1);
+                                  }}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
+                                    industry === ind
+                                      ? "bg-amber-50 text-amber-700 border-amber-300"
+                                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100"
+                                  }`}
+                                >
+                                  {ind}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Unlock Advanced Filters Banner */}
+                        <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2 text-slate-700 font-medium">
+                            <Lock className="w-3.5 h-3.5 text-amber-600" />
+                            <span>
+                              Unlock advanced filters: <strong className="text-navy font-bold">$ Revenue</strong>,{" "}
+                              <strong className="text-navy font-bold">🏢 Funding</strong>,{" "}
+                              <strong className="text-navy font-bold">👥 Company Lookalikes</strong>
+                            </span>
+                          </div>
+                          <Link
+                            href="/pricing"
+                            className="px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold text-xs"
+                          >
+                            View plans
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* PROSPECTS DATA TABLE CONTAINER (Expanded height with dedicated custom scroller) */}
+                  <div className="flex-1 overflow-y-auto min-h-[480px] h-[calc(100vh-175px)] custom-scrollbar rounded-2xl border border-slate-200 bg-white shadow-xs">
                     {loading ? (
                       <div className="p-16 text-center">
                         <RefreshCw className="w-6 h-6 text-teal-dark animate-spin mx-auto mb-2" />
@@ -2181,27 +2300,27 @@ export default function LeadIntellectWorkspace() {
                       </div>
                     ) : (
                       <table className="w-full text-left border-collapse text-xs">
-                        <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-xs z-10 border-b border-slate-200 text-text-muted font-bold tracking-wider text-[11px] uppercase shadow-2xs">
+                        <thead className="sticky top-0 bg-[#0B132B] z-10 border-b border-slate-800 text-slate-300 font-bold tracking-wider text-[11px] uppercase shadow-sm">
                           <tr>
-                            <th className="p-3.5 w-10 text-center">
+                            <th className="p-3 w-10 text-center">
                               <button
                                 type="button"
                                 onClick={toggleSelectAll}
-                                className="text-slate-400 hover:text-navy cursor-pointer"
+                                className="text-slate-400 hover:text-white cursor-pointer"
                               >
                                 {selectedIds.length === prospects.length ? (
-                                  <CheckSquare className="w-4 h-4 text-teal-dark" />
+                                  <CheckSquare className="w-4 h-4 text-teal" />
                                 ) : (
                                   <Square className="w-4 h-4" />
                                 )}
                               </button>
                             </th>
-                            <th className="p-3.5">Decision Maker</th>
-                            <th className="p-3.5">Company &amp; Industry</th>
-                            <th className="p-3.5">Location</th>
-                            <th className="p-3.5">ICP Score</th>
-                            <th className="p-3.5">Reachability (Email &amp; Direct Phone)</th>
-                            <th className="p-3.5 text-right">Actions</th>
+                            <th className="p-3">Decision Maker</th>
+                            <th className="p-3">Company &amp; Industry</th>
+                            <th className="p-3">Location</th>
+                            <th className="p-3">ICP Score</th>
+                            <th className="p-3">Reachability (Email &amp; Direct Phone)</th>
+                            <th className="p-3 text-right">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -2218,7 +2337,7 @@ export default function LeadIntellectWorkspace() {
                                   isSelected ? "bg-teal/5" : ""
                                 }`}
                               >
-                                <td className="p-3.5 text-center">
+                                <td className="py-2.5 px-3 text-center">
                                   <button
                                     type="button"
                                     onClick={() => toggleSelect(p.id)}
@@ -2233,7 +2352,7 @@ export default function LeadIntellectWorkspace() {
                                 </td>
 
                                 {/* Person Name & Title */}
-                                <td className="p-3.5">
+                                <td className="py-2.5 px-3.5">
                                   <div className="flex items-center gap-1.5">
                                     <button
                                       type="button"
@@ -2257,13 +2376,13 @@ export default function LeadIntellectWorkspace() {
                                   <p className="text-[11px] text-text-muted mt-0.5 truncate max-w-xs">
                                     {p.title}
                                   </p>
-                                  <span className="inline-block mt-1 text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-medium">
+                                  <span className="inline-block mt-0.5 text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.2 rounded font-medium">
                                     {p.seniority}
                                   </span>
                                 </td>
 
                                 {/* Company & Industry */}
-                                <td className="p-3.5">
+                                <td className="py-2.5 px-3.5">
                                   <p className="font-semibold text-navy">{p.company}</p>
                                   <p className="text-[11px] text-text-muted">{p.industry}</p>
                                   <span className="text-[10px] text-slate-400">
@@ -2272,13 +2391,13 @@ export default function LeadIntellectWorkspace() {
                                 </td>
 
                                 {/* Location */}
-                                <td className="p-3.5 text-text-muted">
+                                <td className="py-2.5 px-3.5 text-text-muted">
                                   <p>{p.city ? `${p.city}, ${p.state}` : p.location}</p>
                                   <p className="text-[10px] text-slate-400">{p.country}</p>
                                 </td>
 
                                 {/* ICP Score */}
-                                <td className="p-3.5">
+                                <td className="py-2.5 px-3.5">
                                   <div className="flex items-center gap-1.5">
                                     <span
                                       className={`font-extrabold text-sm ${
@@ -2305,9 +2424,9 @@ export default function LeadIntellectWorkspace() {
                                 </td>
 
                                 {/* Reachability: Email & Phone Status (Requirement 5) */}
-                                <td className="p-3.5">
+                                <td className="py-2.5 px-3.5">
                                   {isRevealed ? (
-                                    <div className="space-y-1.5">
+                                    <div className="space-y-1">
                                       {/* Verified Email with Click-to-Copy */}
                                       <div className="flex items-center gap-1.5">
                                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
@@ -2374,7 +2493,7 @@ export default function LeadIntellectWorkspace() {
                                 </td>
 
                                 {/* Actions */}
-                                <td className="p-3.5 text-right">
+                                <td className="py-2.5 px-3.5 text-right">
                                   <div className="flex items-center justify-end gap-1.5">
                                     {!isRevealed ? (
                                       <button
@@ -3409,62 +3528,137 @@ export default function LeadIntellectWorkspace() {
                 </button>
               </div>
 
-              {/* Verified Contact Card (Requirement 5) */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-navy flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                    Verified Contact Intelligence
-                  </span>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    98% Confidence
-                  </span>
-                </div>
+              {/* Verified Contact Card (Masked until revealed with credit deduction) */}
+              {(() => {
+                const isProfileRevealed = Boolean(revealedContacts[activeProfile.id]);
+                const revealedData = revealedContacts[activeProfile.id];
+                const displayEmail = isProfileRevealed
+                  ? (revealedData?.email || activeProfile.email)
+                  : null;
+                const displayPhone = isProfileRevealed
+                  ? (revealedData?.phone || activeProfile.phone || "+1 (555) 019-2834")
+                  : null;
 
-                <div className="space-y-2 text-xs">
-                  <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="font-semibold text-navy">
-                        {revealedContacts[activeProfile.id]?.email || activeProfile.email}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        copyToClipboard(
-                          revealedContacts[activeProfile.id]?.email || activeProfile.email,
-                          "Email"
-                        )
-                      }
-                      className="text-xs font-bold text-teal-dark hover:underline"
-                    >
-                      Copy
-                    </button>
-                  </div>
+                const getMaskedEmail = (em: string) => {
+                  const parts = (em || "").split("@");
+                  if (parts.length < 2) return "•••••••••@domain.com";
+                  const username = parts[0];
+                  const domain = parts[1];
+                  const visibleChar = username.length > 0 ? username[0] : "";
+                  return `${visibleChar}•••••••••@${domain}`;
+                };
 
-                  <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="font-semibold text-navy">
-                        {revealedContacts[activeProfile.id]?.phone || activeProfile.phone || "+1 (555) 019-2834"}
+                return (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-navy flex items-center gap-1.5">
+                        <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                        Verified Contact Intelligence
                       </span>
+                      {isProfileRevealed ? (
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
+                          <Check className="w-3 h-3 text-emerald-600" />
+                          Unlocked (1 Credit Used)
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 flex items-center gap-1">
+                          <Lock className="w-3 h-3 text-amber-600" />
+                          1 Credit to Reveal
+                        </span>
+                      )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        copyToClipboard(
-                          revealedContacts[activeProfile.id]?.phone || activeProfile.phone || "+1 (555) 019-2834",
-                          "Phone"
-                        )
-                      }
-                      className="text-xs font-bold text-teal-dark hover:underline"
-                    >
-                      Copy
-                    </button>
+
+                    <div className="space-y-2 text-xs">
+                      {/* Email Field */}
+                      <div className="flex items-center justify-between p-2.5 bg-white rounded-lg border border-slate-200">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                          {isProfileRevealed ? (
+                            <span className="font-semibold text-navy truncate select-all">
+                              {displayEmail}
+                            </span>
+                          ) : (
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-mono text-slate-400 text-xs tracking-wider truncate">
+                                {getMaskedEmail(activeProfile.email)}
+                              </span>
+                              <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-1.5 py-0.2 rounded shrink-0">
+                                Protected
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        {isProfileRevealed && (
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(displayEmail || "", "Email")}
+                            className="text-xs font-bold text-teal-dark hover:underline cursor-pointer shrink-0"
+                          >
+                            Copy
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Phone Field */}
+                      <div className="flex items-center justify-between p-2.5 bg-white rounded-lg border border-slate-200">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                          {isProfileRevealed ? (
+                            <span className="font-semibold text-navy truncate select-all">
+                              {displayPhone}
+                            </span>
+                          ) : (
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-mono text-slate-400 text-xs tracking-wider">
+                                +1 (•••) •••-••••
+                              </span>
+                              <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-1.5 py-0.2 rounded shrink-0">
+                                Direct Dial Locked
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        {isProfileRevealed && (
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(displayPhone || "", "Phone")}
+                            className="text-xs font-bold text-teal-dark hover:underline cursor-pointer shrink-0"
+                          >
+                            Copy
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Unlock Button if not revealed */}
+                    {!isProfileRevealed && (
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          disabled={revealingId === activeProfile.id}
+                          onClick={() => handleRevealContact(activeProfile)}
+                          className="w-full py-2.5 px-4 bg-gradient-to-r from-teal-dark to-teal hover:from-teal hover:to-teal-dark text-white text-xs font-bold rounded-xl shadow-xs hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                        >
+                          {revealingId === activeProfile.id ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              <span>Verifying &amp; Unlocking Contact (1 Credit)...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>Reveal Verified Email &amp; Phone (1 Credit)</span>
+                            </>
+                          )}
+                        </button>
+                        <p className="text-[10px] text-center text-text-muted mt-1.5">
+                          1 credit deducted from balance ({credits} remaining). 98% direct deliverability guaranteed.
+                        </p>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Profile Details Grid */}
               <div className="grid grid-cols-2 gap-3 text-xs">
@@ -3673,51 +3867,291 @@ export default function LeadIntellectWorkspace() {
         </div>
       )}
 
-      {/* ================= MODAL: CSV IMPORT ================= */}
+      {/* ================= MODAL: CSV IMPORT & MASTER ENRICHMENT ================= */}
       {importModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-2xl bg-white rounded-2xl p-6 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-2xl bg-white rounded-2xl p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="text-base font-bold text-navy flex items-center gap-2">
-                <Upload className="w-4 h-4 text-teal-dark" />
-                Data Enrichment &amp; CSV Import
-              </h3>
-              <button onClick={() => setImportModalOpen(false)} className="text-slate-400 hover:text-navy">
+              <div>
+                <h3 className="text-base font-bold text-navy flex items-center gap-2">
+                  <Upload className="w-5 h-5 text-teal-dark" />
+                  <span>Enterprise Data Enrichment &amp; Master CSV Export</span>
+                </h3>
+                <p className="text-[11px] text-text-muted mt-0.5">
+                  Standardizes against all 36 cleaned database fields (strictly excluding Apollo ID).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setImportModalOpen(false);
+                  setImportPreview(null);
+                  setEnrichmentResult(null);
+                }}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-navy cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <p className="text-xs text-text-muted">
-                Paste your raw CSV rows or upload a file. The first row must be the header.
-              </p>
-              <textarea
-                rows={8}
-                value={importFileContent}
-                onChange={(e) => setImportFileContent(e.target.value)}
-                placeholder={`Name,Company,Email,Title,Phone\nJohn Doe,Acme Corp,john@acme.com,Director,+1415890000`}
-                className="w-full p-3 font-mono text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal/30"
-              />
+            {/* Step 1: Input / Upload */}
+            {!importPreview && !enrichmentResult && (
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-teal bg-slate-50/50 hover:bg-teal/5 transition-all text-center">
+                  <Upload className="w-8 h-8 text-teal-dark mx-auto mb-2" />
+                  <p className="text-xs font-bold text-navy">Upload CSV Spreadsheet</p>
+                  <p className="text-[11px] text-text-muted mt-0.5 mb-3">
+                    Drag and drop your file or choose from your computer
+                  </p>
+                  <label className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-navy text-white text-xs font-bold hover:bg-slate-800 transition-colors cursor-pointer shadow-xs">
+                    <span>Choose File (.csv)</span>
+                    <input
+                      type="file"
+                      accept=".csv,text/csv"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
 
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setImportModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    showToast("Processed enrichment batch!");
-                    setImportModalOpen(false);
-                  }}
-                  className="px-5 py-2.5 rounded-xl bg-navy text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 cursor-pointer"
-                >
-                  Enrich &amp; Import
-                </button>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-navy">
+                      Or Paste Raw CSV Data (Header in first row)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setImportFileContent(
+                          `Full Name,Company Name,Title,Email,Direct Phone,City,Country\nChelsea Hoff,555,Director IT,chelsea.hoff@555.com,+1415890000,Chicago,United States\nDavid Karlsberg,1-800-Flowers.com,Director Network Ops,david@1800flowers.com,,Carle Place,United States`
+                        )
+                      }
+                      className="text-[11px] font-semibold text-teal-dark hover:underline cursor-pointer"
+                    >
+                      Fill Sample Data
+                    </button>
+                  </div>
+                  <textarea
+                    rows={6}
+                    value={importFileContent}
+                    onChange={(e) => setImportFileContent(e.target.value)}
+                    placeholder={`Full Name,Company Name,Title,Email,Direct Phone\nStefan Schweikart,1WorldSync,Chief Information Officer,stefan@1worldsync.com,\nJane Smith,Acme Corp,VP Sales,jane@acmecorp.com,+1 555-019-2834`}
+                    className="w-full p-3 font-mono text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal/30 bg-slate-50/40"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setImportModalOpen(false)}
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={importing || !importFileContent.trim()}
+                    onClick={handlePreviewImport}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-dark to-teal hover:from-teal hover:to-teal-dark text-white text-xs font-bold shadow-xs hover:shadow transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    {importing ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Scanning Columns...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Scan &amp; Map Database Fields &rarr;</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Step 2: Column Mapping & Target Specification */}
+            {importPreview && !enrichmentResult && (
+              <div className="space-y-4">
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
+                  <span className="font-bold text-emerald-800 flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span>
+                      Detected {importPreview.totalRows} records &bull; {importPreview.headers.length} columns
+                    </span>
+                  </span>
+                  <span className="text-[11px] text-emerald-700 font-semibold">
+                    Master Standard: 36 Cleaned Fields
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-navy mb-1.5">
+                    Field Mapping (Input Header &rarr; Master Database Field)
+                  </label>
+                  <div className="max-h-48 overflow-y-auto custom-scrollbar border border-slate-200 rounded-xl divide-y divide-slate-100">
+                    {importPreview.headers.map((h) => (
+                      <div key={h} className="p-2.5 px-3 flex items-center justify-between text-xs bg-white">
+                        <span className="font-semibold text-navy truncate max-w-xs">{h}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400 text-[10px]">&rarr;</span>
+                          <select
+                            value={importMapping[h] || ""}
+                            onChange={(e) =>
+                              setImportMapping((prev) => ({ ...prev, [h]: e.target.value }))
+                            }
+                            className="text-xs border border-slate-300 rounded-lg p-1.5 bg-slate-50 font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-teal"
+                          >
+                            <option value="">-- Ignore Column --</option>
+                            <option value="fullName">Full Name</option>
+                            <option value="firstName">First Name</option>
+                            <option value="lastName">Last Name</option>
+                            <option value="companyName">Company Name</option>
+                            <option value="title">Title / Role</option>
+                            <option value="email">Email</option>
+                            <option value="directPhone">Direct Phone / Mobile</option>
+                            <option value="linkedinUrl">LinkedIn URL</option>
+                            <option value="industry">Industry</option>
+                            <option value="city">City</option>
+                            <option value="state">State</option>
+                            <option value="country">Country</option>
+                            <option value="website">Website Domain</option>
+                            <option value="revenueMil">Revenue</option>
+                          </select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-navy mb-1">
+                    Save As Workspace List (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={importListName}
+                    onChange={(e) => setImportListName(e.target.value)}
+                    placeholder="e.g. Q4 Priority Accounts Enriched"
+                    className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-teal bg-white"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setImportPreview(null)}
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                  >
+                    &larr; Back to File
+                  </button>
+                  <button
+                    type="button"
+                    disabled={importing}
+                    onClick={handleEnrichAndImport}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-dark to-teal hover:from-teal hover:to-teal-dark text-white text-xs font-bold shadow-xs hover:shadow transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    {importing ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Enriching &amp; Formatting Master CSV...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Enrich &amp; Generate Master CSV</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Result & Immediate Master CSV Download */}
+            {enrichmentResult && (
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-emerald-900 text-sm flex items-center gap-2">
+                      <Check className="w-5 h-5 text-emerald-600" />
+                      Enrichment &amp; Master Mapping Complete!
+                    </span>
+                    <span className="text-xs font-extrabold text-emerald-800 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-300">
+                      {enrichmentResult.matchRate}% Match Rate
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1">
+                    <div className="p-2.5 bg-white rounded-lg border border-emerald-200">
+                      <p className="text-[10px] uppercase font-bold text-slate-400">Total Records</p>
+                      <p className="text-base font-extrabold text-navy mt-0.5">
+                        {enrichmentResult.totalRows}
+                      </p>
+                    </div>
+                    <div className="p-2.5 bg-white rounded-lg border border-emerald-200">
+                      <p className="text-[10px] uppercase font-bold text-slate-400">Database Matched</p>
+                      <p className="text-base font-extrabold text-emerald-700 mt-0.5">
+                        {enrichmentResult.matchedCount}
+                      </p>
+                    </div>
+                    <div className="p-2.5 bg-white rounded-lg border border-emerald-200">
+                      <p className="text-[10px] uppercase font-bold text-slate-400">Master Fields</p>
+                      <p className="text-base font-extrabold text-teal-dark mt-0.5">
+                        36 Columns
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-emerald-800 leading-relaxed">
+                    ✓ All master database fields mapped: Company Name, Full Name, Title, Email Status,
+                    Direct Phone, HQ Phone, Cell Phone, LinkedIn Profile, Industry, Seniority Tier, City,
+                    State, Country, Revenue Mil, Ownership, Data Quality Score. Apollo ID omitted.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-navy">Ready for Export</p>
+                    <p className="text-[11px] text-text-muted">
+                      Download your enriched file in standard RFC-4180 CSV format.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDownloadEnrichedCsv}
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-sm hover:shadow transition-all"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download Enriched Master CSV</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImportPreview(null);
+                      setEnrichmentResult(null);
+                      setImportFileContent("");
+                    }}
+                    className="text-xs font-bold text-teal-dark hover:underline cursor-pointer"
+                  >
+                    + Enrich Another Spreadsheet
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImportModalOpen(false);
+                      setImportPreview(null);
+                      setEnrichmentResult(null);
+                    }}
+                    className="px-4 py-2 text-xs font-bold text-navy bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
