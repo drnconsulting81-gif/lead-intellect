@@ -119,6 +119,33 @@ function parseNaturalLanguageQuery(text: string) {
   return Object.keys(interpreted).length > 0 ? interpreted : null;
 }
 
+function parseFilterList(param: string | null): string[] {
+  if (!param) return [];
+  return param
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter((s) => s.length > 0 && s !== "all");
+}
+
+function matchesOr(val: string | undefined | null, filterList: string[]): boolean {
+  if (filterList.length === 0) return true;
+  if (!val) return false;
+  const lower = val.toLowerCase();
+  return filterList.some((item) => lower === item || lower.includes(item));
+}
+
+function maskEmail(em: string | undefined | null): string {
+  if (!em || !em.includes("@") || em === "not_available") return "";
+  const [user, domain] = em.split("@");
+  const visible = user.length > 0 ? user[0] : "";
+  return `${visible}••••••••@${domain}`;
+}
+
+function maskPhone(ph: string | undefined | null): string {
+  if (!ph || ph === "None" || ph === "not_available") return "";
+  return "+1 (•••) •••-••••";
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -135,8 +162,8 @@ export async function GET(req: Request) {
     const query = rawQuery.toLowerCase();
     const seniority = searchParams.get("seniority") || interpretedCriteria?.seniority || "";
     const icpTier = searchParams.get("icpTier") || "";
-    const industry = (searchParams.get("industry") || interpretedCriteria?.industry || "").toLowerCase().trim();
-    const country = (searchParams.get("country") || interpretedCriteria?.country || "").toLowerCase().trim();
+    const industry = searchParams.get("industry") || interpretedCriteria?.industry || "";
+    const country = searchParams.get("country") || interpretedCriteria?.country || "";
     const emailStatus = searchParams.get("emailStatus") || "all";
     const hasEmail = searchParams.get("hasEmail") === "true";
     const hasPhone = searchParams.get("hasPhone") === "true";
@@ -145,21 +172,37 @@ export async function GET(req: Request) {
     const minScore = Number(searchParams.get("minScore")) || 0;
 
     const title = (searchParams.get("title") || "").toLowerCase().trim();
+    const firstName = (searchParams.get("firstName") || "").toLowerCase().trim();
+    const lastName = (searchParams.get("lastName") || "").toLowerCase().trim();
     const city = (searchParams.get("city") || "").toLowerCase().trim();
-    const state = (searchParams.get("state") || "").toLowerCase().trim();
+    const state = searchParams.get("state") || "";
     const companyName = (searchParams.get("companyName") || "").toLowerCase().trim();
+    const domain = (searchParams.get("domain") || "").toLowerCase().trim();
     const hasLinkedin = searchParams.get("hasLinkedin") === "true";
     const revenueRange = searchParams.get("revenueRange") || "";
     const ownership = searchParams.get("ownership") || "";
-    const department = (searchParams.get("department") || "").toLowerCase().trim();
+    const department = searchParams.get("department") || "";
+    const jobFunctions = (searchParams.get("jobFunctions") || "").toLowerCase().trim();
+    const phoneType = searchParams.get("phoneType") || "";
 
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
     const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit")) || 25));
     const sortBy = searchParams.get("sortBy") || "icpScore";
     const sortOrder = searchParams.get("sortOrder") || "desc";
 
+    // Prepare multi-select lists for OR evaluation within categories
+    const seniorityList = parseFilterList(seniority);
+    const industryList = parseFilterList(industry);
+    const countryList = parseFilterList(country);
+    const stateList = parseFilterList(state);
+    const departmentList = parseFilterList(department);
+    const employeeRangeList = parseFilterList(employeeRange);
+    const revenueRangeList = parseFilterList(revenueRange);
+    const ownershipList = parseFilterList(ownership);
+    const phoneTypeList = parseFilterList(phoneType);
+
     const filtered = all.filter((p) => {
-      // General search query
+      // 1. General search query (searches across name, company, title, industry, city, state, country)
       if (query && !interpretedCriteria) {
         const match =
           p.name.toLowerCase().includes(query) ||
@@ -168,92 +211,64 @@ export async function GET(req: Request) {
           (p.industry && p.industry.toLowerCase().includes(query)) ||
           (p.city && p.city.toLowerCase().includes(query)) ||
           (p.state && p.state.toLowerCase().includes(query)) ||
-          (p.country && p.country.toLowerCase().includes(query));
+          (p.country && p.country.toLowerCase().includes(query)) ||
+          (p.jobFunctions && p.jobFunctions.toLowerCase().includes(query));
         if (!match) return false;
       }
 
-      // Title filter
-      if (title) {
-        if (!p.title || !p.title.toLowerCase().includes(title)) return false;
-      }
+      // 2. Specific individual fields
+      if (title && (!p.title || !p.title.toLowerCase().includes(title))) return false;
+      if (firstName && (!p.firstName || !p.firstName.toLowerCase().includes(firstName))) return false;
+      if (lastName && (!p.lastName || !p.lastName.toLowerCase().includes(lastName))) return false;
+      if (companyName && (!p.company || !p.company.toLowerCase().includes(companyName))) return false;
+      if (domain && (!p.domain || !p.domain.toLowerCase().includes(domain)) && (!p.website || !p.website.toLowerCase().includes(domain))) return false;
+      if (jobFunctions && (!p.jobFunctions || !p.jobFunctions.toLowerCase().includes(jobFunctions))) return false;
 
-      // City filter
+      // 3. City filter (case-insensitive substring)
       if (city && city !== "all") {
         if (!p.city || !p.city.toLowerCase().includes(city)) return false;
       }
 
-      // State filter
-      if (state && state !== "all") {
-        if (!p.state || !p.state.toLowerCase().includes(state)) return false;
-      }
+      // 4. Multi-select categories (OR within category, AND between categories)
+      if (!matchesOr(p.seniority, seniorityList)) return false;
+      if (!matchesOr(p.industry, industryList)) return false;
+      if (!matchesOr(p.country, countryList)) return false;
+      if (!matchesOr(p.state, stateList)) return false;
+      if (!matchesOr(p.department, departmentList)) return false;
+      if (!matchesOr(p.employeeRange, employeeRangeList)) return false;
+      if (!matchesOr(p.revenueRange, revenueRangeList)) return false;
+      if (!matchesOr(p.ownership, ownershipList)) return false;
+      if (!matchesOr(p.phoneType, phoneTypeList)) return false;
 
-      // Company name filter
-      if (companyName) {
-        if (!p.company || !p.company.toLowerCase().includes(companyName)) return false;
-      }
-
-      // Department filter
-      if (department && department !== "all") {
-        if (!p.department || !p.department.toLowerCase().includes(department)) return false;
-      }
-
-      // Seniority
-      if (seniority && seniority !== "all") {
-        const seniors = seniority.split(",").map((s) => s.trim().toLowerCase());
-        const pSeniority = (p.seniority || "").toLowerCase();
-        const matches = seniors.some((s) => pSeniority.includes(s));
-        if (!matches) return false;
-      }
-
-      // ICP Tier
+      // 5. ICP Tier and Minimum Score
       if (icpTier && icpTier !== "all") {
         if (p.icpTier !== icpTier) return false;
       }
-
-      // Minimum Fit Score
       if (minScore > 0 && p.icpScore < minScore) return false;
 
-      // Industry
-      if (industry && industry !== "all") {
-        if (!p.industry || !p.industry.toLowerCase().includes(industry)) return false;
-      }
-
-      // Country
-      if (country && country !== "all") {
-        if (!p.country || !p.country.toLowerCase().includes(country)) return false;
-      }
-
-      // Email status
+      // 6. Reachability: Email & Phone Availability & Statuses
       if (emailStatus && emailStatus !== "all") {
         if (emailStatus === "verified" && p.emailStatus !== "verified") return false;
         if (emailStatus === "deliverable" && p.emailStatus !== "verified" && p.emailStatus !== "deliverable") {
           return false;
         }
+        if (emailStatus === "not_available" && p.emailStatus !== "not_available") return false;
       }
 
-      if (hasEmail && (!p.email || !p.email.includes("@"))) return false;
-      if (hasPhone && (!p.phone || p.phone.trim().length === 0)) return false;
-      if (hasLinkedin && (!p.linkedin || !p.linkedin.includes("linkedin.com"))) return false;
-
-      // Revenue range
-      if (revenueRange && revenueRange !== "all") {
-        if (p.revenueRange !== revenueRange) return false;
+      if (hasEmail && (!p.hasEmail || !p.email || p.email === "not_available" || !p.email.includes("@"))) {
+        return false;
+      }
+      if (hasPhone && (!p.hasPhone || !p.phone || p.phone.trim().length === 0 || p.phone === "None")) {
+        return false;
+      }
+      if (hasLinkedin && (!p.linkedin || !p.linkedin.includes("linkedin.com"))) {
+        return false;
       }
 
-      // Ownership
-      if (ownership && ownership !== "all") {
-        if (p.ownership !== ownership) return false;
-      }
-
-      // Specific location query
+      // 7. Generic location search string
       if (location) {
         const locStr = `${p.city || ""} ${p.state || ""} ${p.country || ""} ${p.location || ""}`.toLowerCase();
         if (!locStr.includes(location)) return false;
-      }
-
-      // Employee range
-      if (employeeRange && employeeRange !== "all") {
-        if (p.employeeRange !== employeeRange) return false;
       }
 
       return true;
@@ -284,9 +299,17 @@ export async function GET(req: Request) {
     });
 
     const total = filtered.length;
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(total / limit) || 1;
     const startIndex = (page - 1) * limit;
     const paginated = filtered.slice(startIndex, startIndex + limit);
+
+    // Mask direct email and phone numbers in list view to protect data and prevent unauthorized scraping
+    const maskedProspects = paginated.map((p) => ({
+      ...p,
+      email: maskEmail(p.email),
+      phone: maskPhone(p.phone),
+      isRevealed: false,
+    }));
 
     // Aggregations
     const totalTier1 = filtered.filter((p) => p.icpScore >= 85).length;

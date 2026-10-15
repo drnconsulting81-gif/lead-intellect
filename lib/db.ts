@@ -596,13 +596,37 @@ export async function getCreditHistoryByUser(email: string): Promise<CreditLedge
   return (local.creditLedger || []).filter((c) => c.userEmail.toLowerCase() === cleanEmail);
 }
 
+export async function hasUserRevealedProspect(email: string, prospectId: string): Promise<boolean> {
+  const cleanEmail = email.toLowerCase().trim();
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        const found = await db.collection<CreditLedgerRecord>("credit_ledger").findOne({
+          userEmail: cleanEmail,
+          action: "reveal",
+          recordId: prospectId,
+        });
+        if (found) return true;
+      }
+    } catch (err) {
+      console.warn("MongoDB hasUserRevealedProspect failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  return (local.creditLedger || []).some(
+    (c) => c.userEmail.toLowerCase() === cleanEmail && c.action === "reveal" && c.recordId === prospectId
+  );
+}
+
 export async function deductUserCredit(
   email: string,
   amount = 1,
   action: CreditLedgerRecord["action"] = "reveal",
   description = "Contact detail reveal",
   recordId?: string
-): Promise<{ success: boolean; remainingCredits: number }> {
+): Promise<{ success: boolean; remainingCredits: number; error?: string }> {
   const cleanEmail = email.toLowerCase().trim();
 
   // CEO has unlimited credits
@@ -618,7 +642,6 @@ export async function deductUserCredit(
     return { success: true, remainingCredits: 999999 };
   }
 
-  let currentCredits = 100;
   let userFound = false;
 
   if (isMongoConfigured()) {
@@ -628,15 +651,26 @@ export async function deductUserCredit(
         const u = await db.collection<UserRecord>("users").findOne({ email: cleanEmail });
         if (u) {
           userFound = true;
-          currentCredits = u.credits ?? 100;
+          const currentCredits = u.credits ?? 100;
           if (currentCredits < amount) {
-            return { success: false, remainingCredits: currentCredits };
+            return { success: false, remainingCredits: currentCredits, error: "Insufficient credits" };
           }
           const updated = currentCredits - amount;
-          await db.collection<UserRecord>("users").updateOne(
-            { email: cleanEmail },
-            { $set: { credits: updated } }
+          // Atomic update requiring sufficient balance
+          const updateResult = await db.collection<UserRecord>("users").updateOne(
+            { email: cleanEmail, credits: { $gte: amount } },
+            { $inc: { credits: -amount } }
           );
+
+          if (updateResult.modifiedCount === 0) {
+            const fresh = await db.collection<UserRecord>("users").findOne({ email: cleanEmail });
+            return {
+              success: false,
+              remainingCredits: fresh?.credits ?? 0,
+              error: "Insufficient credits or concurrent transaction in progress",
+            };
+          }
+
           await logCreditTransaction({
             userEmail: cleanEmail,
             action,
@@ -657,8 +691,10 @@ export async function deductUserCredit(
   const idx = local.users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
   if (idx !== -1) {
     userFound = true;
-    currentCredits = local.users[idx].credits ?? 100;
-    if (currentCredits < amount) return { success: false, remainingCredits: currentCredits };
+    const currentCredits = local.users[idx].credits ?? 100;
+    if (currentCredits < amount) {
+      return { success: false, remainingCredits: currentCredits, error: "Insufficient credits" };
+    }
     local.users[idx].credits = currentCredits - amount;
     writeLocalDb(local);
     await logCreditTransaction({
@@ -672,20 +708,12 @@ export async function deductUserCredit(
     return { success: true, remainingCredits: local.users[idx].credits ?? 0 };
   }
 
+  // If user does not exist, reject transaction strictly
   if (!userFound) {
-    const fallback = Math.max(0, 100 - amount);
-    await logCreditTransaction({
-      userEmail: cleanEmail,
-      action,
-      amount,
-      balanceAfter: fallback,
-      description,
-      recordId,
-    });
-    return { success: true, remainingCredits: fallback };
+    return { success: false, remainingCredits: 0, error: "User account not found" };
   }
 
-  return { success: false, remainingCredits: 0 };
+  return { success: false, remainingCredits: 0, error: "Transaction failed" };
 }
 
 /* ----------------- LISTS MANAGEMENT ----------------- */

@@ -636,7 +636,7 @@ export default function LeadIntellectWorkspace() {
           .then((data) => {
             if (!ignore) {
               setProspects(data.prospects || []);
-              setTotalCount(data.pagination?.total || 49976);
+              setTotalCount(data.pagination?.total !== undefined ? data.pagination.total : 0);
               setTotalPages(data.pagination?.totalPages || 1);
               setLoading(false);
             }
@@ -664,7 +664,7 @@ export default function LeadIntellectWorkspace() {
           .then((data) => {
             if (!ignore) {
               setCompanies(data.companies || []);
-              setTotalCount(data.pagination?.total || 8631);
+              setTotalCount(data.pagination?.total !== undefined ? data.pagination.total : 0);
               setTotalPages(data.pagination?.totalPages || 1);
               setLoading(false);
             }
@@ -721,35 +721,33 @@ export default function LeadIntellectWorkspace() {
     };
   }, [activeNav, fetchLists]);
 
-  // Contact Reveal Action (Requirement 5)
+  // Contact Reveal Action (Server-Authoritative, Idempotent & Transaction-Safe)
   const handleRevealContact = async (p: Prospect) => {
     if (revealedContacts[p.id]) {
-      showToast(`Contact already revealed: ${revealedContacts[p.id].email}`);
+      showToast(`Contact already unlocked: ${revealedContacts[p.id].email}`);
       return;
     }
     setRevealingId(p.id);
 
-    // Compute robust fallback values
-    const cleanFirst = (p.firstName || p.name.split(" ")[0] || "lead").toLowerCase().replace(/[^a-z0-9]/g, "");
-    const cleanLast = (p.lastName || p.name.split(" ")[1] || "executive").toLowerCase().replace(/[^a-z0-9]/g, "");
-    const cleanDomain = (p.domain || "leadintellect.ai").toLowerCase().replace(/^www\./, "");
-    const fallbackEmail = p.email || `${cleanFirst}.${cleanLast}@${cleanDomain}`;
-    const fallbackPhone = p.phone || `+1 (555) ${Math.floor(200 + Math.random() * 700)}-${Math.floor(1000 + Math.random() * 9000)}`;
-
     try {
+      const email = currentUser?.email || "guest@leadintellect.ai";
       const res = await fetch("/api/prospects/reveal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userEmail: currentUser?.email || "guest@leadintellect.ai",
+          userEmail: email,
           prospectId: p.id,
-          prospect: p,
         }),
       });
 
       const data = await res.json();
-      const verifiedEmail = data.email || fallbackEmail;
-      const verifiedPhone = data.phone || fallbackPhone;
+      if (!res.ok) {
+        showToast(data.error || "Failed to reveal contact details.", "error");
+        return;
+      }
+
+      const verifiedEmail = data.email;
+      const verifiedPhone = data.phone;
       const verifiedLinkedin = data.linkedin || p.linkedin;
 
       setRevealedContacts((prev) => ({
@@ -764,23 +762,26 @@ export default function LeadIntellectWorkspace() {
 
       if (data.remainingCredits !== undefined) {
         setCredits(data.remainingCredits);
-      } else {
-        setCredits((prev) => Math.max(0, prev - 1));
+        // Persist updated credit balance to localStorage so page refresh stays accurate
+        try {
+          const stored = localStorage.getItem("leadintellect_user");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            parsed.credits = data.remainingCredits;
+            localStorage.setItem("leadintellect_user", JSON.stringify(parsed));
+          }
+        } catch {
+          // ignore storage error
+        }
       }
-      showToast(`Contact Revealed & Verified: ${verifiedEmail}`);
+
+      showToast(
+        data.alreadyRevealed
+          ? `Contact previously unlocked: ${verifiedEmail} (0 credits charged)`
+          : `Contact Revealed & Verified: ${verifiedEmail} (1 credit used)`
+      );
     } catch {
-      // Graceful offline fallback
-      setRevealedContacts((prev) => ({
-        ...prev,
-        [p.id]: {
-          email: fallbackEmail,
-          phone: fallbackPhone,
-          linkedin: p.linkedin,
-          revealedAt: Date.now(),
-        },
-      }));
-      setCredits((prev) => Math.max(0, prev - 1));
-      showToast(`Contact Revealed: ${fallbackEmail}`);
+      showToast("Network error during contact reveal. Please check your connection and retry.", "error");
     } finally {
       setRevealingId(null);
     }
@@ -1013,6 +1014,46 @@ export default function LeadIntellectWorkspace() {
     }
   };
 
+  const handleResetAllFilters = () => {
+    setSeniority([]);
+    setTitleFilter("");
+    setCityFilter("");
+    setStateFilter("");
+    setCompanyFilter("");
+    setIndustry("all");
+    setCountry("all");
+    setEmployeeRange("all");
+    setRevenueFilter("all");
+    setOwnershipFilter("all");
+    setDepartmentFilter("all");
+    setEmailStatus("all");
+    setHasPhone(false);
+    setHasEmailFilter(false);
+    setHasLinkedinFilter(false);
+    setMinScore(0);
+    setQuery("");
+    setPage(1);
+  };
+
+  const activeFilterCount =
+    seniority.length +
+    (titleFilter ? 1 : 0) +
+    (cityFilter ? 1 : 0) +
+    (stateFilter ? 1 : 0) +
+    (companyFilter ? 1 : 0) +
+    (industry !== "all" ? 1 : 0) +
+    (country !== "all" ? 1 : 0) +
+    (employeeRange !== "all" ? 1 : 0) +
+    (revenueFilter !== "all" ? 1 : 0) +
+    (ownershipFilter !== "all" ? 1 : 0) +
+    (departmentFilter !== "all" ? 1 : 0) +
+    (emailStatus !== "all" ? 1 : 0) +
+    (hasPhone ? 1 : 0) +
+    (hasEmailFilter ? 1 : 0) +
+    (hasLinkedinFilter ? 1 : 0) +
+    (minScore > 0 ? 1 : 0) +
+    (query ? 1 : 0);
+
   // Filter Accordions Component (Screenshot 1 & 3)
   const renderFilterAccordions = () => (
     <div className="space-y-4 text-xs">
@@ -1020,30 +1061,16 @@ export default function LeadIntellectWorkspace() {
       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
         <span className="text-xs font-bold uppercase tracking-wider text-navy flex items-center gap-1.5">
           <Filter className="w-3.5 h-3.5 text-teal-dark" />
-          FILTER CRITERIA
+          <span>FILTER CRITERIA</span>
+          {activeFilterCount > 0 && (
+            <span className="text-[10px] bg-teal/20 text-teal-dark font-extrabold px-1.5 py-0.2 rounded-full">
+              {activeFilterCount}
+            </span>
+          )}
         </span>
         <button
           type="button"
-          onClick={() => {
-            setSeniority([]);
-            setTitleFilter("");
-            setCityFilter("");
-            setStateFilter("");
-            setCompanyFilter("");
-            setIndustry("all");
-            setCountry("all");
-            setEmployeeRange("all");
-            setRevenueFilter("all");
-            setOwnershipFilter("all");
-            setDepartmentFilter("all");
-            setEmailStatus("all");
-            setHasPhone(false);
-            setHasEmailFilter(false);
-            setHasLinkedinFilter(false);
-            setMinScore(0);
-            setQuery("");
-            setPage(1);
-          }}
+          onClick={handleResetAllFilters}
           className="text-[11px] font-semibold text-text-muted hover:text-rose-600 transition-colors cursor-pointer"
         >
           Reset All
@@ -2284,6 +2311,283 @@ export default function LeadIntellectWorkspace() {
                       </div>
                     )}
                   </div>
+
+                  {/* ACTIVE FILTER CHIPS ROW (Requirement: visible Clear All, accurate active-filter count, removable chips) */}
+                  {activeFilterCount > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 p-2 px-3 rounded-xl bg-slate-50/80 border border-slate-200 text-xs">
+                      <span className="text-[11px] font-bold text-navy flex items-center gap-1 shrink-0 mr-1">
+                        <Filter className="w-3 h-3 text-teal-dark" />
+                        <span>Active Filters ({activeFilterCount}):</span>
+                      </span>
+
+                      {query && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-medium shadow-2xs">
+                          Query: &quot;{query}&quot;
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setQuery("");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {seniority.map((s) => (
+                        <span
+                          key={s}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal/10 border border-teal/30 text-teal-dark text-[11px] font-medium shadow-2xs"
+                        >
+                          {s}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSeniority((prev) => prev.filter((item) => item !== s));
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+
+                      {titleFilter && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 text-[11px] font-medium shadow-2xs">
+                          Title: {titleFilter}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTitleFilter("");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {companyFilter && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-medium shadow-2xs">
+                          Company: {companyFilter}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCompanyFilter("");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {industry !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-medium shadow-2xs">
+                          Industry: {industry}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIndustry("all");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {country !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal/10 border border-teal/30 text-teal-dark text-[11px] font-medium shadow-2xs">
+                          Country: {country}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCountry("all");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {stateFilter && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-medium shadow-2xs">
+                          State: {stateFilter}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStateFilter("");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {cityFilter && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-medium shadow-2xs">
+                          City: {cityFilter}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCityFilter("");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {employeeRange !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-medium shadow-2xs">
+                          Employees: {employeeRange}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEmployeeRange("all");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {revenueFilter !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-medium shadow-2xs">
+                          Revenue: {revenueFilter}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRevenueFilter("all");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {departmentFilter !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-medium shadow-2xs">
+                          Dept: {departmentFilter}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDepartmentFilter("all");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {emailStatus !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-medium shadow-2xs">
+                          Email: {emailStatus}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEmailStatus("all");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {hasPhone && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal/10 border border-teal/30 text-teal-dark text-[11px] font-medium shadow-2xs">
+                          Has Direct Phone
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setHasPhone(false);
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {hasEmailFilter && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-medium shadow-2xs">
+                          Has Email
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setHasEmailFilter(false);
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {hasLinkedinFilter && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 border border-sky-200 text-sky-700 text-[11px] font-medium shadow-2xs">
+                          Has LinkedIn
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setHasLinkedinFilter(false);
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {minScore > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-medium shadow-2xs">
+                          Min ICP: {minScore}+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMinScore(0);
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={handleResetAllFilters}
+                        className="ml-auto text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer px-1 shrink-0"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                  )}
 
                   {/* PROSPECTS DATA TABLE CONTAINER (Expanded height with dedicated custom scroller) */}
                   <div className="flex-1 overflow-y-auto min-h-[480px] h-[calc(100vh-175px)] custom-scrollbar rounded-2xl border border-slate-200 bg-white shadow-xs">

@@ -194,25 +194,6 @@ export default function LoginPage() {
 
                   {/* Standard Quick Actions */}
                   <Link
-                    href="/dashboard"
-                    className="w-full flex items-center justify-between p-3 rounded-xl border-2 border-teal/40 bg-teal/5 hover:bg-teal/10 transition-all text-xs font-bold text-navy group shadow-2xs"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-teal text-navy flex items-center justify-center shrink-0 font-extrabold">
-                        <Sparkles className="w-4 h-4" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-navy font-bold flex items-center gap-1.5">
-                          <span>Prospecting Workspace &amp; ICP Directory</span>
-                          <span className="text-[10px] bg-teal text-navy px-1.5 py-0.2 rounded-full uppercase">Active</span>
-                        </p>
-                        <p className="text-[10px] text-teal-dark font-normal">Filter decision-makers, verify emails &amp; build lists</p>
-                      </div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-teal-dark group-hover:translate-x-0.5 transition-transform" />
-                  </Link>
-
-                  <Link
                     href="/pricing"
                     className="w-full flex items-center justify-between p-3 rounded-xl border border-border hover:border-amber-400/50 hover:bg-amber-50/40 transition-all text-xs font-bold text-navy group"
                   >
