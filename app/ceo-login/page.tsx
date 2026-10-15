@@ -74,7 +74,7 @@ export default function CeoLoginPage() {
         title: "Chief Executive Officer",
         provider: "executive",
         role: "admin",
-        credits: 999999,
+        credits: 3500,
       };
 
       localStorage.setItem("leadintellect_user", JSON.stringify(ceoUser));
@@ -93,7 +93,7 @@ export default function CeoLoginPage() {
         title: "Chief Executive Officer",
         provider: "executive",
         role: "admin",
-        credits: 999999,
+        credits: 3500,
       };
       localStorage.setItem("leadintellect_user", JSON.stringify(ceoUser));
       setSuccessMsg("Executive Access Granted. Redirecting to Admin Portal...");

@@ -9,7 +9,7 @@ export async function GET(req: Request) {
     const user = await findUserByEmail(userEmail);
     const history = await getCreditHistoryByUser(userEmail);
 
-    const balance = user ? (user.credits ?? (user.role === "admin" ? 999999 : 100)) : 100;
+    const balance = user ? (user.credits ?? (user.role === "admin" ? 3500 : 100)) : 100;
 
     return NextResponse.json({
       success: true,

@@ -152,33 +152,43 @@ interface DatabaseSchema {
 const DB_DIR = path.join(process.cwd(), "data");
 const DB_FILE = path.join(DB_DIR, "db.json");
 
-/* ----------------- LOCAL JSON STORAGE HELPERS ----------------- */
+let inMemoryDb: DatabaseSchema | null = null;
 
 function readLocalDb(): DatabaseSchema {
-  if (!fs.existsSync(DB_DIR)) {
-    fs.mkdirSync(DB_DIR, { recursive: true });
-  }
-
-  if (!fs.existsSync(DB_FILE)) {
-    const initialData: DatabaseSchema = {
-      leads: [],
-      contacts: [],
-      users: [],
-      orders: [],
-      lists: [],
-      savedSearches: [],
-      creditLedger: [],
-      suppression: [],
-      exportLogs: [],
-    };
-    fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2), "utf-8");
-    return initialData;
-  }
-
+  if (inMemoryDb) return inMemoryDb;
   try {
+    if (!fs.existsSync(DB_DIR)) {
+      try {
+        fs.mkdirSync(DB_DIR, { recursive: true });
+      } catch {
+        // ignore read-only fs
+      }
+    }
+
+    if (!fs.existsSync(DB_FILE)) {
+      const initialData: DatabaseSchema = {
+        leads: [],
+        contacts: [],
+        users: [],
+        orders: [],
+        lists: [],
+        savedSearches: [],
+        creditLedger: [],
+        suppression: [],
+        exportLogs: [],
+      };
+      try {
+        fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2), "utf-8");
+      } catch {
+        // ignore read-only fs
+      }
+      inMemoryDb = initialData;
+      return initialData;
+    }
+
     const raw = fs.readFileSync(DB_FILE, "utf-8");
     const parsed = JSON.parse(raw);
-    return {
+    inMemoryDb = {
       leads: parsed.leads || [],
       contacts: parsed.contacts || [],
       users: parsed.users || [],
@@ -190,9 +200,10 @@ function readLocalDb(): DatabaseSchema {
       suppression: parsed.suppression || [],
       exportLogs: parsed.exportLogs || [],
     };
+    return inMemoryDb;
   } catch (err) {
-    console.error("Error reading local db.json, returning empty defaults:", err);
-    return {
+    console.warn("Local DB read failed, using in-memory defaults:", err);
+    inMemoryDb = {
       leads: [],
       contacts: [],
       users: [],
@@ -203,14 +214,25 @@ function readLocalDb(): DatabaseSchema {
       suppression: [],
       exportLogs: [],
     };
+    return inMemoryDb;
   }
 }
 
 function writeLocalDb(data: DatabaseSchema): void {
-  if (!fs.existsSync(DB_DIR)) {
-    fs.mkdirSync(DB_DIR, { recursive: true });
+  inMemoryDb = data;
+  try {
+    if (!fs.existsSync(DB_DIR)) {
+      try {
+        fs.mkdirSync(DB_DIR, { recursive: true });
+      } catch {
+        // ignore read-only fs
+      }
+    }
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), "utf-8");
+  } catch (err) {
+    // In serverless environments like Vercel, filesystem is read-only. We log a warning and continue in-memory.
+    console.warn("Local DB disk write bypassed (serverless read-only mode):", err);
   }
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), "utf-8");
 }
 
 /* ----------------- LEADS & CONTACTS ----------------- */
@@ -368,7 +390,7 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
         const u = await db.collection<UserRecord>("users").findOne({ email: cleanEmail });
         if (u) {
           const role = isCeoEmail(u.email) ? "admin" : (u.role || "user");
-          const credits = u.credits ?? (isCeoEmail(u.email) ? 999999 : 100);
+          const credits = u.credits ?? (isCeoEmail(u.email) ? 3500 : 100);
           return {
             id: u.id,
             name: u.name,
@@ -394,7 +416,7 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
   const found = local.users.find((u) => u.email.toLowerCase() === cleanEmail);
   if (found) {
     found.role = isCeoEmail(found.email) ? "admin" : (found.role || "user");
-    found.credits = found.credits ?? (isCeoEmail(found.email) ? 999999 : 100);
+    found.credits = found.credits ?? (isCeoEmail(found.email) ? 3500 : 100);
     return found;
   }
   return null;
@@ -403,7 +425,7 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
 export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Promise<UserRecord> {
   const cleanEmail = user.email.toLowerCase().trim();
   const role = isCeoEmail(cleanEmail) ? "admin" : (user.role || "user");
-  const credits = user.credits ?? (isCeoEmail(cleanEmail) ? 999999 : 100);
+  const credits = user.credits ?? (isCeoEmail(cleanEmail) ? 3500 : 100);
   const emailVerified = user.emailVerified ?? false;
 
   const record: UserRecord = {
@@ -526,7 +548,7 @@ export async function getUsers(): Promise<UserRecord[]> {
           password: u.password,
           provider: u.provider,
           role: isCeoEmail(u.email) ? "admin" : (u.role || "user"),
-          credits: u.credits ?? (isCeoEmail(u.email) ? 999999 : 100),
+          credits: u.credits ?? (isCeoEmail(u.email) ? 3500 : 100),
           emailVerified: u.emailVerified ?? false,
           createdAt: u.createdAt,
         }));
@@ -540,7 +562,7 @@ export async function getUsers(): Promise<UserRecord[]> {
   return local.users.map((u) => ({
     ...u,
     role: isCeoEmail(u.email) ? "admin" : (u.role || "user"),
-    credits: u.credits ?? (isCeoEmail(u.email) ? 999999 : 100),
+    credits: u.credits ?? (isCeoEmail(u.email) ? 3500 : 100),
   }));
 }
 
@@ -629,17 +651,35 @@ export async function deductUserCredit(
 ): Promise<{ success: boolean; remainingCredits: number; error?: string }> {
   const cleanEmail = email.toLowerCase().trim();
 
-  // CEO has unlimited credits
+  // CEO has executive tier allocation
   if (isCeoEmail(cleanEmail)) {
+    const local = readLocalDb();
+    let ceoIdx = local.users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+    if (ceoIdx === -1) {
+      local.users.push({
+        id: "ceo_admin",
+        name: "Executive Workspace",
+        email: cleanEmail,
+        provider: "email",
+        role: "admin",
+        credits: 3500,
+        createdAt: new Date().toISOString(),
+      });
+      ceoIdx = local.users.length - 1;
+    }
+    const current = local.users[ceoIdx].credits ?? 3500;
+    const updated = Math.max(0, current - amount);
+    local.users[ceoIdx].credits = updated;
+    writeLocalDb(local);
     await logCreditTransaction({
       userEmail: cleanEmail,
       action,
-      amount: 0,
-      balanceAfter: 999999,
-      description: `${description} (Admin Unlimited Privilege)`,
+      amount,
+      balanceAfter: updated,
+      description: `${description} (Executive Quota)`,
       recordId,
     });
-    return { success: true, remainingCredits: 999999 };
+    return { success: true, remainingCredits: updated };
   }
 
   let userFound = false;
@@ -708,9 +748,32 @@ export async function deductUserCredit(
     return { success: true, remainingCredits: local.users[idx].credits ?? 0 };
   }
 
-  // If user does not exist, reject transaction strictly
+  // If user does not exist, provision trial guest quota or report error
   if (!userFound) {
-    return { success: false, remainingCredits: 0, error: "User account not found" };
+    if (cleanEmail === "guest@leadintellect.ai" || cleanEmail.includes("guest") || cleanEmail.includes("@")) {
+      const local = readLocalDb();
+      const updated = Math.max(0, 50 - amount);
+      local.users.push({
+        id: "usr_" + Date.now(),
+        name: "Workspace Explorer",
+        email: cleanEmail,
+        provider: "email",
+        role: "user",
+        credits: updated,
+        createdAt: new Date().toISOString(),
+      });
+      writeLocalDb(local);
+      await logCreditTransaction({
+        userEmail: cleanEmail,
+        action,
+        amount,
+        balanceAfter: updated,
+        description,
+        recordId,
+      });
+      return { success: true, remainingCredits: updated };
+    }
+    return { success: false, remainingCredits: 0, error: "User account not found. Please log in or register." };
   }
 
   return { success: false, remainingCredits: 0, error: "Transaction failed" };

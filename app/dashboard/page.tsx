@@ -574,8 +574,16 @@ export default function LeadIntellectWorkspace() {
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && parsed.email) {
+            const genuineCredits =
+              parsed.credits && parsed.credits < 50000
+                ? parsed.credits
+                : (parsed.role === "admin" ? 3500 : 100);
+            parsed.credits = genuineCredits;
             setCurrentUser(parsed);
-            setCredits(parsed.credits ?? (parsed.role === "admin" ? 999999 : 100));
+            setCredits(genuineCredits);
+            try {
+              localStorage.setItem("leadintellect_user", JSON.stringify(parsed));
+            } catch {}
           }
         }
         const storedTasks = localStorage.getItem("leadintellect_completed_tasks");
@@ -737,6 +745,7 @@ export default function LeadIntellectWorkspace() {
         body: JSON.stringify({
           userEmail: email,
           prospectId: p.id,
+          prospect: p,
         }),
       });
 
@@ -1406,12 +1415,17 @@ export default function LeadIntellectWorkspace() {
             {sidebarCollapsed ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
           </button>
 
-          {/* App Logo Symbol */}
-          <Link href="/" title="LeadIntellect Home" className="p-1 mb-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-navy to-slate-800 flex items-center justify-center text-teal shadow-xs">
+          {/* App Logo Symbol - stays inside workspace instead of navigating to public home */}
+          <button
+            type="button"
+            onClick={() => setActiveNav("discover")}
+            title="LeadIntellect Prospecting Workspace"
+            className="p-1 mb-2 cursor-pointer"
+          >
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-navy to-slate-800 flex items-center justify-center text-teal shadow-xs hover:ring-2 hover:ring-teal/40 transition-all">
               <Sparkles className="w-4 h-4 text-teal" />
             </div>
-          </Link>
+          </button>
 
           {/* Navigation Items */}
           <div className="flex flex-col items-center gap-1.5 w-full px-2">
