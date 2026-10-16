@@ -34,11 +34,11 @@ const plans: Plan[] = [
     annualPriceUSD: 0,
     monthlyPriceINR: 0,
     annualPriceINR: 0,
-    creditsLabel: "50 credits / month",
+    creditsLabel: "99 credits / month",
     ctaText: "Start Free",
     ctaHref: "/signup",
     features: [
-      { text: "50 monthly verified prospect reveals" },
+      { text: "99 monthly verified prospect reveals" },
       { text: "Search 50,000+ Cleaned Decision-Maker Database", highlight: true },
       { text: "People & Company Search Modes" },
       { text: "Structured Filters (Seniority, Industry, Location, Size)" },

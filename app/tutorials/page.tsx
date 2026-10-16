@@ -8,6 +8,7 @@ import {
   Clock,
   CheckCircle2,
   ArrowRight,
+  ExternalLink,
   X,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -22,7 +23,8 @@ const tutorials = [
     category: "ICP Framework",
     summary:
       "A step-by-step walkthrough of setting company size, revenue, tech stack, and role weights to compute automated composite scores.",
-    videoUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ", // safe sample
+    videoUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0",
+    embedId: "dQw4w9WgXcQ",
     steps: [
       "Define target industry verticals and excluded segments",
       "Assign weight factors to seniority and job titles",
@@ -37,6 +39,8 @@ const tutorials = [
     category: "AI Agent",
     summary:
       "Learn how to structure natural language prompts to pinpoint specific buying committees in healthcare, fintech, and enterprise SaaS.",
+    videoUrl: "https://www.youtube-nocookie.com/embed/L_LUpnjgPso?autoplay=1&rel=0",
+    embedId: "L_LUpnjgPso",
     steps: [
       "Translating target customer personas into agent parameters",
       "Reviewing illustrative output stats across Tiers 1-3",
@@ -51,6 +55,8 @@ const tutorials = [
     category: "Data Enrichment",
     summary:
       "How LeadIntellect validates business email deliverability through multi-tier verification and provider-neutral data enrichment without unauthorized scraping.",
+    videoUrl: "https://www.youtube-nocookie.com/embed/2eebptXfEvw?autoplay=1&rel=0",
+    embedId: "2eebptXfEvw",
     steps: [
       "Connecting your API keys or using native LeadIntellect credits",
       "Checking data verification flags (Verified, Deliverable, High Confidence)",
@@ -65,6 +71,8 @@ const tutorials = [
     category: "Outreach Strategy",
     summary:
       "How to use the AI-generated pain point intelligence and context summary to tailor discovery call conversation angles.",
+    videoUrl: "https://www.youtube-nocookie.com/embed/rP3iMmsP7j8?autoplay=1&rel=0",
+    embedId: "rP3iMmsP7j8",
     steps: [
       "Reviewing the WHO, WHY, PAIN, and FIT prospect cards",
       "Generating authentic, human-reviewed email icebreakers",
@@ -208,46 +216,57 @@ export default function TutorialsPage() {
                   {selectedVideo.title}
                 </h3>
               </div>
-              <button
-                onClick={() => setSelectedVideo(null)}
-                className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Interactive player area */}
-            <div className="relative aspect-video bg-black flex items-center justify-center text-center p-6">
-              <div className="max-w-md text-white">
-                <div className="w-16 h-16 rounded-full bg-teal text-navy flex items-center justify-center mx-auto mb-4 animate-pulse">
-                  <Play className="w-8 h-8 fill-current ml-1" />
-                </div>
-                <h4 className="text-lg font-bold">Interactive Video Simulation</h4>
-                <p className="text-xs text-white/70 mt-2 leading-relaxed">
-                  Demonstrating live walkthrough of &ldquo;{selectedVideo.title}&rdquo; (Duration {selectedVideo.duration}).
-                  In this module, you see the real LeadIntellect workspace scoring prospects in real time.
-                </p>
-                <div className="mt-6 flex justify-center gap-3">
-                  <Link
-                    href="/start-trial"
-                    onClick={() => setSelectedVideo(null)}
-                    className="inline-flex items-center gap-1 text-xs font-bold bg-teal text-navy px-4 py-2 rounded-lg hover:bg-teal-dark hover:text-white transition-colors"
-                  >
-                    Try It in Live Sandbox
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={`https://www.youtube.com/watch?v=${selectedVideo.embedId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-white/80 hover:text-white flex items-center gap-1 bg-white/10 px-2.5 py-1 rounded-lg transition-colors"
+                >
+                  <span>Open in YouTube</span>
+                  <ExternalLink className="w-3 h-3 text-teal" />
+                </a>
+                <button
+                  onClick={() => setSelectedVideo(null)}
+                  className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
             </div>
 
-            <div className="p-4 bg-navy-dark text-xs text-white/60 flex items-center justify-between">
-              <span>LeadIntellect Product Learning Center</span>
-              <button
-                onClick={() => setSelectedVideo(null)}
-                className="text-teal hover:underline cursor-pointer"
-              >
-                Close Player
-              </button>
+            {/* Interactive working video player */}
+            <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
+              <iframe
+                src={selectedVideo.videoUrl}
+                title={selectedVideo.title}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+
+            <div className="p-4 bg-navy-dark border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="text-white/80">
+                <span className="font-semibold text-white">Lesson Summary:</span> {selectedVideo.summary}
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <Link
+                  href="/start-trial"
+                  onClick={() => setSelectedVideo(null)}
+                  className="inline-flex items-center gap-1 font-bold bg-teal text-navy px-3 py-1.5 rounded-lg hover:bg-teal-dark hover:text-white transition-colors text-xs"
+                >
+                  Try In Live Workspace
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setSelectedVideo(null)}
+                  className="text-teal hover:underline cursor-pointer font-medium"
+                >
+                  Close Player
+                </button>
+              </div>
             </div>
           </div>
         </div>
