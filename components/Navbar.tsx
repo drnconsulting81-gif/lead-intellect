@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { Menu, X, ChevronDown, BookOpen, Video, HelpCircle } from "lucide-react";
+import { Menu, X, ChevronDown, BookOpen, Video, HelpCircle, Play } from "lucide-react";
 import Logo from "./Logo";
 
 export default function Navbar() {
@@ -77,6 +77,22 @@ export default function Navbar() {
                   onMouseLeave={() => setResourcesOpen(false)}
                   className="absolute top-full left-0 mt-1 w-64 rounded-xl bg-white border border-border shadow-[0_15px_40px_-10px_rgba(11,18,32,0.15)] p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
                 >
+                  <Link
+                    href="/resources"
+                    onClick={() => setResourcesOpen(false)}
+                    className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-surface text-navy transition-colors group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-teal text-navy flex items-center justify-center shrink-0">
+                      <Play className="w-4 h-4 fill-current" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-navy">Resource Center &amp; Demo</div>
+                      <p className="text-[11px] text-text-muted leading-tight mt-0.5">
+                        Interactive video demo &amp; playbooks
+                      </p>
+                    </div>
+                  </Link>
+
                   <Link
                     href="/#faq"
                     onClick={() => setResourcesOpen(false)}
@@ -198,6 +214,13 @@ export default function Navbar() {
               </button>
               {mobileResourcesOpen && (
                 <div className="pl-4 mt-2 flex flex-col gap-2">
+                  <Link
+                    href="/resources"
+                    onClick={() => setOpen(false)}
+                    className="text-xs text-navy font-bold py-1 flex items-center gap-1.5"
+                  >
+                    <Play className="w-3.5 h-3.5 text-teal-dark fill-teal-dark" /> Resource Center &amp; Demo
+                  </Link>
                   <Link
                     href="/#faq"
                     onClick={() => setOpen(false)}

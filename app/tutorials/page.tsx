@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ProductDemoVideoModal from "@/components/ProductDemoVideoModal";
 
 const tutorials = [
   {
@@ -83,6 +84,7 @@ const tutorials = [
 
 export default function TutorialsPage() {
   const [selectedVideo, setSelectedVideo] = useState<typeof tutorials[0] | null>(null);
+  const [demoModalOpen, setDemoModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col bg-surface">
@@ -91,7 +93,7 @@ export default function TutorialsPage() {
       <main className="flex-1 pt-32 pb-24">
         <div className="container-page">
           {/* Header */}
-          <div className="max-w-2xl mx-auto text-center mb-12">
+          <div className="max-w-2xl mx-auto text-center mb-10">
             <div className="inline-flex items-center gap-2 text-xs font-semibold text-teal-dark bg-teal/10 border border-teal/20 px-3.5 py-1.5 rounded-full mb-3">
               <Video className="w-3.5 h-3.5" />
               PRODUCT ACADEMY &amp; VIDEO TUTORIALS
@@ -102,6 +104,31 @@ export default function TutorialsPage() {
             <p className="mt-3 text-sm text-text-muted leading-relaxed">
               Watch interactive walkthroughs showing how to configure your ICP, command the AI prospecting agent, and unlock verified pipeline.
             </p>
+          </div>
+
+          {/* Master Walkthrough Video Banner */}
+          <div className="max-w-5xl mx-auto mb-12 rounded-2xl bg-[#0B132B] text-white p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 border border-slate-700 shadow-md">
+            <div className="space-y-2 max-w-xl">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal text-navy text-[10px] font-extrabold uppercase tracking-wider">
+                Full 4-Scene Interactive Walkthrough
+              </span>
+              <h2 className="text-xl font-bold text-white">
+                LeadIntellect End-to-End Product Demo Tour
+              </h2>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Watch our official product walkthrough covering Whole-Web Intent (G2, Reddit, Quora), ICP Discovery, 0-Decay Email Verification, and 4-Step Omnichannel Outbound.
+              </p>
+            </div>
+            <div className="shrink-0">
+              <button
+                type="button"
+                onClick={() => setDemoModalOpen(true)}
+                className="px-5 py-3 rounded-xl bg-teal text-navy hover:bg-teal-dark hover:text-white font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-lg transition-all"
+              >
+                <Play className="w-4 h-4 fill-current" />
+                <span>Watch Demo Tour</span>
+              </button>
+            </div>
           </div>
 
           {/* Video Cards Grid */}
@@ -271,6 +298,12 @@ export default function TutorialsPage() {
           </div>
         </div>
       )}
+
+      {/* Interactive Product Demo Walkthrough Modal */}
+      <ProductDemoVideoModal
+        isOpen={demoModalOpen}
+        onClose={() => setDemoModalOpen(false)}
+      />
 
       <Footer />
     </div>

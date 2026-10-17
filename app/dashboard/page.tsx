@@ -68,11 +68,14 @@ import {
 } from "lucide-react";
 import Logo from "@/components/Logo";
 import { LinkedInIcon } from "@/components/SocialIcons";
+import ProductDemoVideoModal from "@/components/ProductDemoVideoModal";
 import {
   getProspectIntentSignal,
   INTENT_CATEGORIES,
   RECENCY_WINDOWS,
+  WEB_INTENT_PLATFORMS,
   type IntentSignal,
+  type WebPlatform,
 } from "@/lib/intent";
 
 export interface Prospect {
@@ -476,6 +479,7 @@ export default function LeadIntellectWorkspace() {
   const [minScore, setMinScore] = useState(0);
   const [intentCategory, setIntentCategory] = useState("all");
   const [intentRecency, setIntentRecency] = useState("all");
+  const [webPlatform, setWebPlatform] = useState<WebPlatform>("all");
   const [limitPerPage, setLimitPerPage] = useState(25);
   const [fullListView, setFullListView] = useState(false);
   const [selectedIntentProspect, setSelectedIntentProspect] = useState<Prospect | null>(null);
@@ -483,6 +487,9 @@ export default function LeadIntellectWorkspace() {
   const [sequenceTargetLeads, setSequenceTargetLeads] = useState<Prospect[]>([]);
   const [sequenceStep1Subject, setSequenceStep1Subject] = useState("Quick question regarding {{company}}'s technology roadmap");
   const [sequenceStep1Body, setSequenceStep1Body] = useState(`Hi {{firstName}},\n\nI noticed {{company}} has been expanding its {{industry}} initiatives. We help leaders like yourself streamline verified prospect data and accelerate pipeline.\n\nWould you have 10 minutes next week for a brief conversation?\n\nBest regards,\nLeadIntellect Outbound`);
+  const [demoVideoOpen, setDemoVideoOpen] = useState(false);
+  const [enrichSelectedListId, setEnrichSelectedListId] = useState("all");
+  const [enrichingListLoading, setEnrichingListLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -775,6 +782,7 @@ export default function LeadIntellectWorkspace() {
         if (minScore > 0) params.set("minScore", minScore.toString());
         if (intentCategory && intentCategory !== "all") params.set("intentCategory", intentCategory);
         if (intentRecency && intentRecency !== "all") params.set("intentRecency", intentRecency);
+        if (webPlatform && webPlatform !== "all") params.set("webPlatform", webPlatform);
         params.set("page", page.toString());
         params.set("limit", limitPerPage.toString());
 
@@ -848,6 +856,7 @@ export default function LeadIntellectWorkspace() {
     minScore,
     intentCategory,
     intentRecency,
+    webPlatform,
     limitPerPage,
     page,
   ]);
@@ -939,6 +948,67 @@ export default function LeadIntellectWorkspace() {
   };
 
   // Toggle Onboarding Task (Home page)
+    // Active List prospects for Stage 3 Enrichment
+  const activeEnrichListProspects = useMemo(() => {
+    if (enrichSelectedListId === "all") return prospects;
+    const targetList = userLists.find((l) => l.id === enrichSelectedListId);
+    if (!targetList) return prospects;
+    const filtered = prospects.filter((p) => targetList.prospectIds.includes(p.id));
+    return filtered.length > 0 ? filtered : prospects;
+  }, [enrichSelectedListId, userLists, prospects]);
+
+  // Batch Enrich All in List
+  const handleBatchEnrichList = async () => {
+    const unrevealed = activeEnrichListProspects.filter((p) => !revealedContacts[p.id]);
+    if (unrevealed.length === 0) {
+      showToast("All contacts in this list are already verified and revealed!");
+      return;
+    }
+
+    if (credits < unrevealed.length) {
+      showToast(`Insufficient credits. You need ${unrevealed.length} credits, but have ${credits}.`, "error");
+      return;
+    }
+
+    setEnrichingListLoading(true);
+    let successCount = 0;
+    try {
+      for (const p of unrevealed) {
+        const email = currentUser?.email || "guest@leadintellect.ai";
+        const res = await fetch("/api/prospects/reveal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userEmail: email,
+            prospectId: p.id,
+            prospect: p,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setRevealedContacts((prev) => ({
+            ...prev,
+            [p.id]: {
+              email: data.email,
+              phone: data.phone,
+              linkedin: data.linkedin || p.linkedin,
+              revealedAt: Date.now(),
+            },
+          }));
+          if (data.remainingCredits !== undefined) {
+            setCredits(data.remainingCredits);
+          }
+          successCount++;
+        }
+      }
+      showToast(`Successfully verified & revealed ${successCount} contacts in list!`);
+    } catch {
+      showToast("Error during batch verification.", "error");
+    } finally {
+      setEnrichingListLoading(false);
+    }
+  };
+
   const toggleOnboardingTask = (taskId: string, rewardCredits: number) => {
     setCompletedTasks((prev) => {
       const isCompleted = prev.includes(taskId);
@@ -1400,6 +1470,7 @@ export default function LeadIntellectWorkspace() {
     setMinScore(0);
     setIntentCategory("all");
     setIntentRecency("all");
+    setWebPlatform("all");
     setQuery("");
     setPage(1);
   };
@@ -1423,6 +1494,7 @@ export default function LeadIntellectWorkspace() {
     (minScore > 0 ? 1 : 0) +
     (intentCategory !== "all" ? 1 : 0) +
     (intentRecency !== "all" ? 1 : 0) +
+    (webPlatform !== "all" ? 1 : 0) +
     (query ? 1 : 0);
 
   // Filter Accordions Component (Screenshot 1 & 3)
@@ -1515,12 +1587,37 @@ export default function LeadIntellectWorkspace() {
               </div>
             </div>
 
-            {(intentCategory !== "all" || intentRecency !== "all") && (
+            {/* Whole-Web Intent Source Channels */}
+            <div>
+              <label className="block text-[11px] font-bold text-navy uppercase tracking-wider mb-1">
+                Web &amp; Social Intent Source
+              </label>
+              <select
+                value={webPlatform}
+                onChange={(e) => {
+                  setWebPlatform(e.target.value as WebPlatform);
+                  setPage(1);
+                }}
+                className="w-full text-xs p-2 rounded-lg bg-white border border-slate-300 font-semibold text-navy focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
+              >
+                {WEB_INTENT_PLATFORMS.map((plat) => (
+                  <option key={plat.id} value={plat.id}>
+                    {plat.icon} {plat.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-slate-400 mt-1">
+                Monitors live buyer intent across G2, Reddit, Quora, Web News &amp; Careers.
+              </p>
+            </div>
+
+            {(intentCategory !== "all" || intentRecency !== "all" || webPlatform !== "all") && (
               <button
                 type="button"
                 onClick={() => {
                   setIntentCategory("all");
                   setIntentRecency("all");
+                  setWebPlatform("all");
                   setPage(1);
                 }}
                 className="w-full py-1 text-[10px] font-bold text-rose-600 hover:underline text-center cursor-pointer"
@@ -2484,6 +2581,23 @@ export default function LeadIntellectWorkspace() {
                   More resources to help you master LeadIntellect
                 </h3>
                 <div className="grid sm:grid-cols-3 gap-4">
+                  <div
+                    onClick={() => setDemoVideoOpen(true)}
+                    className="p-4 rounded-xl border border-teal/40 bg-gradient-to-br from-teal/10 via-white to-navy/5 hover:border-teal-dark hover:shadow-md transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="w-8 h-8 rounded-lg bg-navy text-teal flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <Play className="w-4 h-4 fill-teal text-teal" />
+                      </div>
+                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-teal text-navy">
+                        Interactive Demo
+                      </span>
+                    </div>
+                    <h4 className="text-xs font-bold text-navy group-hover:text-teal-dark">Full Product Demo Walkthrough</h4>
+                    <p className="text-[11px] text-text-muted mt-1">
+                      Watch the complete 4-scene video walkthrough: Web Intent, Discovery, Reveal, and Outbound Cadence.
+                    </p>
+                  </div>
                   <div className="p-4 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all cursor-pointer">
                     <BookOpenIcon className="w-5 h-5 text-teal-dark mb-2" />
                     <h4 className="text-xs font-bold text-navy">Cold Email Playbook</h4>
@@ -2681,6 +2795,15 @@ export default function LeadIntellectWorkspace() {
 
                   <button
                     type="button"
+                    onClick={() => setDemoVideoOpen(true)}
+                    className="px-3 py-1.5 rounded-xl border border-teal/40 bg-teal/10 hover:bg-teal/20 text-xs font-bold text-teal-dark flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <Play className="w-3 h-3 fill-teal-dark text-teal-dark" />
+                    <span>Demo Video</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => setImportModalOpen(true)}
                     className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-1"
                   >
@@ -2801,13 +2924,17 @@ export default function LeadIntellectWorkspace() {
                       <div className="flex items-center gap-2 shrink-0">
                         <button
                           type="button"
-                          onClick={() => setFullListView(!fullListView)}
+                          onClick={() => {
+                            const next = !fullListView;
+                            setFullListView(next);
+                            setHideFilters(next);
+                          }}
                           className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors flex items-center gap-1 cursor-pointer ${
                             fullListView
                               ? "bg-navy text-white border-navy"
                               : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                           }`}
-                          title={fullListView ? "Restore Normal View" : "Maximize Table Height (Full View)"}
+                          title={fullListView ? "Restore Normal View" : "Maximize Table (Full Width & Height View)"}
                         >
                           <SlidersHorizontal className="w-3.5 h-3.5" />
                           <span>{fullListView ? "⊟ Normal View" : "⛶ Full List View"}</span>
@@ -3255,7 +3382,7 @@ export default function LeadIntellectWorkspace() {
                   </div>
 
                   {/* PROSPECTS DATA TABLE CONTAINER (Horizontal and Vertical Scrollers) */}
-                  <div className={`flex-1 overflow-x-auto overflow-y-auto ${fullListView ? "min-h-[620px] h-[calc(100vh-130px)]" : "min-h-[480px] h-[calc(100vh-175px)]"} custom-scrollbar rounded-2xl border border-slate-200 bg-white shadow-xs`}>
+                  <div className={`flex-1 overflow-x-auto overflow-y-auto ${fullListView ? "min-h-[640px] h-[calc(100vh-105px)]" : "min-h-[480px] h-[calc(100vh-175px)]"} custom-scrollbar rounded-2xl border border-slate-200 bg-white shadow-xs`}>
                     {loading ? (
                       <div className="p-16 text-center">
                         <RefreshCw className="w-6 h-6 text-teal-dark animate-spin mx-auto mb-2" />
@@ -3268,7 +3395,7 @@ export default function LeadIntellectWorkspace() {
                         <p className="text-xs text-text-muted mt-1">Try resetting some filters or broadening your title keywords.</p>
                       </div>
                     ) : (
-                      <table className="w-full min-w-[1300px] text-left border-collapse text-xs">
+                      <table className="w-full text-left border-collapse text-xs">
                         <thead className="sticky top-0 z-20 text-slate-200 font-bold tracking-wider text-[11px] uppercase shadow-sm">
                           <tr>
                             <th className="p-3 w-10 text-center sticky top-0 left-0 bg-[#0B132B] text-slate-200 z-30 border-b border-slate-700">
@@ -3284,20 +3411,20 @@ export default function LeadIntellectWorkspace() {
                                 )}
                               </button>
                             </th>
-                            {visibleColumns.decisionMaker && <th className="p-3 min-w-[240px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Decision Maker</th>}
-                            {visibleColumns.company && <th className="p-3 min-w-[190px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Company &amp; Industry</th>}
-                            {visibleColumns.location && <th className="p-3 min-w-[140px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Location</th>}
-                            {visibleColumns.icpScore && <th className="p-3 min-w-[110px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">ICP Score</th>}
-                            {visibleColumns.reachability && <th className="p-3 min-w-[230px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Reachability (Email &amp; Direct Phone)</th>}
-                            {visibleColumns.departments && <th className="p-3 min-w-[160px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Department &amp; Function</th>}
-                            {visibleColumns.directPhone && <th className="p-3 min-w-[140px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Direct Phone</th>}
-                            {visibleColumns.corpPhone && <th className="p-3 min-w-[140px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Corp HQ Phone</th>}
-                            {visibleColumns.revenue && <th className="p-3 min-w-[120px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Revenue</th>}
-                            {visibleColumns.employees && <th className="p-3 min-w-[120px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Employees</th>}
-                            {visibleColumns.linkedin && <th className="p-3 min-w-[140px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">LinkedIn URL</th>}
-                            {visibleColumns.website && <th className="p-3 min-w-[140px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Website</th>}
-                            {visibleColumns.ownership && <th className="p-3 min-w-[110px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Ownership</th>}
-                            {visibleColumns.actions && <th className="p-3 text-right min-w-[160px] sticky top-0 right-0 bg-[#0B132B] text-slate-200 z-30 border-b border-slate-700">Actions</th>}
+                            {visibleColumns.decisionMaker && <th className="p-3 min-w-[220px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Decision Maker</th>}
+                            {visibleColumns.company && <th className="p-3 min-w-[180px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Company &amp; Industry</th>}
+                            {visibleColumns.location && <th className="p-3 min-w-[130px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Location</th>}
+                            {visibleColumns.icpScore && <th className="p-3 min-w-[100px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">ICP Score</th>}
+                            {visibleColumns.reachability && <th className="p-3 min-w-[200px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Reachability</th>}
+                            {visibleColumns.departments && <th className="p-3 min-w-[150px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Department &amp; Function</th>}
+                            {visibleColumns.directPhone && <th className="p-3 min-w-[130px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Direct Phone</th>}
+                            {visibleColumns.corpPhone && <th className="p-3 min-w-[130px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Corp HQ Phone</th>}
+                            {visibleColumns.revenue && <th className="p-3 min-w-[110px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Revenue</th>}
+                            {visibleColumns.employees && <th className="p-3 min-w-[110px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Employees</th>}
+                            {visibleColumns.linkedin && <th className="p-3 min-w-[120px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">LinkedIn URL</th>}
+                            {visibleColumns.website && <th className="p-3 min-w-[120px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Website</th>}
+                            {visibleColumns.ownership && <th className="p-3 min-w-[100px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Ownership</th>}
+                            {visibleColumns.actions && <th className="p-3 text-right min-w-[140px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Actions</th>}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -3359,16 +3486,27 @@ export default function LeadIntellectWorkspace() {
                                         {p.seniority}
                                       </span>
                                       {p.intentSignal && (
-                                        <button
-                                          type="button"
-                                          onClick={() => setSelectedIntentProspect(p)}
-                                          className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-teal/15 text-teal-dark hover:bg-teal/25 border border-teal/30 transition-colors cursor-pointer"
-                                          title={`Intent: ${p.intentSignal.headline} (${p.intentSignal.recencyDays}d ago). Click for Opportunity Brief.`}
-                                        >
-                                          <Zap className="w-2.5 h-2.5 text-teal-dark shrink-0" />
-                                          <span className="truncate max-w-[120px]">{p.intentSignal.categoryLabel}</span>
-                                          <span className="text-[9px] opacity-75 font-mono">({p.intentSignal.recencyDays}d)</span>
-                                        </button>
+                                        <>
+                                          <button
+                                            type="button"
+                                            onClick={() => setSelectedIntentProspect(p)}
+                                            className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-teal/15 text-teal-dark hover:bg-teal/25 border border-teal/30 transition-colors cursor-pointer"
+                                            title={`Intent: ${p.intentSignal.headline} (${p.intentSignal.recencyDays}d ago). Click for Opportunity Brief.`}
+                                          >
+                                            <Zap className="w-2.5 h-2.5 text-teal-dark shrink-0" />
+                                            <span className="truncate max-w-[120px]">{p.intentSignal.categoryLabel}</span>
+                                            <span className="text-[9px] opacity-75 font-mono">({p.intentSignal.recencyDays}d)</span>
+                                          </button>
+                                          {p.intentSignal.webPlatform && (
+                                            <span
+                                              className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                              title={`Web Source: ${WEB_INTENT_PLATFORMS.find((w) => w.id === p.intentSignal?.webPlatform)?.label || "Web"}`}
+                                            >
+                                              <span>{WEB_INTENT_PLATFORMS.find((w) => w.id === p.intentSignal?.webPlatform)?.icon || "🌐"}</span>
+                                              <span>{WEB_INTENT_PLATFORMS.find((w) => w.id === p.intentSignal?.webPlatform)?.label || "Web"}</span>
+                                            </span>
+                                          )}
+                                        </>
                                       )}
                                     </div>
                                   </td>
@@ -3573,7 +3711,7 @@ export default function LeadIntellectWorkspace() {
 
                                 {/* Actions */}
                                 {visibleColumns.actions && (
-                                  <td className="py-2.5 px-3.5 text-right sticky right-0 bg-white z-10">
+                                  <td className="py-2.5 px-3.5 text-right bg-white">
                                     <div className="flex items-center justify-end gap-1.5">
                                       {!isRevealed ? (
                                         <button
@@ -3872,6 +4010,49 @@ export default function LeadIntellectWorkspace() {
                 </div>
               </div>
 
+                            {/* Stage 3 List Filter & Batch Verification Bar */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-white flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <label className="text-xs font-bold text-navy">Filter Target List:</label>
+                  <select
+                    value={enrichSelectedListId}
+                    onChange={(e) => setEnrichSelectedListId(e.target.value)}
+                    className="text-xs font-semibold p-2 rounded-lg bg-slate-50 border border-slate-200 text-navy cursor-pointer focus:outline-none focus:ring-1 focus:ring-teal-dark"
+                  >
+                    <option value="all">All Discovered Leads ({prospects.length})</option>
+                    {userLists.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.name} ({l.prospectIds.length} leads)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={enrichingListLoading || activeEnrichListProspects.length === 0}
+                    onClick={handleBatchEnrichList}
+                    className="px-3.5 py-2 bg-teal hover:bg-teal-dark hover:text-white text-navy rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all shadow-2xs"
+                  >
+                    {enrichingListLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                    <span>⚡ Batch Reveal All ({activeEnrichListProspects.filter((p) => !revealedContacts[p.id]).length} Unlocked)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSequenceTargetLeads(activeEnrichListProspects);
+                      setSequenceBuilderModalOpen(true);
+                    }}
+                    className="px-4 py-2 bg-navy hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all"
+                  >
+                    <span>Proceed to Stage 4: Create Sequence</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
               {/* Credit Transparency Banner */}
               <div className="p-4 rounded-xl border border-teal/20 bg-teal/5 flex flex-wrap items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-2 text-slate-700">
@@ -3911,7 +4092,7 @@ export default function LeadIntellectWorkspace() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {(prospects.length > 0 ? prospects.slice(0, 8) : []).map((p) => {
+                      {(activeEnrichListProspects.length > 0 ? activeEnrichListProspects.slice(0, 15) : []).map((p) => {
                         const isRevealed = Boolean(revealedContacts[p.id]);
                         const activeEmail = revealedContacts[p.id]?.email || p.email;
                         const activePhone = revealedContacts[p.id]?.phone || p.phone;
