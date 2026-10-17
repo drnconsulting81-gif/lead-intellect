@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { getProspectIntentSignal, type IntentSignal } from "@/lib/intent";
 
 export interface Prospect {
   id: string;
@@ -40,6 +41,7 @@ export interface Prospect {
   icpScore: number;
   icpTier: "Tier 1" | "Tier 2" | "Tier 3";
   source: string;
+  intentSignal?: IntentSignal;
 }
 
 let cachedProspects: Prospect[] | null = null;
@@ -184,6 +186,8 @@ export async function GET(req: Request) {
     const department = searchParams.get("department") || "";
     const jobFunctions = (searchParams.get("jobFunctions") || "").toLowerCase().trim();
     const phoneType = searchParams.get("phoneType") || "";
+    const intentCategory = searchParams.get("intentCategory") || "";
+    const intentRecency = searchParams.get("intentRecency") || "";
 
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
     const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit")) || 25));
@@ -271,6 +275,19 @@ export async function GET(req: Request) {
         if (!locStr.includes(location)) return false;
       }
 
+      // 8. Intent & Buying Signal Filters
+      if (intentCategory && intentCategory !== "all") {
+        const signal = getProspectIntentSignal(p);
+        if (signal.category !== intentCategory) return false;
+      }
+      if (intentRecency && intentRecency !== "all") {
+        const maxDays = Number(intentRecency);
+        if (!isNaN(maxDays)) {
+          const signal = getProspectIntentSignal(p);
+          if (signal.recencyDays > maxDays) return false;
+        }
+      }
+
       return true;
     });
 
@@ -291,6 +308,9 @@ export async function GET(req: Request) {
       } else if (sortBy === "employees") {
         valA = a.employees || 0;
         valB = b.employees || 0;
+      } else if (sortBy === "intentRecency") {
+        valA = getProspectIntentSignal(a).recencyDays;
+        valB = getProspectIntentSignal(b).recencyDays;
       }
 
       if (valA < valB) return sortOrder === "asc" ? -1 : 1;
@@ -302,6 +322,12 @@ export async function GET(req: Request) {
     const totalPages = Math.ceil(total / limit) || 1;
     const startIndex = (page - 1) * limit;
     const paginated = filtered.slice(startIndex, startIndex + limit);
+
+    // Attach verified intent signal to each prospect
+    const prospectsWithIntent = paginated.map((p) => ({
+      ...p,
+      intentSignal: getProspectIntentSignal(p),
+    }));
 
     // Mask direct email and phone numbers in list view to protect data and prevent unauthorized scraping
     const maskedProspects = paginated.map((p) => ({
@@ -347,7 +373,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       success: true,
-      prospects: paginated,
+      prospects: prospectsWithIntent,
       interpretedCriteria,
       pagination: {
         total,
