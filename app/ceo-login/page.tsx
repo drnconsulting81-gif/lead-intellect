@@ -67,14 +67,14 @@ export default function CeoLoginPage() {
       const data = await res.json();
 
       const ceoUser = {
-        id: "usr_ceo_master",
-        name: "DRN Consulting (CEO)",
+        id: data.user?.id || "usr_ceo_master",
+        name: data.user?.name || "DRN Consulting (CEO)",
         email: cleanEmail,
         company: "LeadIntellect Technologies",
         title: "Chief Executive Officer",
         provider: "executive",
         role: "admin",
-        credits: 3500,
+        credits: data.user?.credits ?? 3500,
       };
 
       localStorage.setItem("leadintellect_user", JSON.stringify(ceoUser));

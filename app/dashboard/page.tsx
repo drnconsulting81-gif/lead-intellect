@@ -669,34 +669,50 @@ export default function LeadIntellectWorkspace() {
     setTimeout(() => setCopiedItem(null), 2500);
   };
 
-  // Hydrate user session & completed onboarding tasks safely
+  // Hydrate user session & completed onboarding tasks safely, sync real-time credits from server
   useEffect(() => {
     queueMicrotask(() => {
       try {
         const stored = localStorage.getItem("leadintellect_user");
+        let activeEmail = "guest@leadintellect.ai";
         if (stored) {
           const parsed = JSON.parse(stored);
-            let genuineCredits = 99;
-            if (parsed.role === "admin") {
-              genuineCredits = parsed.credits && parsed.credits <= 3500 ? parsed.credits : 3500;
-            } else {
-              // Free tier: exactly 99 credits, deducts on reveal
-              genuineCredits = typeof parsed.credits === "number" && parsed.credits <= 99 ? parsed.credits : 99;
-            }
-            parsed.credits = genuineCredits;
-            setCurrentUser(parsed);
-            setCredits(genuineCredits);
-            try {
-              localStorage.setItem("leadintellect_user", JSON.stringify(parsed));
-            } catch {}
-          }
-          const storedTasks = localStorage.getItem("leadintellect_completed_tasks");
-          if (storedTasks) {
-            setCompletedTasks(JSON.parse(storedTasks));
-          }
-        } catch {
-          // ignore
+          const isCeo = parsed.role === "admin" || (parsed.email && parsed.email.toLowerCase().includes("drnconsulting81"));
+          const genuineCredits = typeof parsed.credits === "number" ? parsed.credits : (isCeo ? 3500 : 100);
+          parsed.credits = genuineCredits;
+          setCurrentUser(parsed);
+          setCredits(genuineCredits);
+          activeEmail = parsed.email || activeEmail;
+          try {
+            localStorage.setItem("leadintellect_user", JSON.stringify(parsed));
+          } catch {}
         }
+
+        // Fetch authoritative credit balance from server/database
+        fetch(`/api/credits?userEmail=${encodeURIComponent(activeEmail)}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success && typeof data.credits === "number") {
+              setCredits(data.credits);
+              try {
+                const cur = localStorage.getItem("leadintellect_user");
+                if (cur) {
+                  const p = JSON.parse(cur);
+                  p.credits = data.credits;
+                  localStorage.setItem("leadintellect_user", JSON.stringify(p));
+                }
+              } catch {}
+            }
+          })
+          .catch(() => {});
+
+        const storedTasks = localStorage.getItem("leadintellect_completed_tasks");
+        if (storedTasks) {
+          setCompletedTasks(JSON.parse(storedTasks));
+        }
+      } catch {
+        // ignore
+      }
     });
   }, []);
 
@@ -905,6 +921,8 @@ export default function LeadIntellectWorkspace() {
     setCompletedTasks((prev) => {
       const isCompleted = prev.includes(taskId);
       let updated: string[];
+      const delta = isCompleted ? -rewardCredits : rewardCredits;
+
       if (isCompleted) {
         updated = prev.filter((id) => id !== taskId);
         setCredits((c) => Math.max(0, c - rewardCredits));
@@ -914,11 +932,41 @@ export default function LeadIntellectWorkspace() {
         setCredits((c) => c + rewardCredits);
         showToast(`Task completed! +${rewardCredits} credits added to your balance`, "success");
       }
+
       try {
         localStorage.setItem("leadintellect_completed_tasks", JSON.stringify(updated));
       } catch {
         // ignore
       }
+
+      // Persist to server /api/credits
+      const email = currentUser?.email || "guest@leadintellect.ai";
+      fetch("/api/credits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userEmail: email,
+          amount: delta,
+          action: "bonus",
+          description: `Onboarding task ${isCompleted ? "unmarked" : "completed"}: ${taskId}`,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && typeof data.remainingCredits === "number") {
+            setCredits(data.remainingCredits);
+            try {
+              const cur = localStorage.getItem("leadintellect_user");
+              if (cur) {
+                const p = JSON.parse(cur);
+                p.credits = data.remainingCredits;
+                localStorage.setItem("leadintellect_user", JSON.stringify(p));
+              }
+            } catch {}
+          }
+        })
+        .catch(() => {});
+
       return updated;
     });
   };

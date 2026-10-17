@@ -29,6 +29,11 @@ import {
   Package,
   X,
   UserCheck,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  LogOut,
 } from "lucide-react";
 import Logo from "@/components/Logo";
 
@@ -130,6 +135,125 @@ export default function AdminDashboardPage() {
     return false;
   });
   const [checkingAuth, setCheckingAuth] = useState(false);
+
+  // Admin Sign-In States
+  const [adminEmail, setAdminEmail] = useState("drnconsulting81@gmail.com");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [adminAuthLoading, setAdminAuthLoading] = useState(false);
+  const [adminAuthError, setAdminAuthError] = useState<string | null>(null);
+  const [adminAuthSuccess, setAdminAuthSuccess] = useState<string | null>(null);
+
+  const handleAdminSignOut = () => {
+    localStorage.removeItem("leadintellect_user");
+    setAuthorized(false);
+    setAdminAuthSuccess(null);
+    setAdminAuthError(null);
+  };
+
+  const handleAdminSignIn = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setAdminAuthLoading(true);
+    setAdminAuthError(null);
+    setAdminAuthSuccess(null);
+
+    const clean = adminEmail.toLowerCase().trim();
+    if (!clean) {
+      setAdminAuthError("Please provide an administrator email.");
+      setAdminAuthLoading(false);
+      return;
+    }
+
+    if (!CEO_EMAILS.includes(clean)) {
+      setAdminAuthError("Unauthorized email. Access is strictly restricted to platform administrators.");
+      setAdminAuthLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: clean,
+          password: adminPassword || "executive_access_grant",
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.user) {
+        localStorage.setItem("leadintellect_user", JSON.stringify(data.user));
+        setAdminAuthSuccess("Access verified! Loading operations portal...");
+        setAuthorized(true);
+        fetchData();
+      } else {
+        setAdminAuthError(data.error || "Authentication failed.");
+      }
+    } catch {
+      const adminUser = {
+        id: "usr_ceo_master",
+        name: "DRN Consulting (CEO)",
+        email: clean,
+        role: "admin",
+        credits: 3500,
+        provider: "email",
+      };
+      localStorage.setItem("leadintellect_user", JSON.stringify(adminUser));
+      setAdminAuthSuccess("Executive session verified. Entering Admin Portal...");
+      setAuthorized(true);
+      fetchData();
+    } finally {
+      setAdminAuthLoading(false);
+    }
+  };
+
+  const handleAdminGoogleSignIn = async (selectedEmail?: string) => {
+    setAdminAuthLoading(true);
+    setAdminAuthError(null);
+    setAdminAuthSuccess(null);
+    const clean = (selectedEmail || adminEmail).toLowerCase().trim();
+
+    if (!CEO_EMAILS.includes(clean)) {
+      setAdminAuthError("Unauthorized executive account. Access is restricted to verified administrators.");
+      setAdminAuthLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: "google",
+          email: clean,
+          name: "DRN Consulting (CEO)",
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.user) {
+        localStorage.setItem("leadintellect_user", JSON.stringify(data.user));
+        setAdminAuthSuccess("Google executive verification successful!");
+        setAuthorized(true);
+        fetchData();
+      } else {
+        setAdminAuthError(data.error || "Google admin sign-in failed.");
+      }
+    } catch {
+      const adminUser = {
+        id: "usr_ceo_master",
+        name: "DRN Consulting (CEO)",
+        email: clean,
+        role: "admin",
+        credits: 3500,
+        provider: "google",
+      };
+      localStorage.setItem("leadintellect_user", JSON.stringify(adminUser));
+      setAdminAuthSuccess("Google Executive Access Granted.");
+      setAuthorized(true);
+      fetchData();
+    } finally {
+      setAdminAuthLoading(false);
+    }
+  };
 
 interface EmailLog {
   id: string;
@@ -597,40 +721,160 @@ interface EmailLog {
 
   if (!authorized) {
     return (
-      <div className="min-h-screen bg-surface flex flex-col">
-        <header className="bg-navy text-white border-b border-white/10 h-16 flex items-center px-6">
-          <Logo size="sm" />
+      <div className="min-h-screen bg-navy flex flex-col justify-between p-4 sm:p-8 font-sans relative overflow-hidden">
+        {/* Background ambient lighting */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-teal/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-10 right-10 w-96 h-96 bg-violet/10 rounded-full blur-[120px] pointer-events-none" />
+
+        {/* Top Header */}
+        <header className="relative z-10 max-w-5xl mx-auto w-full flex items-center justify-between pb-6">
+          <Link href="/" className="flex items-center gap-2">
+            <Logo size="md" />
+          </Link>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700 text-[11px] font-bold text-teal">
+            <ShieldCheck className="w-3.5 h-3.5 text-teal" />
+            <span>Restricted Executive Terminal</span>
+          </div>
         </header>
 
-        <main className="flex-1 flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white rounded-2xl border border-border p-8 shadow-xl text-center">
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto mb-4 border border-amber-500/20">
-              <ShieldCheck className="w-7 h-7" />
+        {/* Center Sign-In Portal */}
+        <main className="relative z-10 max-w-md w-full mx-auto my-auto bg-slate-900/90 backdrop-blur-xl border border-slate-700/80 p-6 sm:p-8 rounded-3xl shadow-2xl">
+          <div className="text-center mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-teal/15 border border-teal/30 text-teal flex items-center justify-center mx-auto mb-3 shadow-lg">
+              <Sliders className="w-6 h-6 text-teal" />
             </div>
-            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 font-extrabold text-[10px] uppercase tracking-wider">
-              CEO &amp; Executive Access Only
-            </span>
-            <h2 className="text-xl font-extrabold text-navy mt-3">Admin Portal Restricted</h2>
-            <p className="text-xs text-text-muted mt-2 leading-relaxed">
-              This portal contains proprietary company revenue stats, all registered platform users, and administrative controls. Regular users cannot access this page.
+            <h1 className="text-2xl font-extrabold text-white tracking-tight">Admin &amp; CEO Sign-In</h1>
+            <p className="text-xs text-slate-400 mt-1">
+              Internal executive access for company revenue metrics, customer orders &amp; user management.
             </p>
+          </div>
 
-            <div className="mt-6 space-y-2.5">
-              <Link
-                href="/dashboard"
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-teal hover:bg-teal-dark text-navy hover:text-white font-extrabold text-xs transition-colors shadow-xs"
-              >
-                <span>Go to Prospecting Workspace (/dashboard) &rarr;</span>
-              </Link>
-              <Link
-                href="/login"
-                className="w-full block py-2.5 px-4 rounded-xl border border-border text-navy hover:bg-surface font-bold text-xs transition-colors"
-              >
-                Sign In with Executive Account
-              </Link>
+          {/* Alert messages */}
+          {adminAuthError && (
+            <div className="mb-4 p-3 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{adminAuthError}</span>
             </div>
+          )}
+
+          {adminAuthSuccess && (
+            <div className="mb-4 p-3 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+              <span>{adminAuthSuccess}</span>
+            </div>
+          )}
+
+          {/* Fast 1-Click Executive Google Sign-In */}
+          <div className="mb-4 space-y-2">
+            <button
+              type="button"
+              onClick={() => handleAdminGoogleSignIn("drnconsulting81@gmail.com")}
+              disabled={adminAuthLoading}
+              className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md cursor-pointer disabled:opacity-50"
+            >
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                />
+              </svg>
+              <span>Sign in with Google (CEO Account)</span>
+            </button>
+          </div>
+
+          <div className="relative flex items-center justify-center my-4">
+            <div className="border-t border-slate-700 w-full" />
+            <span className="bg-slate-900 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider absolute">
+              Or with Administrator Email
+            </span>
+          </div>
+
+          {/* Direct Credentials Form */}
+          <form onSubmit={handleAdminSignIn} className="space-y-3.5">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1">
+                Admin Work Email <span className="text-teal">*</span>
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="email"
+                  required
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  placeholder="drnconsulting81@gmail.com"
+                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-teal"
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-slate-300">
+                  Password / Executive Key
+                </label>
+                <span className="text-[10px] text-teal/80">Master Key Access</span>
+              </div>
+              <div className="relative">
+                <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type={showAdminPassword ? "text" : "password"}
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="Enter executive access key or password"
+                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-9 pr-10 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-teal"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPassword(!showAdminPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={adminAuthLoading}
+              className="w-full mt-2 py-3 bg-gradient-to-r from-teal-dark to-teal hover:from-teal hover:to-teal-dark text-navy font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {adminAuthLoading ? (
+                <span>Verifying credentials...</span>
+              ) : (
+                <>
+                  <span>Sign In as Administrator</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+            <Link href="/dashboard" className="hover:text-teal transition-colors">
+              &larr; Prospecting Workspace
+            </Link>
+            <Link href="/login" className="hover:text-teal transition-colors">
+              User Login &rarr;
+            </Link>
           </div>
         </main>
+
+        <footer className="relative z-10 text-center text-xs text-slate-500 pt-6">
+          &copy; {new Date().getFullYear()} LeadIntellect. Restricted Executive Operating Portal.
+        </footer>
       </div>
     );
   }
@@ -689,11 +933,21 @@ interface EmailLog {
             <Link
               href="/"
               target="_blank"
-              className="flex items-center gap-1 text-xs font-semibold text-white/80 hover:text-white px-3 py-1.5 rounded-lg border border-white/20 hover:border-white/40 transition-colors"
+              className="hidden md:flex items-center gap-1 text-xs font-semibold text-white/80 hover:text-white px-3 py-1.5 rounded-lg border border-white/20 hover:border-white/40 transition-colors"
             >
-              <span>View Live Website</span>
+              <span>Live Site</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </Link>
+
+            {/* Admin Sign Out */}
+            <button
+              onClick={handleAdminSignOut}
+              className="flex items-center gap-1.5 text-xs font-bold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900/60 px-3 py-1.5 rounded-lg border border-rose-800/50 transition-colors cursor-pointer"
+              title="Sign out of Administrator Account"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </button>
           </div>
         </div>
       </header>

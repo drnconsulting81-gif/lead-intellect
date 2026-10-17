@@ -650,133 +650,207 @@ export async function deductUserCredit(
   recordId?: string
 ): Promise<{ success: boolean; remainingCredits: number; error?: string }> {
   const cleanEmail = email.toLowerCase().trim();
+  const isCeo = isCeoEmail(cleanEmail);
+  const defaultInitial = isCeo ? 3500 : 100;
 
-  // CEO has executive tier allocation
-  if (isCeoEmail(cleanEmail)) {
-    const local = readLocalDb();
-    let ceoIdx = local.users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
-    if (ceoIdx === -1) {
-      local.users.push({
-        id: "ceo_admin",
-        name: "Executive Workspace",
-        email: cleanEmail,
-        provider: "email",
-        role: "admin",
-        credits: 3500,
-        createdAt: new Date().toISOString(),
-      });
-      ceoIdx = local.users.length - 1;
+  // 1. Try MongoDB first if configured
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        const usersCol = db.collection<any>("users");
+        let u = await usersCol.findOne({ email: cleanEmail });
+        
+        // If user record doesn't exist in MongoDB yet, initialize it
+        if (!u) {
+          const newUser: UserRecord = {
+            id: isCeo ? "usr_ceo_master" : "usr_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+            name: isCeo ? "DRN Consulting (CEO)" : cleanEmail.split("@")[0],
+            email: cleanEmail,
+            provider: "email",
+            role: isCeo ? "admin" : "user",
+            credits: defaultInitial,
+            createdAt: new Date().toISOString(),
+          };
+          await usersCol.insertOne(newUser);
+          u = newUser;
+        }
+
+        const currentCredits = u && typeof u.credits === "number" ? u.credits : defaultInitial;
+
+        if (currentCredits < amount && !isCeo) {
+          return { success: false, remainingCredits: currentCredits, error: "Insufficient credits. Please upgrade your plan." };
+        }
+
+        const updated = Math.max(0, currentCredits - amount);
+
+        await usersCol.updateOne(
+          { email: cleanEmail },
+          { $set: { credits: updated, role: isCeo ? "admin" : ((u && u.role) || "user") } }
+        );
+
+        await logCreditTransaction({
+          userEmail: cleanEmail,
+          action,
+          amount,
+          balanceAfter: updated,
+          description: isCeo ? `${description} (Executive Quota)` : description,
+          recordId,
+        });
+
+        // Mirror to local memory/disk
+        const local = readLocalDb();
+        const lIdx = local.users.findIndex((x) => x.email.toLowerCase() === cleanEmail);
+        if (lIdx !== -1) {
+          local.users[lIdx].credits = updated;
+        } else {
+          local.users.push({
+            id: u?.id || "usr_" + Date.now(),
+            name: u?.name || (isCeo ? "DRN Consulting (CEO)" : cleanEmail.split("@")[0]),
+            email: cleanEmail,
+            provider: u?.provider || "email",
+            role: isCeo ? "admin" : "user",
+            credits: updated,
+            createdAt: new Date().toISOString(),
+          });
+        }
+        writeLocalDb(local);
+
+        return { success: true, remainingCredits: updated };
+      }
+    } catch (err) {
+      console.warn("MongoDB deductUserCredit failed, falling back to localDb:", err);
     }
-    const current = local.users[ceoIdx].credits ?? 3500;
-    const updated = Math.max(0, current - amount);
-    local.users[ceoIdx].credits = updated;
-    writeLocalDb(local);
-    await logCreditTransaction({
-      userEmail: cleanEmail,
-      action,
-      amount,
-      balanceAfter: updated,
-      description: `${description} (Executive Quota)`,
-      recordId,
-    });
-    return { success: true, remainingCredits: updated };
   }
 
-  let userFound = false;
+  // 2. Local DB Fallback (serverless or offline)
+  const local = readLocalDb();
+  let lIdx = local.users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+  if (lIdx === -1) {
+    local.users.push({
+      id: isCeo ? "usr_ceo_master" : "usr_" + Date.now(),
+      name: isCeo ? "DRN Consulting (CEO)" : cleanEmail.split("@")[0],
+      email: cleanEmail,
+      provider: "email",
+      role: isCeo ? "admin" : "user",
+      credits: defaultInitial,
+      createdAt: new Date().toISOString(),
+    });
+    lIdx = local.users.length - 1;
+  }
+
+  const currentCredits = typeof local.users[lIdx].credits === "number" ? local.users[lIdx].credits! : defaultInitial;
+  if (currentCredits < amount && !isCeo) {
+    return { success: false, remainingCredits: currentCredits, error: "Insufficient credits" };
+  }
+
+  const updated = Math.max(0, currentCredits - amount);
+  local.users[lIdx].credits = updated;
+  writeLocalDb(local);
+
+  await logCreditTransaction({
+    userEmail: cleanEmail,
+    action,
+    amount,
+    balanceAfter: updated,
+    description: isCeo ? `${description} (Executive Quota)` : description,
+    recordId,
+  });
+
+  return { success: true, remainingCredits: updated };
+}
+
+export async function addOrAdjustUserCredit(
+  email: string,
+  amount: number,
+  action: CreditLedgerRecord["action"] = "bonus",
+  description = "Credit adjustment"
+): Promise<{ success: boolean; remainingCredits: number }> {
+  const cleanEmail = email.toLowerCase().trim();
+  const isCeo = isCeoEmail(cleanEmail);
+  const defaultInitial = isCeo ? 3500 : 100;
 
   if (isMongoConfigured()) {
     try {
       const db = await getMongoDb();
       if (db) {
-        const u = await db.collection<UserRecord>("users").findOne({ email: cleanEmail });
-        if (u) {
-          userFound = true;
-          const currentCredits = u.credits ?? 100;
-          if (currentCredits < amount) {
-            return { success: false, remainingCredits: currentCredits, error: "Insufficient credits" };
-          }
-          const updated = currentCredits - amount;
-          // Atomic update requiring sufficient balance
-          const updateResult = await db.collection<UserRecord>("users").updateOne(
-            { email: cleanEmail, credits: { $gte: amount } },
-            { $inc: { credits: -amount } }
-          );
-
-          if (updateResult.modifiedCount === 0) {
-            const fresh = await db.collection<UserRecord>("users").findOne({ email: cleanEmail });
-            return {
-              success: false,
-              remainingCredits: fresh?.credits ?? 0,
-              error: "Insufficient credits or concurrent transaction in progress",
-            };
-          }
-
-          await logCreditTransaction({
-            userEmail: cleanEmail,
-            action,
-            amount,
-            balanceAfter: updated,
-            description,
-            recordId,
-          });
-          return { success: true, remainingCredits: updated };
+        const usersCol = db.collection<any>("users");
+        let u = await usersCol.findOne({ email: cleanEmail });
+        if (!u) {
+          const newUser: UserRecord = {
+            id: isCeo ? "usr_ceo_master" : "usr_" + Date.now(),
+            name: isCeo ? "DRN Consulting (CEO)" : cleanEmail.split("@")[0],
+            email: cleanEmail,
+            provider: "email",
+            role: isCeo ? "admin" : "user",
+            credits: defaultInitial,
+            createdAt: new Date().toISOString(),
+          };
+          await usersCol.insertOne(newUser);
+          u = newUser;
         }
+
+        const currentCredits = u && typeof u.credits === "number" ? u.credits : defaultInitial;
+        const updated = Math.max(0, currentCredits + amount);
+
+        await usersCol.updateOne(
+          { email: cleanEmail },
+          { $set: { credits: updated } }
+        );
+
+        await logCreditTransaction({
+          userEmail: cleanEmail,
+          action,
+          amount: Math.abs(amount),
+          balanceAfter: updated,
+          description,
+        });
+
+        // Mirror locally
+        const local = readLocalDb();
+        const lIdx = local.users.findIndex((x) => x.email.toLowerCase() === cleanEmail);
+        if (lIdx !== -1) {
+          local.users[lIdx].credits = updated;
+        }
+        writeLocalDb(local);
+
+        return { success: true, remainingCredits: updated };
       }
     } catch (err) {
-      console.warn("MongoDB deductUserCredit failed:", err);
+      console.warn("MongoDB addOrAdjustUserCredit failed:", err);
     }
   }
 
+  // Local mirror fallback
   const local = readLocalDb();
-  const idx = local.users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
-  if (idx !== -1) {
-    userFound = true;
-    const currentCredits = local.users[idx].credits ?? 100;
-    if (currentCredits < amount) {
-      return { success: false, remainingCredits: currentCredits, error: "Insufficient credits" };
-    }
-    local.users[idx].credits = currentCredits - amount;
-    writeLocalDb(local);
-    await logCreditTransaction({
-      userEmail: cleanEmail,
-      action,
-      amount,
-      balanceAfter: local.users[idx].credits ?? 0,
-      description,
-      recordId,
+  let lIdx = local.users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+  if (lIdx === -1) {
+    local.users.push({
+      id: isCeo ? "usr_ceo_master" : "usr_" + Date.now(),
+      name: isCeo ? "DRN Consulting (CEO)" : cleanEmail.split("@")[0],
+      email: cleanEmail,
+      provider: "email",
+      role: isCeo ? "admin" : "user",
+      credits: defaultInitial,
+      createdAt: new Date().toISOString(),
     });
-    return { success: true, remainingCredits: local.users[idx].credits ?? 0 };
+    lIdx = local.users.length - 1;
   }
 
-  // If user does not exist, provision trial guest quota or report error
-  if (!userFound) {
-    if (cleanEmail === "guest@leadintellect.ai" || cleanEmail.includes("guest") || cleanEmail.includes("@")) {
-      const local = readLocalDb();
-      const updated = Math.max(0, 50 - amount);
-      local.users.push({
-        id: "usr_" + Date.now(),
-        name: "Workspace Explorer",
-        email: cleanEmail,
-        provider: "email",
-        role: "user",
-        credits: updated,
-        createdAt: new Date().toISOString(),
-      });
-      writeLocalDb(local);
-      await logCreditTransaction({
-        userEmail: cleanEmail,
-        action,
-        amount,
-        balanceAfter: updated,
-        description,
-        recordId,
-      });
-      return { success: true, remainingCredits: updated };
-    }
-    return { success: false, remainingCredits: 0, error: "User account not found. Please log in or register." };
-  }
+  const currentCredits = typeof local.users[lIdx].credits === "number" ? local.users[lIdx].credits! : defaultInitial;
+  const updated = Math.max(0, currentCredits + amount);
+  local.users[lIdx].credits = updated;
+  writeLocalDb(local);
 
-  return { success: false, remainingCredits: 0, error: "Transaction failed" };
+  await logCreditTransaction({
+    userEmail: cleanEmail,
+    action,
+    amount: Math.abs(amount),
+    balanceAfter: updated,
+    description,
+  });
+
+  return { success: true, remainingCredits: updated };
 }
 
 /* ----------------- LISTS MANAGEMENT ----------------- */

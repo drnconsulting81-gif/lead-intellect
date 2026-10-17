@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { deductUserCredit, findUserByEmail, hasUserRevealedProspect, isCeoEmail } from "@/lib/db";
+import { deductUserCredit, findUserByEmail, hasUserRevealedProspect, isCeoEmail, saveUser } from "@/lib/db";
 import fs from "fs";
 import path from "path";
 
@@ -45,9 +45,17 @@ export async function POST(req: Request) {
 
     // 1. Authenticate user & check authorization
     const isCeo = isCeoEmail(cleanEmail);
-    let user = isCeo
-      ? { email: cleanEmail, credits: 3500, role: "admin" }
-      : await findUserByEmail(cleanEmail);
+    let user = await findUserByEmail(cleanEmail);
+
+    if (!user && isCeo) {
+      user = await saveUser({
+        name: "DRN Consulting (CEO)",
+        email: cleanEmail,
+        provider: "email",
+        role: "admin",
+        credits: 3500,
+      });
+    }
 
     if (!user) {
       if (cleanEmail === "guest@leadintellect.ai" || cleanEmail.includes("@")) {

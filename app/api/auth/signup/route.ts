@@ -10,9 +10,37 @@ export async function POST(req: Request) {
 
     // 1. Social Provider Signup
     if (provider === "google" || provider === "github" || provider === "microsoft") {
+      const cleanEmail = (email || "").toLowerCase().trim();
+      if (!cleanEmail || !cleanEmail.includes("@")) {
+        return NextResponse.json(
+          { error: "A valid Google or work email address is required." },
+          { status: 400 }
+        );
+      }
+
+      // Check if user already exists
+      const existing = await findUserByEmail(cleanEmail);
+      if (existing) {
+        return NextResponse.json({
+          success: true,
+          message: `Account already exists. Successfully authenticated with ${provider.toUpperCase()}!`,
+          user: {
+            id: existing.id,
+            name: existing.name,
+            email: existing.email,
+            company: existing.company,
+            title: existing.title,
+            provider: existing.provider,
+            role: existing.role,
+            credits: existing.credits,
+          },
+        });
+      }
+
+      const displayName = name || cleanEmail.split("@")[0].replace(/[._-]/g, " ");
       const user = await saveUser({
-        name: name || "Verified User",
-        email: email || `${provider}.user@leadintellect.ai`,
+        name: displayName.charAt(0).toUpperCase() + displayName.slice(1),
+        email: cleanEmail,
         title: title || "",
         company: company || "",
         provider,

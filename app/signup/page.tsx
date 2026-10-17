@@ -28,6 +28,13 @@ export default function SignupPage() {
   const [title, setTitle] = useState("");
 
   const handleSocialAuth = async (provider: "google" | "github" | "microsoft") => {
+    let userEmail = email.trim();
+    if (!userEmail || !userEmail.includes("@")) {
+      const prompted = window.prompt(`Enter your ${provider.toUpperCase()} account email address:`);
+      if (!prompted) return;
+      userEmail = prompted.trim();
+    }
+
     setLoading(true);
     setErrorMsg(null);
     try {
@@ -36,8 +43,8 @@ export default function SignupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider,
-          name: "Verified User",
-          email: `${provider}.user@company.com`,
+          name: name.trim() || userEmail.split("@")[0],
+          email: userEmail.toLowerCase().trim(),
         }),
       });
       const data = await res.json();
