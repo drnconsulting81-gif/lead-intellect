@@ -41,6 +41,13 @@ export interface Prospect {
   icpScore: number;
   icpTier: "Tier 1" | "Tier 2" | "Tier 3";
   source: string;
+  dataset?: string;
+  datasetCategory?: string;
+  directPhone?: string;
+  mobilePhone?: string;
+  corpPhone?: string;
+  faxNumber?: string;
+  streetAddress?: string;
   intentSignal?: IntentSignal;
 }
 
@@ -186,6 +193,8 @@ export async function GET(req: Request) {
     const department = searchParams.get("department") || "";
     const jobFunctions = (searchParams.get("jobFunctions") || "").toLowerCase().trim();
     const phoneType = searchParams.get("phoneType") || "";
+    const dataset = searchParams.get("dataset") || "";
+    const datasetCategory = searchParams.get("datasetCategory") || "";
     const intentCategory = searchParams.get("intentCategory") || "";
     const intentRecency = searchParams.get("intentRecency") || "";
     const webPlatform = searchParams.get("webPlatform") || "";
@@ -205,6 +214,7 @@ export async function GET(req: Request) {
     const revenueRangeList = parseFilterList(revenueRange);
     const ownershipList = parseFilterList(ownership);
     const phoneTypeList = parseFilterList(phoneType);
+    const datasetList = parseFilterList(dataset);
 
     const filtered = all.filter((p) => {
       // 1. General search query (searches across name, company, title, industry, city, state, country)
@@ -244,6 +254,8 @@ export async function GET(req: Request) {
       if (!matchesOr(p.revenueRange, revenueRangeList)) return false;
       if (!matchesOr(p.ownership, ownershipList)) return false;
       if (!matchesOr(p.phoneType, phoneTypeList)) return false;
+      if (!matchesOr(p.dataset || "", datasetList)) return false;
+      if (datasetCategory && datasetCategory !== "all" && p.datasetCategory !== datasetCategory) return false;
 
       // 5. ICP Tier and Minimum Score
       if (icpTier && icpTier !== "all") {
@@ -376,6 +388,15 @@ export async function GET(req: Request) {
     const topRevenues = Object.keys(revenueCounts)
       .sort((a, b) => revenueCounts[b] - revenueCounts[a]);
 
+    const datasetCounts: Record<string, number> = {};
+    all.forEach((p) => {
+      const ds = p.dataset || "General Master Database";
+      datasetCounts[ds] = (datasetCounts[ds] || 0) + 1;
+    });
+    const datasetsFacet = Object.keys(datasetCounts)
+      .sort((a, b) => datasetCounts[b] - datasetCounts[a])
+      .map((name) => ({ name, count: datasetCounts[name] }));
+
     return NextResponse.json({
       success: true,
       prospects: prospectsWithIntent,
@@ -394,6 +415,7 @@ export async function GET(req: Request) {
         avgIcpScore: avgScore,
       },
       facets: {
+        datasets: datasetsFacet,
         industries: topIndustries,
         countries: topCountries,
         states: topStates,

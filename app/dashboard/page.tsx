@@ -18,6 +18,7 @@ import {
   Download,
   BookmarkPlus,
   RefreshCw,
+  Database,
   ExternalLink,
   Sliders,
   Compass,
@@ -118,6 +119,10 @@ export interface Prospect {
   icpScore: number;
   icpTier: "Tier 1" | "Tier 2" | "Tier 3";
   source: string;
+  dataset?: string;
+  datasetCategory?: string;
+  faxNumber?: string;
+  streetAddress?: string;
   intentSignal?: IntentSignal;
 }
 
@@ -450,6 +455,7 @@ export default function LeadIntellectWorkspace() {
 
   // Filter Accordions Open/Close (Screenshot 3)
   const [filterSections, setFilterSections] = useState({
+    datasets: true,
     intent: true,
     jobTitles: true,
     lookalikes: false,
@@ -460,6 +466,8 @@ export default function LeadIntellectWorkspace() {
 
   // Query & Filters State
   const [query, setQuery] = useState("");
+  const [datasetFilter, setDatasetFilter] = useState("all");
+  const [availableDatasets, setAvailableDatasets] = useState<{ name: string; count: number }[]>([]);
   const [seniority, setSeniority] = useState<string[]>([]);
   const [titleFilter, setTitleFilter] = useState("");
   const [cityFilter, setCityFilter] = useState("");
@@ -783,6 +791,7 @@ export default function LeadIntellectWorkspace() {
         if (intentCategory && intentCategory !== "all") params.set("intentCategory", intentCategory);
         if (intentRecency && intentRecency !== "all") params.set("intentRecency", intentRecency);
         if (webPlatform && webPlatform !== "all") params.set("webPlatform", webPlatform);
+        if (datasetFilter && datasetFilter !== "all") params.set("dataset", datasetFilter);
         params.set("page", page.toString());
         params.set("limit", limitPerPage.toString());
 
@@ -791,6 +800,9 @@ export default function LeadIntellectWorkspace() {
           .then((data) => {
             if (!ignore) {
               setProspects(data.prospects || []);
+              if (data.facets?.datasets && data.facets.datasets.length > 0) {
+                setAvailableDatasets(data.facets.datasets);
+              }
               setTotalCount(data.pagination?.total !== undefined ? data.pagination.total : 0);
               setTotalPages(data.pagination?.totalPages || 1);
               setLoading(false);
@@ -857,6 +869,7 @@ export default function LeadIntellectWorkspace() {
     intentCategory,
     intentRecency,
     webPlatform,
+    datasetFilter,
     limitPerPage,
     page,
   ]);
@@ -1452,6 +1465,7 @@ export default function LeadIntellectWorkspace() {
   };
 
   const handleResetAllFilters = () => {
+    setDatasetFilter("all");
     setSeniority([]);
     setTitleFilter("");
     setCityFilter("");
@@ -1476,6 +1490,7 @@ export default function LeadIntellectWorkspace() {
   };
 
   const activeFilterCount =
+    (datasetFilter !== "all" ? 1 : 0) +
     seniority.length +
     (titleFilter ? 1 : 0) +
     (cityFilter ? 1 : 0) +
@@ -1518,6 +1533,67 @@ export default function LeadIntellectWorkspace() {
         >
           Reset All
         </button>
+      </div>
+
+      {/* Accordion: Database Collections & Segregated Datasets */}
+      <div className="border border-indigo-200 rounded-xl overflow-hidden bg-gradient-to-b from-indigo-50/50 to-white shadow-2xs">
+        <button
+          type="button"
+          onClick={() => setFilterSections((s) => ({ ...s, datasets: !s.datasets }))}
+          className="w-full px-3.5 py-2.5 flex items-center justify-between font-bold text-navy hover:bg-indigo-50/80 text-left transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <Database className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Database Collections</span>
+            {datasetFilter !== "all" && (
+              <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
+            )}
+          </span>
+          {filterSections.datasets ? (
+            <ChevronUp className="w-3.5 h-3.5 text-indigo-600" />
+          ) : (
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+          )}
+        </button>
+        {filterSections.datasets && (
+          <div className="p-3.5 pt-1 space-y-2 border-t border-indigo-100">
+            <label className="block text-[11px] font-bold text-navy uppercase tracking-wider mb-1">
+              Select Dataset / Industry
+            </label>
+            <select
+              value={datasetFilter}
+              onChange={(e) => {
+                setDatasetFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full text-xs p-2 rounded-lg bg-white border border-indigo-200 font-semibold text-navy focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+            >
+              <option value="all">🌐 All Collections &amp; Datasets (84,326 leads)</option>
+              {availableDatasets.map((ds) => (
+                <option key={ds.name} value={ds.name}>
+                  {ds.name} ({ds.count.toLocaleString()})
+                </option>
+              ))}
+            </select>
+            {datasetFilter !== "all" && (
+              <div className="flex items-center justify-between pt-1 text-[10px]">
+                <span className="text-indigo-700 font-medium truncate max-w-[180px]">
+                  Active: {datasetFilter}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDatasetFilter("all");
+                    setPage(1);
+                  }}
+                  className="text-rose-500 hover:underline font-bold cursor-pointer"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Accordion 0: Intent & Buying Signals */}
@@ -3342,6 +3418,22 @@ export default function LeadIntellectWorkspace() {
                         </span>
                       )}
 
+                      {datasetFilter !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 text-[11px] font-medium shadow-2xs">
+                          Dataset: {datasetFilter}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDatasetFilter("all");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
                       <button
                         type="button"
                         onClick={handleResetAllFilters}
@@ -3351,6 +3443,62 @@ export default function LeadIntellectWorkspace() {
                       </button>
                     </div>
                   )}
+
+                  {/* Database Collections Quick-Switcher Bar */}
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar px-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0 flex items-center gap-1">
+                      <Database className="w-3.5 h-3.5 text-indigo-500" />
+                      Datasets:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDatasetFilter("all");
+                        setPage(1);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                        datasetFilter === "all"
+                          ? "bg-navy text-white shadow-xs"
+                          : "bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-600"
+                      }`}
+                    >
+                      <span>🌐 All Collections</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
+                          datasetFilter === "all" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        84.3k
+                      </span>
+                    </button>
+                    {availableDatasets.map((ds) => {
+                      const isActive = datasetFilter === ds.name;
+                      return (
+                        <button
+                          key={ds.name}
+                          type="button"
+                          onClick={() => {
+                            setDatasetFilter(isActive ? "all" : ds.name);
+                            setPage(1);
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                            isActive
+                              ? "bg-indigo-600 text-white shadow-xs"
+                              : "bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
+                          }`}
+                        >
+                          <span className="truncate max-w-[220px]">{ds.name}</span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                              isActive ? "bg-white/20 text-white" : "bg-indigo-50 text-indigo-700 font-bold"
+                            }`}
+                          >
+                            {ds.count.toLocaleString()}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
 
                   {/* Horizontal Scroll Helper Banner & View Settings */}
                   <div className="flex flex-wrap items-center justify-between gap-2 px-2 text-[11px] text-slate-500">
@@ -3485,6 +3633,14 @@ export default function LeadIntellectWorkspace() {
                                       <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.2 rounded font-medium">
                                         {p.seniority}
                                       </span>
+                                      {p.dataset && (
+                                        <span
+                                          className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-200/80 px-1.5 py-0.2 rounded font-semibold truncate max-w-[150px]"
+                                          title={`Database: ${p.dataset}`}
+                                        >
+                                          📁 {p.dataset.replace(" (DiscoverOrg)", "").replace(" Decision Makers", "")}
+                                        </span>
+                                      )}
                                       {p.intentSignal && (
                                         <>
                                           <button
@@ -5446,15 +5602,39 @@ export default function LeadIntellectWorkspace() {
                 );
               })()}
 
+              {/* Database Origin & Collection Badge */}
+              {activeProfile.dataset && (
+                <div className="p-3 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50/70 to-white flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Database className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-indigo-500">Database Collection</span>
+                      <p className="text-xs font-bold text-navy">{activeProfile.dataset}</p>
+                    </div>
+                  </div>
+                  {activeProfile.datasetCategory && (
+                    <span className="text-[10px] font-semibold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">
+                      {activeProfile.datasetCategory}
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Profile Details Grid */}
-              <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-2 gap-2.5 text-xs">
                 <div className="p-3 rounded-lg border border-slate-100 bg-slate-50/50">
                   <span className="text-[10px] uppercase font-bold text-slate-400">Location</span>
-                  <p className="font-semibold text-navy mt-0.5">{activeProfile.city}, {activeProfile.state}, {activeProfile.country}</p>
+                  <p className="font-semibold text-navy mt-0.5">
+                    {activeProfile.city ? `${activeProfile.city}, ` : ""}{activeProfile.state ? `${activeProfile.state}, ` : ""}{activeProfile.country || "United States"}
+                  </p>
+                  {activeProfile.streetAddress && (
+                    <p className="text-[10px] text-slate-500 mt-0.5 truncate">{activeProfile.streetAddress}</p>
+                  )}
                 </div>
                 <div className="p-3 rounded-lg border border-slate-100 bg-slate-50/50">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Seniority</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Seniority &amp; Tier</span>
                   <p className="font-semibold text-navy mt-0.5">{activeProfile.seniority}</p>
+                  <span className="text-[10px] font-bold text-teal-dark">{activeProfile.icpTier} ({activeProfile.icpScore}/100)</span>
                 </div>
                 <div className="p-3 rounded-lg border border-slate-100 bg-slate-50/50">
                   <span className="text-[10px] uppercase font-bold text-slate-400">Company Size</span>
@@ -5464,6 +5644,30 @@ export default function LeadIntellectWorkspace() {
                   <span className="text-[10px] uppercase font-bold text-slate-400">Annual Revenue</span>
                   <p className="font-semibold text-navy mt-0.5">{activeProfile.revenueRange}</p>
                 </div>
+                {activeProfile.subIndustry && (
+                  <div className="p-3 rounded-lg border border-slate-100 bg-slate-50/50">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Sub-Industry / Focus</span>
+                    <p className="font-semibold text-navy mt-0.5 truncate">{activeProfile.subIndustry}</p>
+                  </div>
+                )}
+                {activeProfile.reportsTo && (
+                  <div className="p-3 rounded-lg border border-slate-100 bg-slate-50/50">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Reports To</span>
+                    <p className="font-semibold text-navy mt-0.5 truncate">{activeProfile.reportsTo}</p>
+                  </div>
+                )}
+                {activeProfile.corpPhone && (
+                  <div className="p-3 rounded-lg border border-slate-100 bg-slate-50/50">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Corp HQ Switchboard</span>
+                    <p className="font-mono text-xs font-semibold text-navy mt-0.5">{activeProfile.corpPhone}</p>
+                  </div>
+                )}
+                {activeProfile.faxNumber && (
+                  <div className="p-3 rounded-lg border border-slate-100 bg-slate-50/50">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Fax Number</span>
+                    <p className="font-mono text-xs font-semibold text-navy mt-0.5">{activeProfile.faxNumber}</p>
+                  </div>
+                )}
               </div>
             </div>
 
