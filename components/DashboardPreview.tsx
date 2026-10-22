@@ -19,8 +19,6 @@ const sidebar = [
   { label: "Companies", icon: Building2 },
   { label: "Lists", icon: ListChecks },
   { label: "Intelligence", icon: BrainCircuit },
-  { label: "Outreach", icon: Send },
-  { label: "Pipeline", icon: GitBranch },
   { label: "Data & Credits", icon: Plug },
   { label: "Settings", icon: Settings },
 ];

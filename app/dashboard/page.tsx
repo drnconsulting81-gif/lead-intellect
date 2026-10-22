@@ -11,6 +11,7 @@ import {
   Mail,
   Phone,
   Sparkles,
+  CheckCircle,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -218,10 +219,10 @@ interface EngagementActivity {
   notes?: string;
 }
 
-// Onboarding Task Definition for Home page (Screenshot 2)
+// Onboarding Task Definition for Core Prospecting Workflow
 interface OnboardingTask {
   id: string;
-  section: "prospects" | "inbox" | "outreach" | "meetings";
+  section: "discover" | "lists" | "enrich";
   title: string;
   actionText: string;
   credits: number;
@@ -229,118 +230,74 @@ interface OnboardingTask {
 }
 
 const ONBOARDING_TASKS: OnboardingTask[] = [
-  // Section 1: Prospects (20 credits)
+  // Section 1: Discover Leads (15 credits)
   {
     id: "task_save_contact",
-    section: "prospects",
-    title: "Save a contact to start building your pipeline",
-    actionText: "Save a prospect",
+    section: "discover",
+    title: "Find and explore decision-makers matching your Ideal Customer Profile",
+    actionText: "Find people",
     credits: 5,
     highlightAction: true,
   },
   {
-    id: "task_save_mobile",
-    section: "prospects",
-    title: "Save a mobile number to reach people by phone",
-    actionText: "Find numbers",
-    credits: 3,
-  },
-  {
-    id: "task_create_list",
-    section: "prospects",
-    title: "Create a list to keep your prospects organized",
-    actionText: "Create a list",
-    credits: 3,
-  },
-  {
     id: "task_save_company",
-    section: "prospects",
-    title: "Save target companies to find the right people inside them",
-    actionText: "Save a company",
-    credits: 3,
+    section: "discover",
+    title: "Filter target accounts by industry, revenue, and location",
+    actionText: "Find companies",
+    credits: 5,
   },
   {
     id: "task_save_search",
-    section: "prospects",
-    title: "Save your search and get notified when new leads match your audience",
-    actionText: "Set up alert",
-    credits: 3,
-  },
-  {
-    id: "task_download_extension",
-    section: "prospects",
-    title: "Download the Chrome extension to prospect directly on LinkedIn and company websites",
-    actionText: "Install extension",
-    credits: 3,
-  },
-
-  // Section 2: Inbox (15 credits)
-  {
-    id: "task_connect_inbox",
-    section: "inbox",
-    title: "Connect your primary email mailbox (Google / Outlook / SMTP)",
-    actionText: "Connect inbox",
-    credits: 5,
-  },
-  {
-    id: "task_verify_domain",
-    section: "inbox",
-    title: "Configure SPF, DKIM & DMARC deliverability guard",
-    actionText: "Verify domain",
-    credits: 5,
-  },
-  {
-    id: "task_warmup_limits",
-    section: "inbox",
-    title: "Set daily send warmup limits to protect domain reputation",
-    actionText: "Set limits",
+    section: "discover",
+    title: "Save complex ICP filter combinations for quick one-click searches",
+    actionText: "Save search",
     credits: 5,
   },
 
-  // Section 3: Outreach (15 credits)
+  // Section 2: Lists & Qualification (15 credits)
   {
-    id: "task_new_sequence",
-    section: "outreach",
-    title: "Create your first multi-step cold email cadence",
-    actionText: "New sequence",
+    id: "task_create_list",
+    section: "lists",
+    title: "Create custom prospect lists to segment target buyer personas",
+    actionText: "Create a list",
     credits: 5,
   },
   {
-    id: "task_ai_snippets",
-    section: "outreach",
-    title: "Personalize email body with dynamic ICP snippets",
-    actionText: "Use AI writer",
+    id: "task_qualify_leads",
+    section: "lists",
+    title: "Qualify leads by seniority tier and decision-making authority",
+    actionText: "Qualify leads",
     credits: 5,
   },
   {
-    id: "task_launch_sequence",
-    section: "outreach",
-    title: "Launch sequence to verified prospects",
-    actionText: "Start sequence",
+    id: "task_export_csv",
+    section: "lists",
+    title: "Download RFC-compliant CSV with complete account intelligence",
+    actionText: "Export list",
     credits: 5,
   },
 
-  // Section 4: Meetings (20 credits)
+  // Section 3: Enrich & Verify (20 credits)
   {
-    id: "task_connect_calendar",
-    section: "meetings",
-    title: "Connect your calendar (Google Meet / Zoom / Calendly)",
-    actionText: "Connect calendar",
-    credits: 7,
-  },
-  {
-    id: "task_booking_link",
-    section: "meetings",
-    title: "Create a one-click booking link for inbound leads",
-    actionText: "Create link",
-    credits: 7,
-  },
-  {
-    id: "task_pipeline_sync",
-    section: "meetings",
-    title: "Log deal activity to sales pipeline",
-    actionText: "View pipeline",
+    id: "task_reveal_email",
+    section: "enrich",
+    title: "Reveal verified work email address with multi-source MX check",
+    actionText: "Reveal email",
     credits: 6,
+  },
+  {
+    id: "task_save_mobile",
+    section: "enrich",
+    title: "Unlock verified direct dial and corporate board telephone lines",
+    actionText: "Find numbers",
+    credits: 7,
+  },
+  {
+    id: "task_batch_verify",
+    section: "enrich",
+    title: "Batch verify contact details across your active list in Stage 3",
+    actionText: "Batch verify",
+    credits: 7,
   },
 ];
 
@@ -450,6 +407,12 @@ export default function LeadIntellectWorkspace() {
   // Active Navigation
   const [activeNav, setActiveNav] = useState<NavItem>("discover");
 
+  useEffect(() => {
+    if (activeNav === "outreach" || activeNav === "engagement" || activeNav === "pipeline") {
+      setActiveNav("discover");
+    }
+  }, [activeNav]);
+
   // Discover Search Mode: People vs Companies
   const [discoverMode, setDiscoverMode] = useState<"people" | "companies">("people");
 
@@ -520,10 +483,9 @@ export default function LeadIntellectWorkspace() {
   // Onboarding Completed Tasks State (Home page)
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   const [homeAccordions, setHomeAccordions] = useState({
-    prospects: true,
-    inbox: false,
-    outreach: false,
-    meetings: false,
+    discover: true,
+    lists: false,
+    enrich: false,
   });
 
   // Lists & Saved Searches
@@ -1224,6 +1186,45 @@ export default function LeadIntellectWorkspace() {
         `Hi {{firstName}},\n\n${sig.icebreaker}\n\nWe work with ${lead.industry} leaders to ensure verified contact accuracy and accelerate outbound pipeline.\n\nWould you have 10 minutes next Tuesday for a brief conversation?\n\nBest regards,\n${currentUser?.name || "LeadIntellect Outbound"}`
       );
       showToast("✨ AI generated personalized sequence copy grounded in recipient intent signals!");
+    }
+  };
+
+  // Helper: export list of prospects as CSV
+  const exportProspectsAsCsv = async (list: Prospect[]) => {
+    const idsToExport = list && list.length > 0 
+      ? list.map((p) => p.id) 
+      : (selectedIds.length > 0 ? selectedIds : prospects.slice(0, 25).map((p) => p.id));
+    if (idsToExport.length === 0) {
+      showToast("No records available to export.", "info");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/data/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userEmail: currentUser?.email || "guest@leadintellect.ai",
+          prospectIds: idsToExport,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.csvContent) {
+        const blob = new Blob([data.csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `leadintellect_export_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`Successfully exported ${idsToExport.length} prospects.`);
+      } else {
+        showToast("Export failed: " + (data.error || "Server error"), "error");
+      }
+    } catch {
+      showToast("Failed to export prospects.", "error");
     }
   };
 
@@ -2203,48 +2204,6 @@ export default function LeadIntellectWorkspace() {
               <ShieldCheck className="w-5 h-5" />
             </button>
 
-            {/* 4. Outreach (Paper Airplane) */}
-            <button
-              type="button"
-              onClick={() => setActiveNav("outreach")}
-              title="4. Outreach (Multi-step Cadence & Email)"
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
-                activeNav === "outreach"
-                  ? "bg-slate-100 text-teal-dark shadow-2xs"
-                  : "text-slate-500 hover:text-navy hover:bg-slate-100"
-              }`}
-            >
-              <Send className="w-5 h-5" />
-            </button>
-
-            {/* 5. Engagement (MessageSquare) */}
-            <button
-              type="button"
-              onClick={() => setActiveNav("engagement")}
-              title="5. Engagement (Reply Tracking & Meetings)"
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
-                activeNav === "engagement"
-                  ? "bg-slate-100 text-teal-dark shadow-2xs"
-                  : "text-slate-500 hover:text-navy hover:bg-slate-100"
-              }`}
-            >
-              <MessageSquare className="w-5 h-5" />
-            </button>
-
-            {/* 6. Pipeline & Deals (Kanban) */}
-            <button
-              type="button"
-              onClick={() => setActiveNav("pipeline")}
-              title="6. Pipeline & Deals (Revenue Stages)"
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
-                activeNav === "pipeline"
-                  ? "bg-slate-100 text-teal-dark shadow-2xs"
-                  : "text-slate-500 hover:text-navy hover:bg-slate-100"
-              }`}
-            >
-              <Kanban className="w-5 h-5" />
-            </button>
-
             {/* Integrations (Settings) */}
             <button
               type="button"
@@ -2290,23 +2249,17 @@ export default function LeadIntellectWorkspace() {
               {activeNav === "discover" && (discoverMode === "people" ? "Find people" : "Find companies")}
               {activeNav === "lists" && "Lists & Qualification"}
               {activeNav === "enrich" && "Enrich & Verify"}
-              {activeNav === "outreach" && "Outreach Cadence"}
-              {activeNav === "engagement" && "Engagement & Replies"}
-              {activeNav === "pipeline" && "Sales & Marketing Pipeline"}
               {activeNav === "intelligence" && "Market & Account Intelligence"}
               {activeNav === "integrations" && "Integrations & API Settings"}
               {activeNav === "settings" && "Account Settings"}
             </h2>
 
-            {/* Six-Stage Lead-to-Revenue Workflow Navigation Bar */}
+            {/* Core Prospecting & Verification Workflow Navigation Bar */}
             <nav className="flex items-center gap-1 shrink-0 text-xs">
               {[
                 { id: "discover", num: "1", label: "Discover Leads" },
                 { id: "lists", num: "2", label: "Lists & Qualification" },
                 { id: "enrich", num: "3", label: "Enrich & Verify" },
-                { id: "outreach", num: "4", label: "Outreach" },
-                { id: "engagement", num: "5", label: "Engagement" },
-                { id: "pipeline", num: "6", label: "Pipeline & Deals" },
               ].map((stage, idx, arr) => {
                 const isActive = activeNav === stage.id;
                 return (
@@ -2390,35 +2343,35 @@ export default function LeadIntellectWorkspace() {
                 </div>
               </div>
 
-              {/* Accordion 1: Start reaching the right prospects */}
+              {/* Accordion 1: Discover Decision-Makers */}
               <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
                 <button
                   type="button"
-                  onClick={() => setHomeAccordions((a) => ({ ...a, prospects: !a.prospects }))}
+                  onClick={() => setHomeAccordions((a) => ({ ...a, discover: !a.discover }))}
                   className="w-full p-4 px-6 flex items-center justify-between text-left hover:bg-slate-50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <span className="font-bold text-navy text-sm">
-                      Start reaching the right prospects
+                      1. Discover Target Decision-Makers
                     </span>
                     <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                      EARN 20 CREDITS
+                      EARN 15 CREDITS
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-text-muted">
-                      {completedTasks.filter((t) => t.startsWith("task_save") || t.startsWith("task_create_list") || t.startsWith("task_download")).length} of 6 completed
+                      {completedTasks.filter((t) => t.startsWith("task_save_contact") || t.startsWith("task_save_company") || t.startsWith("task_save_search")).length} of 3 completed
                     </span>
-                    {homeAccordions.prospects ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                    {homeAccordions.discover ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                   </div>
                 </button>
 
-                {homeAccordions.prospects && (
+                {homeAccordions.discover && (
                   <div className="p-6 pt-1 border-t border-slate-100 divide-y divide-slate-100">
                     <p className="text-xs text-text-muted py-2">
-                      Find people and companies that match your ideal customer profile.
+                      Find people and companies that match your ideal customer profile across 84,000+ verified records.
                     </p>
-                    {ONBOARDING_TASKS.filter((t) => t.section === "prospects").map((task) => {
+                    {ONBOARDING_TASKS.filter((t) => t.section === "discover").map((task) => {
                       const isDone = completedTasks.includes(task.id);
                       return (
                         <div key={task.id} className="py-3.5 flex items-center justify-between gap-4">
@@ -2440,19 +2393,13 @@ export default function LeadIntellectWorkspace() {
                               if (task.id === "task_save_contact") {
                                 setDiscoverMode("people");
                                 setActiveNav("discover");
-                              } else if (task.id === "task_save_mobile") {
-                                setHasPhone(true);
-                                setDiscoverMode("people");
-                                setActiveNav("discover");
-                              } else if (task.id === "task_create_list") {
-                                setListModalOpen(true);
                               } else if (task.id === "task_save_company") {
                                 setDiscoverMode("companies");
                                 setActiveNav("discover");
                               } else if (task.id === "task_save_search") {
-                                showToast("Search saved to your account alerts!");
-                              } else {
-                                showToast("Chrome extension download initiated!");
+                                setDiscoverMode("people");
+                                setActiveNav("discover");
+                                showToast("Search filters saved!");
                               }
                             }}
                             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
@@ -2470,16 +2417,16 @@ export default function LeadIntellectWorkspace() {
                 )}
               </div>
 
-              {/* Accordion 2: Get your inbox ready to send */}
+              {/* Accordion 2: Lists & Lead Qualification */}
               <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
                 <button
                   type="button"
-                  onClick={() => setHomeAccordions((a) => ({ ...a, inbox: !a.inbox }))}
+                  onClick={() => setHomeAccordions((a) => ({ ...a, lists: !a.lists }))}
                   className="w-full p-4 px-6 flex items-center justify-between text-left hover:bg-slate-50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <span className="font-bold text-navy text-sm">
-                      Get your inbox ready to send
+                      2. Lists &amp; Lead Qualification
                     </span>
                     <span className="text-[10px] font-bold text-teal-dark bg-teal/10 border border-teal/20 px-2 py-0.5 rounded-full">
                       EARN 15 CREDITS
@@ -2487,18 +2434,18 @@ export default function LeadIntellectWorkspace() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-text-muted">
-                      {completedTasks.filter((t) => t.startsWith("task_connect_inbox") || t.startsWith("task_verify_domain") || t.startsWith("task_warmup")).length} of 3 completed
+                      {completedTasks.filter((t) => t.startsWith("task_create_list") || t.startsWith("task_qualify") || t.startsWith("task_export")).length} of 3 completed
                     </span>
-                    {homeAccordions.inbox ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                    {homeAccordions.lists ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                   </div>
                 </button>
 
-                {homeAccordions.inbox && (
+                {homeAccordions.lists && (
                   <div className="p-6 pt-1 border-t border-slate-100 divide-y divide-slate-100">
                     <p className="text-xs text-text-muted py-2">
-                      Make sure your emails land in the primary inbox, not spam.
+                      Organize discovered leads into segmented target lists and qualify buying tiers.
                     </p>
-                    {ONBOARDING_TASKS.filter((t) => t.section === "inbox").map((task) => {
+                    {ONBOARDING_TASKS.filter((t) => t.section === "lists").map((task) => {
                       const isDone = completedTasks.includes(task.id);
                       return (
                         <div key={task.id} className="py-3.5 flex items-center justify-between gap-4">
@@ -2516,7 +2463,11 @@ export default function LeadIntellectWorkspace() {
                           <button
                             type="button"
                             onClick={() => {
-                              showToast(`Opened ${task.actionText} setup. Complete the configuration and check the task to claim +${task.credits} credits.`);
+                              if (task.id === "task_create_list") {
+                                setListModalOpen(true);
+                              } else {
+                                setActiveNav("lists");
+                              }
                             }}
                             className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 shrink-0 cursor-pointer"
                           >
@@ -2529,94 +2480,35 @@ export default function LeadIntellectWorkspace() {
                 )}
               </div>
 
-              {/* Accordion 3: Scale your outreach */}
+              {/* Accordion 3: Enrich & Verify Contact Details */}
               <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
                 <button
                   type="button"
-                  onClick={() => setHomeAccordions((a) => ({ ...a, outreach: !a.outreach }))}
+                  onClick={() => setHomeAccordions((a) => ({ ...a, enrich: !a.enrich }))}
                   className="w-full p-4 px-6 flex items-center justify-between text-left hover:bg-slate-50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <span className="font-bold text-navy text-sm">
-                      Scale your outreach
+                      3. Enrich &amp; Verify Contact Details
                     </span>
                     <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
-                      EARN 15 CREDITS
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-text-muted">
-                      {completedTasks.filter((t) => t.startsWith("task_new_sequence") || t.startsWith("task_ai_snippets") || t.startsWith("task_launch")).length} of 3 completed
-                    </span>
-                    {homeAccordions.outreach ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                  </div>
-                </button>
-
-                {homeAccordions.outreach && (
-                  <div className="p-6 pt-1 border-t border-slate-100 divide-y divide-slate-100">
-                    <p className="text-xs text-text-muted py-2">
-                      Send personalized emails at scale with AI cadence writing.
-                    </p>
-                    {ONBOARDING_TASKS.filter((t) => t.section === "outreach").map((task) => {
-                      const isDone = completedTasks.includes(task.id);
-                      return (
-                        <div key={task.id} className="py-3.5 flex items-center justify-between gap-4">
-                          <label className="flex items-center gap-3 cursor-pointer select-none">
-                            <input
-                              type="checkbox"
-                              checked={isDone}
-                              onChange={() => toggleOnboardingTask(task.id, task.credits)}
-                              className="rounded text-teal-dark w-4 h-4 cursor-pointer"
-                            />
-                            <span className={`text-xs ${isDone ? "line-through text-slate-400 font-medium" : "text-navy font-semibold"}`}>
-                              {task.title}
-                            </span>
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveNav("outreach");
-                            }}
-                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 shrink-0 cursor-pointer"
-                          >
-                            {task.actionText}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Accordion 4: Turn activity into meetings */}
-              <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
-                <button
-                  type="button"
-                  onClick={() => setHomeAccordions((a) => ({ ...a, meetings: !a.meetings }))}
-                  className="w-full p-4 px-6 flex items-center justify-between text-left hover:bg-slate-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-navy text-sm">
-                      Turn activity into meetings
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
                       EARN 20 CREDITS
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-text-muted">
-                      {completedTasks.filter((t) => t.startsWith("task_connect_calendar") || t.startsWith("task_booking_link") || t.startsWith("task_pipeline_sync")).length} of 3 completed
+                      {completedTasks.filter((t) => t.startsWith("task_reveal") || t.startsWith("task_save_mobile") || t.startsWith("task_batch_verify")).length} of 3 completed
                     </span>
-                    {homeAccordions.meetings ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                    {homeAccordions.enrich ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                   </div>
                 </button>
 
-                {homeAccordions.meetings && (
+                {homeAccordions.enrich && (
                   <div className="p-6 pt-1 border-t border-slate-100 divide-y divide-slate-100">
                     <p className="text-xs text-text-muted py-2">
-                      Make it easy for prospects to book time directly into your sales pipeline.
+                      Unlock direct phone numbers and verified business emails with waterfall validation.
                     </p>
-                    {ONBOARDING_TASKS.filter((t) => t.section === "meetings").map((task) => {
+                    {ONBOARDING_TASKS.filter((t) => t.section === "enrich").map((task) => {
                       const isDone = completedTasks.includes(task.id);
                       return (
                         <div key={task.id} className="py-3.5 flex items-center justify-between gap-4">
@@ -2634,11 +2526,7 @@ export default function LeadIntellectWorkspace() {
                           <button
                             type="button"
                             onClick={() => {
-                              if (task.id === "task_pipeline_sync") {
-                                setActiveNav("pipeline");
-                              } else {
-                                showToast(`Opened ${task.actionText} setup. Complete the configuration and check the task to claim +${task.credits} credits.`);
-                              }
+                              setActiveNav("enrich");
                             }}
                             className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 shrink-0 cursor-pointer"
                           >
@@ -2942,14 +2830,13 @@ export default function LeadIntellectWorkspace() {
                       <button
                         type="button"
                         onClick={() => {
-                          const selected = prospects.filter((p) => selectedIds.includes(p.id));
-                          setSequenceTargetLeads(selected.length > 0 ? selected : prospects.slice(0, selectedIds.length));
-                          setSequenceBuilderModalOpen(true);
+                          setActiveNav("enrich");
+                          showToast(`Loaded ${selectedIds.length} prospects in Enrich & Verify`);
                         }}
                         className="px-3 py-1 bg-teal hover:bg-teal-dark hover:text-white text-navy text-xs font-extrabold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
                       >
-                        <Zap className="w-3.5 h-3.5" />
-                        <span>⚡ Create Email Sequence ({selectedIds.length})</span>
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>Enrich & Verify ({selectedIds.length})</span>
                       </button>
                     </>
                   )}
@@ -3883,22 +3770,24 @@ export default function LeadIntellectWorkspace() {
                                           <span>Reveal (1 Cr)</span>
                                         </button>
                                       ) : (
-                                        <button
-                                          onClick={() => handleGenerateOutreach(p)}
-                                          className="px-2.5 py-1.5 rounded-lg bg-navy hover:bg-slate-800 text-white text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer"
-                                        >
-                                          <Send className="w-3 h-3" />
-                                          <span>Outreach</span>
-                                        </button>
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold flex items-center gap-1 border border-emerald-200">
+                                            <CheckCircle className="w-2.5 h-2.5 text-emerald-600" />
+                                            <span>Verified</span>
+                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setSelectedIds([p.id]);
+                                              setListModalOpen(true);
+                                            }}
+                                            title="Save to list"
+                                            className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-navy cursor-pointer transition-colors"
+                                          >
+                                            <BookmarkPlus className="w-3.5 h-3.5 text-teal-dark" />
+                                          </button>
+                                        </div>
                                       )}
-
-                                      <button
-                                        onClick={() => handleAddToPipeline(p)}
-                                        title="Add to sales pipeline"
-                                        className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-navy cursor-pointer"
-                                      >
-                                        <Kanban className="w-3.5 h-3.5" />
-                                      </button>
                                     </div>
                                   </td>
                                 )}
@@ -4091,16 +3980,12 @@ export default function LeadIntellectWorkspace() {
                             type="button"
                             onClick={() => {
                               const listProspects = prospects.filter((p) => l.prospectIds.includes(p.id));
-                              setOutreachSelectedListId(l.id);
-                              setSequenceTargetLeads(
-                                listProspects.length > 0 ? listProspects : prospects.slice(0, Math.max(1, l.prospectIds.length))
-                              );
-                              setSequenceBuilderModalOpen(true);
+                              exportProspectsAsCsv(listProspects.length > 0 ? listProspects : []);
                             }}
-                            className="px-2 py-1.5 bg-teal hover:bg-teal-dark hover:text-white text-navy rounded-lg text-[11px] font-extrabold text-center cursor-pointer transition-colors flex items-center justify-center gap-1 shadow-2xs"
+                            className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-navy rounded-lg text-[11px] font-extrabold text-center cursor-pointer transition-colors flex items-center justify-center gap-1 shadow-2xs"
                           >
-                            <Zap className="w-3 h-3" />
-                            <span>Create Sequence</span>
+                            <Download className="w-3 h-3 text-teal-dark" />
+                            <span>Export CSV</span>
                           </button>
                         </div>
                       </div>
@@ -4117,7 +4002,7 @@ export default function LeadIntellectWorkspace() {
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal/10 text-teal-dark font-bold text-[10px] uppercase tracking-wider mb-1">
-                    Workflow Stage 3 of 6
+                    Workflow Stage 3 of 3
                   </div>
                   <h1 className="text-2xl font-extrabold text-navy">Enrich &amp; Verify Contact Details</h1>
                   <p className="text-xs text-text-muted mt-1">
@@ -4126,11 +4011,11 @@ export default function LeadIntellectWorkspace() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setActiveNav("outreach")}
+                    onClick={() => exportProspectsAsCsv(activeEnrichListProspects)}
                     className="px-4 py-2 rounded-xl bg-navy text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
-                    <span>Proceed to Stage 4: Outreach</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export Verified Leads (CSV)</span>
                   </button>
                 </div>
               </div>
@@ -4198,13 +4083,12 @@ export default function LeadIntellectWorkspace() {
                   <button
                     type="button"
                     onClick={() => {
-                      setSequenceTargetLeads(activeEnrichListProspects);
-                      setSequenceBuilderModalOpen(true);
+                      exportProspectsAsCsv(activeEnrichListProspects);
                     }}
                     className="px-4 py-2 bg-navy hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all"
                   >
-                    <span>Proceed to Stage 4: Create Sequence</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export Verified Contacts (CSV)</span>
                   </button>
                 </div>
               </div>
@@ -4318,14 +4202,14 @@ export default function LeadIntellectWorkspace() {
 
                 <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
                   <span className="text-xs text-text-muted">
-                    Ready to launch multi-step cold emails and follow-ups with revealed contacts?
+                    Ready to organize or export your verified contacts into targeted lists?
                   </span>
                   <button
                     type="button"
-                    onClick={() => setActiveNav("outreach")}
+                    onClick={() => setActiveNav("lists")}
                     className="px-4 py-2 rounded-xl bg-navy text-white text-xs font-bold hover:bg-slate-800 transition-all flex items-center gap-1.5 cursor-pointer"
                   >
-                    <span>Proceed to Stage 4: Outreach</span>
+                    <span>View Lists &amp; Qualification</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -4621,797 +4505,8 @@ export default function LeadIntellectWorkspace() {
             </div>
           )}
 
-          {/* ================= 5. OUTREACH TAB (Requirement 9) ================= */}
-          {activeNav === "outreach" && (
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-10 max-w-6xl mx-auto w-full space-y-6">
-              {/* Header & Definition */}
-              <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-                <div>
-                  <h1 className="text-2xl font-extrabold text-navy">Outreach &amp; Email Sequences</h1>
-                  <p className="text-xs text-text-muted mt-1">
-                    <strong>What happens here?</strong> Automate multi-step sales outreach cadences with personalized AI email writing, LinkedIn touches, and phone follow-ups.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setOutreachActiveTab("cadence")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      outreachActiveTab === "cadence" ? "bg-navy text-white shadow-2xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
-                  >
-                    Sequences Cadence
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOutreachActiveTab("composer")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      outreachActiveTab === "composer" ? "bg-navy text-white shadow-2xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
-                  >
-                    AI Email Composer
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOutreachActiveTab("enrolled")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      outreachActiveTab === "enrolled" ? "bg-navy text-white shadow-2xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
-                  >
-                    Enrolled Prospects (247)
-                  </button>
-                </div>
-              </div>
-
-              {/* Sequence Metrics Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                <div className="p-3 bg-white rounded-xl border border-slate-200">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Active Sequences</p>
-                  <p className="text-lg font-extrabold text-navy mt-0.5">3 Running</p>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Total Enrolled</p>
-                  <p className="text-lg font-extrabold text-navy mt-0.5">247 Leads</p>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Open Rate</p>
-                  <p className="text-lg font-extrabold text-emerald-600 mt-0.5">64.8% (160 Opened)</p>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Reply Rate</p>
-                  <p className="text-lg font-extrabold text-teal-dark mt-0.5">28.2% (70 Replies)</p>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Meetings Booked</p>
-                  <p className="text-lg font-extrabold text-indigo-600 mt-0.5">19 Meetings</p>
-                </div>
-              </div>
-
-              {/* Campaign Audience & Launch Control Card */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-teal-dark bg-teal/10 px-2.5 py-0.5 rounded-full">
-                        Stage 4: Outreach Cadence
-                      </span>
-                      <span className="text-xs font-semibold text-slate-500">Sender: {currentUser?.email || "outreach@leadintellect.ai"} (DKIM/SPF Active)</span>
-                    </div>
-                    <h2 className="text-base font-extrabold text-navy">
-                      Target Audience &amp; Sequence Dispatcher
-                    </h2>
-                    <p className="text-xs text-text-muted">
-                      Select a qualified list from Stage 2 or send to all discovered prospects. Emails will be automatically staged, throttled, and tracked for replies.
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={handleExportMailMerge}
-                      className="px-3.5 py-2 rounded-xl border border-slate-200 hover:border-slate-300 bg-white text-xs font-bold text-navy flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
-                    >
-                      <Download className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Export Mail Merge CSV</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        let targetProspects: Prospect[] = [];
-                        if (outreachSelectedListId === "all") {
-                          targetProspects = prospects.slice(0, 10);
-                        } else {
-                          const selectedList = userLists.find((l) => l.id === outreachSelectedListId);
-                          if (selectedList && selectedList.prospectIds.length > 0) {
-                            targetProspects = prospects.filter((p) => selectedList.prospectIds.includes(p.id));
-                          }
-                          if (targetProspects.length === 0) {
-                            targetProspects = prospects.slice(0, 5);
-                          }
-                        }
-                        setSequenceTargetLeads(targetProspects);
-                        setSequenceBuilderModalOpen(true);
-                      }}
-                      className="px-5 py-2 rounded-xl bg-teal text-navy hover:bg-teal-dark hover:text-white text-xs font-extrabold uppercase tracking-wider transition-all shadow-xs flex items-center gap-2 cursor-pointer"
-                    >
-                      <Zap className="w-3.5 h-3.5" />
-                      <span>Customize &amp; Launch Sequence</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
-                  <div>
-                    <label className="block text-[11px] font-bold text-navy uppercase tracking-wider mb-1.5">
-                      Select Target List
-                    </label>
-                    <select
-                      value={outreachSelectedListId}
-                      onChange={(e) => setOutreachSelectedListId(e.target.value)}
-                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 font-semibold text-navy focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
-                    >
-                      <option value="all">All Discovered Prospects ({prospects.length} contacts)</option>
-                      {userLists.map((l) => (
-                        <option key={l.id} value={l.id}>
-                          {l.name} ({l.prospectIds.length} qualified prospects)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-navy uppercase tracking-wider mb-1.5">
-                      Daily Send Throttling
-                    </label>
-                    <div className="text-xs p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 font-semibold text-slate-700 flex items-center justify-between">
-                      <span>50 emails / day (Domain Warmup)</span>
-                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-navy uppercase tracking-wider mb-1.5">
-                      Next Workflow Step
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setActiveNav("engagement")}
-                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-teal/10 hover:border-teal/40 font-bold text-navy flex items-center justify-between transition-colors cursor-pointer"
-                    >
-                      <span>Proceed to Stage 5: Engagement</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-teal-dark" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* View 1: Cadence Steps */}
-              {outreachActiveTab === "cadence" && (
-                <div className="space-y-4">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-6">
-                    <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                      <div>
-                        <h3 className="font-extrabold text-navy text-base">
-                          Active Cadence: Enterprise Decision Maker Sequence (4 Steps)
-                        </h3>
-                        <p className="text-xs text-text-muted mt-0.5">
-                          Multi-channel workflow combining cold email, LinkedIn profile touch, case study follow-up, and direct dial phone call.
-                        </p>
-                      </div>
-                      <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-xs border border-emerald-200">
-                        Running &amp; Active
-                      </span>
-                    </div>
-
-                    {/* Timeline Steps */}
-                    <div className="space-y-4 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                      {/* Step 1 */}
-                      <div className="relative pl-10">
-                        <div className="absolute left-2.5 top-1.5 w-3.5 h-3.5 rounded-full bg-teal border-2 border-white shadow-xs" />
-                        <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-navy text-xs flex items-center gap-1.5">
-                              <Mail className="w-3.5 h-3.5 text-teal-dark" />
-                              Step 1 &middot; Day 1: Personalized AI Cold Introduction
-                            </span>
-                            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-                              72% Open Rate
-                            </span>
-                          </div>
-                          <p className="text-xs text-text-muted mt-1">
-                            Sends high-context introduction grounded in prospect title, industry, and technographic intent signals.
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Step 2 */}
-                      <div className="relative pl-10">
-                        <div className="absolute left-2.5 top-1.5 w-3.5 h-3.5 rounded-full bg-indigo-500 border-2 border-white shadow-xs" />
-                        <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-navy text-xs flex items-center gap-1.5">
-                              <LinkedInIcon className="w-3.5 h-3.5 text-[#0a66c2]" />
-                              Step 2 &middot; Day 3: LinkedIn Profile View &amp; Connection Touch
-                            </span>
-                            <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
-                              54% Acceptance
-                            </span>
-                          </div>
-                          <p className="text-xs text-text-muted mt-1">
-                            Soft social touch warming up prospect before the value follow-up.
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Step 3 */}
-                      <div className="relative pl-10">
-                        <div className="absolute left-2.5 top-1.5 w-3.5 h-3.5 rounded-full bg-amber-500 border-2 border-white shadow-xs" />
-                        <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-navy text-xs flex items-center gap-1.5">
-                              <Clock className="w-3.5 h-3.5 text-amber-600" />
-                              Step 3 &middot; Day 5: Value-Add Case Study &amp; Proof Points
-                            </span>
-                            <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
-                              31% Reply Rate
-                            </span>
-                          </div>
-                          <p className="text-xs text-text-muted mt-1">
-                            Shares relevant industry ROI metrics and customer success story.
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Step 4 */}
-                      <div className="relative pl-10">
-                        <div className="absolute left-2.5 top-1.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs" />
-                        <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-navy text-xs flex items-center gap-1.5">
-                              <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
-                              Step 4 &middot; Day 8: Direct Dial Call / Voicemail
-                            </span>
-                            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-                              19 Meetings Booked
-                            </span>
-                          </div>
-                          <p className="text-xs text-text-muted mt-1">
-                            Follow-up direct phone call with pre-generated 15-second opening pitch.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* View 2: AI Email Composer */}
-              {outreachActiveTab === "composer" && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-6">
-                  {outreachProspect ? (
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] font-bold uppercase text-slate-400">Target Lead:</span>
-                        <p className="font-bold text-navy text-sm">{outreachProspect.name} &middot; {outreachProspect.title}</p>
-                        <p className="text-xs text-text-muted">{outreachProspect.company} ({outreachProspect.industry})</p>
-                      </div>
-                      <button
-                        onClick={() => handleGenerateOutreach(outreachProspect)}
-                        className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-navy hover:bg-slate-50 flex items-center gap-1"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5 text-teal-dark" />
-                        <span>Regenerate with AI</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-center">
-                      <p className="text-xs text-text-muted">
-                        No prospect currently selected. Pick any lead from Discover and click &quot;Outreach&quot;, or customize the template below.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Dynamic Variable Tags */}
-                  <div>
-                    <span className="text-xs font-bold text-navy">Dynamic Variable Tags:</span>
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {["{{firstName}}", "{{company}}", "{{title}}", "{{industry}}", "{{city}}"].map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => showToast(`Inserted ${tag}`)}
-                          className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono text-[11px]"
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Tone Selector */}
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-navy">Select AI Tone:</span>
-                    {(["consultative", "direct", "storyteller"] as const).map((t) => (
-                      <button
-                        key={t}
-                        onClick={() => setOutreachTone(t)}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
-                          outreachTone === t ? "bg-navy text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                        }`}
-                      >
-                        {t}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Draft Preview & Edit */}
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold text-navy mb-1">Subject Line</label>
-                      <input
-                        type="text"
-                        defaultValue={
-                          outreachDrafts?.coldEmail?.subject ||
-                          (outreachProspect
-                            ? `Quick question regarding ${outreachProspect.company}'s technology roadmap`
-                            : "Quick question regarding {{company}}'s technology roadmap")
-                        }
-                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-1 focus:ring-teal-dark"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-navy mb-1">Email Body</label>
-                      <textarea
-                        rows={8}
-                        defaultValue={
-                          outreachDrafts?.coldEmail?.body ||
-                          `Hi ${outreachProspect?.firstName || "{{firstName}}"},\n\nI noticed ${outreachProspect?.company || "{{company}}"} is expanding its ${outreachProspect?.industry || "{{industry}}"} presence. We help leaders like yourself streamline verified prospect data and CRM enrichment without data decay.\n\nWould you have 10 minutes next Tuesday for a brief intro call?\n\nBest regards,\n${currentUser?.name || "Your Name"}`
-                        }
-                        className="w-full text-xs p-3 font-mono rounded-xl border border-slate-300 focus:outline-none focus:ring-1 focus:ring-teal-dark leading-relaxed"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          showToast("Test email sent to your inbox!");
-                        }}
-                        className="px-4 py-2 border border-slate-300 rounded-xl text-xs font-bold text-navy hover:bg-slate-50 cursor-pointer"
-                      >
-                        Send Test Email to Me
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          showToast("Enrolled lead into live outreach cadence!");
-                          setActiveNav("pipeline");
-                        }}
-                        className="px-5 py-2 rounded-xl bg-navy text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-xs cursor-pointer"
-                      >
-                        Enroll in Sequence &amp; Launch
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* View 3: Enrolled Prospects Table */}
-              {outreachActiveTab === "enrolled" && (
-                <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-text-muted font-bold tracking-wider text-[11px] uppercase">
-                      <tr>
-                        <th className="p-3.5">Prospect</th>
-                        <th className="p-3.5">Company</th>
-                        <th className="p-3.5">Cadence Step</th>
-                        <th className="p-3.5">Status</th>
-                        <th className="p-3.5">Last Touch</th>
-                        <th className="p-3.5 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {[
-                        { name: "Chelsea Hoff", title: "Director IT", company: "555 Corp", step: "Step 2: LinkedIn Touch", status: "Opened (2x)", date: "Today 10:14 AM" },
-                        { name: "Benoit Hodebert", title: "Senior Business Analyst", company: "2020 Spaces", step: "Step 3: Case Study", status: "Replied", date: "Yesterday" },
-                        { name: "Jacob Saunders", title: "CTO", company: "10th Magnitude", step: "Step 4: Phone Touch", status: "Meeting Booked", date: "Oct 12" },
-                        { name: "David Karlsberg", title: "Director Network Ops", company: "1-800-Flowers.com", step: "Step 1: Cold Email", status: "Delivered", date: "Oct 13" },
-                      ].map((item, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/70">
-                          <td className="p-3.5 font-bold text-navy">{item.name}</td>
-                          <td className="p-3.5 text-slate-700">{item.company}</td>
-                          <td className="p-3.5 font-semibold text-slate-600">{item.step}</td>
-                          <td className="p-3.5">
-                            <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              {item.status}
-                            </span>
-                          </td>
-                          <td className="p-3.5 text-slate-400">{item.date}</td>
-                          <td className="p-3.5 text-right">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                showToast(`Moved ${item.name} to Pipeline`);
-                                setActiveNav("pipeline");
-                              }}
-                              className="text-xs font-bold text-navy hover:text-teal-dark"
-                            >
-                              Move to Pipeline &rarr;
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ================= 5. STAGE 5: ENGAGEMENT TAB ================= */}
-          {activeNav === "engagement" && (
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-10 max-w-7xl mx-auto w-full space-y-6">
-              {/* Header */}
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
-                <div>
-                  <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-teal-dark bg-teal/10 px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1.5">
-                    Stage 5 of 6: Lead-to-Revenue Workflow
-                  </div>
-                  <h1 className="text-2xl font-extrabold text-navy">Engagement &amp; Reply Intelligence</h1>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    <strong>What happens here?</strong> Monitor real-time prospect responses across your email cadences. Classify sentiment, review buyer inquiries, and convert high-intent replies directly into Stage 6 Pipeline deals.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      showToast("Engagement activities refreshed from mail server.");
-                    }}
-                    className="px-3.5 py-2 rounded-xl border border-slate-200 hover:border-slate-300 bg-white text-xs font-bold text-navy flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Sync Replies</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveNav("pipeline")}
-                    className="px-4 py-2 rounded-xl bg-navy text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-                  >
-                    <span>View Stage 6 Pipeline &rarr;</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Engagement Metrics KPI Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Total Contacted</p>
-                  <p className="text-lg font-extrabold text-navy mt-0.5">{engagementActivities.length + 242}</p>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Total Replies</p>
-                  <p className="text-lg font-extrabold text-teal-dark mt-0.5">70 (28.2%)</p>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Interested (High Intent)</p>
-                  <p className="text-lg font-extrabold text-emerald-600 mt-0.5">28 Leads</p>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Meetings Booked</p>
-                  <p className="text-lg font-extrabold text-indigo-600 mt-0.5">19 Meetings</p>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Conversion to Deal</p>
-                  <p className="text-lg font-extrabold text-purple-600 mt-0.5">67.1%</p>
-                </div>
-              </div>
-
-              {/* Filter Pills */}
-              <div className="flex flex-wrap items-center gap-2">
-                {[
-                  { id: "all", label: "All Engagements", count: engagementActivities.length },
-                  { id: "replied_interested", label: "Interested (High Intent)", count: engagementActivities.filter((a) => a.status === "replied_interested").length },
-                  { id: "meeting_booked", label: "Meetings Booked", count: engagementActivities.filter((a) => a.status === "meeting_booked").length },
-                  { id: "replied_followup", label: "Follow-up Later", count: engagementActivities.filter((a) => a.status === "replied_followup").length },
-                  { id: "delivered", label: "Delivered / Waiting", count: engagementActivities.filter((a) => a.status === "delivered").length },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setEngagementFilter(tab.id)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      engagementFilter === tab.id
-                        ? "bg-navy text-white shadow-2xs"
-                        : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    <span>{tab.label}</span>
-                    <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-                        engagementFilter === tab.id ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      {tab.count}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Engagement Activity Table */}
-              <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-text-muted font-bold tracking-wider text-[11px] uppercase">
-                      <tr>
-                        <th className="p-3.5">Prospect &amp; Title</th>
-                        <th className="p-3.5">Company</th>
-                        <th className="p-3.5">Cadence Step</th>
-                        <th className="p-3.5">Response Status</th>
-                        <th className="p-3.5">Sentiment &amp; Notes</th>
-                        <th className="p-3.5">Activity Time</th>
-                        <th className="p-3.5 text-right">Convert to Revenue</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {engagementActivities
-                        .filter((act) => engagementFilter === "all" || act.status === engagementFilter)
-                        .map((act) => (
-                          <tr key={act.id} className="hover:bg-slate-50/70 transition-colors">
-                            <td className="p-3.5 font-bold text-navy">
-                              <div>{act.prospectName}</div>
-                              <div className="text-[11px] text-text-muted font-normal">{act.title}</div>
-                              <div className="text-[10px] text-slate-400 font-mono">{act.email}</div>
-                            </td>
-                            <td className="p-3.5">
-                              <span className="font-semibold text-slate-800">{act.company}</span>
-                            </td>
-                            <td className="p-3.5 text-slate-600 font-medium">
-                              {act.cadenceStep}
-                            </td>
-                            <td className="p-3.5">
-                              {act.status === "meeting_booked" ? (
-                                <span className="px-2.5 py-1 rounded-full font-bold text-[10px] bg-purple-50 text-purple-700 border border-purple-200">
-                                  Meeting Booked
-                                </span>
-                              ) : act.status === "replied_interested" ? (
-                                <span className="px-2.5 py-1 rounded-full font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                  Interested
-                                </span>
-                              ) : act.status === "replied_followup" ? (
-                                <span className="px-2.5 py-1 rounded-full font-bold text-[10px] bg-amber-50 text-amber-700 border border-amber-200">
-                                  Follow-up Later
-                                </span>
-                              ) : (
-                                <span className="px-2.5 py-1 rounded-full font-bold text-[10px] bg-slate-100 text-slate-600 border border-slate-200">
-                                  Delivered
-                                </span>
-                              )}
-                            </td>
-                            <td className="p-3.5 max-w-xs">
-                              <p className="text-xs text-slate-700 italic line-clamp-2">
-                                &ldquo;{act.notes || "No reply text recorded yet."}&rdquo;
-                              </p>
-                            </td>
-                            <td className="p-3.5 text-slate-400 text-[11px] whitespace-nowrap">
-                              {act.date}
-                            </td>
-                            <td className="p-3.5 text-right whitespace-nowrap">
-                              <button
-                                type="button"
-                                onClick={() => handleConvertActivityToDeal(act)}
-                                className="px-3 py-1.5 bg-navy hover:bg-slate-800 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
-                              >
-                                <Kanban className="w-3 h-3 text-teal" />
-                                <span>Convert to Deal &rarr;</span>
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ================= 6. PIPELINE TAB (Requirement 10: Industry Standard CRM Pipeline) ================= */}
-          {activeNav === "pipeline" && (
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-10 max-w-7xl mx-auto w-full space-y-6">
-              {/* Header */}
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-extrabold text-navy">Sales &amp; Marketing Pipeline</h1>
-                  <p className="text-xs text-text-muted mt-1">
-                    Manage sales deal stages from initial identification to closed revenue.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2.5">
-                  {/* View Mode Toggle: Kanban vs Table */}
-                  <div className="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => setPipelineViewMode("kanban")}
-                      className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                        pipelineViewMode === "kanban" ? "bg-white text-navy shadow-xs" : "text-slate-600 hover:text-navy"
-                      }`}
-                    >
-                      Kanban Board
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPipelineViewMode("table")}
-                      className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                        pipelineViewMode === "table" ? "bg-white text-navy shadow-xs" : "text-slate-600 hover:text-navy"
-                      }`}
-                    >
-                      Table View
-                    </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setDealModalOpen(true)}
-                    className="px-4 py-2 rounded-xl bg-navy text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>New Deal</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Pipeline KPI Summary Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Total Pipeline Value</p>
-                  <p className="text-lg font-extrabold text-navy mt-0.5">
-                    ${deals.reduce((s, d) => s + (Number(d.dealValue) || 0), 0).toLocaleString()}
-                  </p>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Weighted Forecast</p>
-                  <p className="text-lg font-extrabold text-teal-dark mt-0.5">
-                    ${Math.round(deals.reduce((s, d) => s + (Number(d.dealValue) || 0), 0) * 0.55).toLocaleString()}
-                  </p>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Active Opportunities</p>
-                  <p className="text-lg font-extrabold text-navy mt-0.5">{deals.length} Deals</p>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Average Deal Size</p>
-                  <p className="text-lg font-extrabold text-indigo-600 mt-0.5">
-                    ${deals.length > 0 ? Math.round(deals.reduce((s, d) => s + (Number(d.dealValue) || 0), 0) / deals.length).toLocaleString() : "25,000"}
-                  </p>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Win Rate</p>
-                  <p className="text-lg font-extrabold text-emerald-600 mt-0.5">34.8%</p>
-                </div>
-              </div>
-
-              {/* View: Kanban Board */}
-              {pipelineViewMode === "kanban" ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3.5 items-start">
-                  {PIPELINE_STAGES.map((stg) => {
-                    const stageDeals = deals.filter((d) => d.stage === stg.id);
-                    const stageValue = stageDeals.reduce((sum, d) => sum + (Number(d.dealValue) || 0), 0);
-
-                    return (
-                      <div
-                        key={stg.id}
-                        className="rounded-2xl border border-slate-200 bg-white p-3 shadow-2xs min-h-[460px] flex flex-col justify-between"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2.5">
-                            <span className="text-xs font-bold text-navy truncate">{stg.label}</span>
-                            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                              {stageDeals.length}
-                            </span>
-                          </div>
-
-                          <div className="space-y-2.5">
-                            {stageDeals.map((d) => (
-                              <div
-                                key={d.id}
-                                className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 shadow-2xs hover:border-slate-300 transition-all text-xs space-y-2"
-                              >
-                                <div>
-                                  <p className="font-bold text-navy truncate">{d.contactName}</p>
-                                  <p className="text-[11px] text-text-muted truncate">{d.companyName}</p>
-                                </div>
-
-                                <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-[10px]">
-                                  <span className="font-bold text-navy">
-                                    ${Number(d.dealValue || 0).toLocaleString()}
-                                  </span>
-                                  <span
-                                    className={`px-1.5 py-0.5 rounded font-bold uppercase tracking-wider text-[9px] ${
-                                      d.priority === "high"
-                                        ? "bg-rose-50 text-rose-700"
-                                        : "bg-slate-100 text-slate-600"
-                                    }`}
-                                  >
-                                    {d.priority}
-                                  </span>
-                                </div>
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleAdvanceDealStage(d.id, d.stage)}
-                                  className="w-full py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[10px] font-bold text-navy flex items-center justify-center gap-1 cursor-pointer transition-colors"
-                                >
-                                  <span>Advance Stage</span>
-                                  <ArrowRight className="w-2.5 h-2.5 text-teal-dark" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="pt-2.5 border-t border-slate-100 text-[11px] font-semibold text-text-muted text-right">
-                          Total: ${stageValue.toLocaleString()}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                /* View: Table View */
-                <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-text-muted font-bold tracking-wider text-[11px] uppercase">
-                      <tr>
-                        <th className="p-3.5">Contact &amp; Title</th>
-                        <th className="p-3.5">Company</th>
-                        <th className="p-3.5">Deal Value</th>
-                        <th className="p-3.5">Stage</th>
-                        <th className="p-3.5">Priority</th>
-                        <th className="p-3.5 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {deals.map((d) => (
-                        <tr key={d.id} className="hover:bg-slate-50/70">
-                          <td className="p-3.5">
-                            <p className="font-bold text-navy">{d.contactName}</p>
-                            <p className="text-[11px] text-text-muted">{d.title}</p>
-                          </td>
-                          <td className="p-3.5 font-semibold text-slate-700">{d.companyName}</td>
-                          <td className="p-3.5 font-extrabold text-navy">${d.dealValue?.toLocaleString()}</td>
-                          <td className="p-3.5">
-                            <span className="px-2 py-0.5 rounded font-bold text-[10px] uppercase bg-slate-100 text-slate-700">
-                              {d.stage.replace("_", " ")}
-                            </span>
-                          </td>
-                          <td className="p-3.5">
-                            <span className="px-2 py-0.5 rounded font-bold text-[10px] uppercase bg-slate-100 text-slate-600">
-                              {d.priority}
-                            </span>
-                          </td>
-                          <td className="p-3.5 text-right">
-                            <button
-                              type="button"
-                              onClick={() => handleAdvanceDealStage(d.id, d.stage)}
-                              className="text-xs font-bold text-navy hover:text-teal-dark"
-                            >
-                              Advance &rarr;
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* ================= 7. INTEGRATIONS TAB ================= */}
+
           {activeNav === "integrations" && (
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-10 max-w-5xl mx-auto w-full space-y-6">
               <div>
@@ -5676,22 +4771,25 @@ export default function LeadIntellectWorkspace() {
               <button
                 type="button"
                 onClick={() => {
-                  handleGenerateOutreach(activeProfile);
+                  setSelectedIds([activeProfile.id]);
+                  setListModalOpen(true);
                   setActiveProfile(null);
                 }}
-                className="flex-1 py-2.5 bg-navy text-white text-xs font-bold rounded-xl cursor-pointer hover:bg-slate-800 transition-colors text-center"
+                className="flex-1 py-2.5 bg-navy text-white text-xs font-bold rounded-xl cursor-pointer hover:bg-slate-800 transition-colors text-center flex items-center justify-center gap-1.5"
               >
-                Launch Outreach
+                <BookmarkPlus className="w-4 h-4 text-teal" />
+                <span>Save to List</span>
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  handleAddToPipeline(activeProfile);
+                  exportProspectsAsCsv([activeProfile]);
                   setActiveProfile(null);
                 }}
-                className="px-4 py-2.5 border border-slate-300 hover:bg-slate-50 text-xs font-bold text-navy rounded-xl cursor-pointer"
+                className="px-4 py-2.5 border border-slate-300 hover:bg-slate-50 text-xs font-bold text-navy rounded-xl cursor-pointer flex items-center gap-1.5"
               >
-                Add to Pipeline
+                <Download className="w-4 h-4 text-slate-600" />
+                <span>Export Contact</span>
               </button>
             </div>
           </div>
@@ -5765,197 +4863,6 @@ export default function LeadIntellectWorkspace() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* ================= MODAL: MULTI-STEP EMAIL SEQUENCE BUILDER ================= */}
-      {sequenceBuilderModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/50 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
-          <div className="w-full max-w-2xl bg-white rounded-2xl p-6 shadow-2xl border border-slate-200 space-y-5 my-8">
-            {/* Header */}
-            <div className="flex items-start justify-between pb-3 border-b border-slate-100">
-              <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal/15 text-teal-dark font-extrabold text-[10px] uppercase tracking-wider mb-1">
-                  <Zap className="w-3 h-3 text-teal-dark" />
-                  <span>Multi-Step Outbound Cadence Builder</span>
-                </div>
-                <h3 className="text-lg font-extrabold text-navy">
-                  Create Email Sequence ({sequenceTargetLeads.length} Enrolled Leads)
-                </h3>
-                <p className="text-xs text-text-muted mt-0.5">
-                  Automate personalized outreach grounded in verified ICP criteria and intent signals. Replies automatically route into Stage 5: Engagement.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSequenceBuilderModalOpen(false)}
-                className="text-slate-400 hover:text-navy p-1 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Target Leads Pills */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-bold text-navy uppercase tracking-wider">
-                  Enrolled Audience Preview ({sequenceTargetLeads.length} Decision Makers)
-                </span>
-                <span className="text-[10px] text-slate-400">All verified work emails</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto custom-scrollbar p-2 rounded-xl bg-slate-50 border border-slate-200">
-                {sequenceTargetLeads.slice(0, 10).map((lead) => (
-                  <span
-                    key={lead.id}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-slate-200 text-xs text-navy font-semibold shadow-2xs"
-                  >
-                    <Users className="w-3 h-3 text-teal-dark" />
-                    <span>{lead.name}</span>
-                    <span className="text-slate-400 font-normal">&middot; {lead.company}</span>
-                    {lead.intentSignal && (
-                      <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-teal/15 text-teal-dark">
-                        {lead.intentSignal.categoryLabel}
-                      </span>
-                    )}
-                  </span>
-                ))}
-                {sequenceTargetLeads.length > 10 && (
-                  <span className="text-xs font-bold text-slate-500 self-center px-1">
-                    +{sequenceTargetLeads.length - 10} more leads
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Cadence Steps Timeline */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-navy uppercase tracking-wider">
-                  Cadence Flow (4 Touches)
-                </span>
-                <button
-                  type="button"
-                  onClick={handleAIPersonalizeSequence}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-teal/15 hover:bg-teal/25 text-teal-dark text-xs font-extrabold cursor-pointer transition-colors shadow-2xs"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-teal-dark" />
-                  <span>✨ AI Personalize with Intent</span>
-                </button>
-              </div>
-
-              {/* Step 1 Cold Intro */}
-              <div className="p-4 rounded-xl border border-teal/40 bg-slate-50/50 space-y-3">
-                <div className="flex items-center justify-between text-xs font-bold text-navy">
-                  <span className="flex items-center gap-1.5 text-teal-dark">
-                    <Mail className="w-3.5 h-3.5" />
-                    <span>Step 1 &middot; Day 1: Personalized AI Cold Introduction</span>
-                  </span>
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-semibold">
-                    Immediate Dispatch
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-navy mb-1">Subject Line</label>
-                  <input
-                    type="text"
-                    value={sequenceStep1Subject}
-                    onChange={(e) => setSequenceStep1Subject(e.target.value)}
-                    className="w-full text-xs p-2.5 rounded-lg border border-slate-300 bg-white font-medium focus:outline-none focus:ring-1 focus:ring-teal-dark"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-[11px] font-bold text-navy">Email Template</label>
-                    <div className="flex items-center gap-1 text-[10px] font-mono text-slate-400">
-                      <span>Variables:</span>
-                      {["{{firstName}}", "{{company}}", "{{industry}}"].map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => {
-                            setSequenceStep1Body((prev) => prev + ` ${t}`);
-                            showToast(`Added ${t}`);
-                          }}
-                          className="hover:text-teal-dark hover:underline cursor-pointer"
-                        >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <textarea
-                    rows={5}
-                    value={sequenceStep1Body}
-                    onChange={(e) => setSequenceStep1Body(e.target.value)}
-                    className="w-full text-xs p-2.5 font-mono leading-relaxed rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark"
-                  />
-                </div>
-              </div>
-
-              {/* Subsequent Steps Preview */}
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="p-2.5 rounded-xl border border-slate-200 bg-white">
-                  <p className="text-[10px] font-bold text-indigo-700">Step 2 &middot; Day 3</p>
-                  <p className="font-semibold text-navy text-[11px] mt-0.5">LinkedIn Touch</p>
-                  <p className="text-[10px] text-slate-400">Profile view &amp; soft connect</p>
-                </div>
-                <div className="p-2.5 rounded-xl border border-slate-200 bg-white">
-                  <p className="text-[10px] font-bold text-amber-700">Step 3 &middot; Day 6</p>
-                  <p className="font-semibold text-navy text-[11px] mt-0.5">Value Case Study</p>
-                  <p className="text-[10px] text-slate-400">Industry ROI proof points</p>
-                </div>
-                <div className="p-2.5 rounded-xl border border-slate-200 bg-white">
-                  <p className="text-[10px] font-bold text-slate-600">Step 4 &middot; Day 9</p>
-                  <p className="font-semibold text-navy text-[11px] mt-0.5">Direct Call / Breakup</p>
-                  <p className="text-[10px] text-slate-400">15-sec phone touch</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Sending Throttle Info */}
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="text-slate-600">
-                  <strong>Safe Sending Warmup:</strong> Max 50 emails/day per mailbox &middot; 9:00 AM - 5:00 PM recipient timezone.
-                </span>
-              </div>
-              <span className="text-[10px] font-bold text-emerald-700 uppercase bg-emerald-50 px-2 py-0.5 rounded">
-                Active DKIM/SPF
-              </span>
-            </div>
-
-            {/* Footer Buttons */}
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setSequenceBuilderModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleLaunchSequenceFromModal}
-                disabled={outreachSending}
-                className="px-5 py-2.5 rounded-xl bg-teal text-navy hover:bg-teal-dark hover:text-white text-xs font-extrabold uppercase tracking-wider cursor-pointer shadow-xs flex items-center gap-2 transition-all disabled:opacity-60"
-              >
-                {outreachSending ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Enrolling Leads...</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-3.5 h-3.5" />
-                    <span>🚀 Launch Sequence &amp; Enroll {sequenceTargetLeads.length} Leads</span>
-                  </>
-                )}
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -6119,14 +5026,14 @@ export default function LeadIntellectWorkspace() {
                 <button
                   type="button"
                   onClick={() => {
-                    setSequenceTargetLeads([p]);
+                    setSelectedIds([p.id]);
+                    setListModalOpen(true);
                     setSelectedIntentProspect(null);
-                    setSequenceBuilderModalOpen(true);
                   }}
                   className="px-5 py-2.5 rounded-xl bg-teal text-navy hover:bg-teal-dark hover:text-white text-xs font-extrabold uppercase tracking-wider cursor-pointer shadow-xs flex items-center gap-2 transition-all"
                 >
-                  <Zap className="w-3.5 h-3.5" />
-                  <span>⚡ Enroll in Email Sequence</span>
+                  <BookmarkPlus className="w-3.5 h-3.5" />
+                  <span>Save to Target List</span>
                 </button>
               </div>
             </div>

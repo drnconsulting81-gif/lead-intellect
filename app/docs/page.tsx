@@ -32,7 +32,7 @@ const docSections = [
     tips: [
       "Every new user receives 100 free evaluation credits on signup.",
       "Browse the Discover workspace without consuming any credits until you choose to reveal contact details.",
-      "The global navigation provides instant access to Discover, Lists, Outreach, Pipeline, and Data.",
+      "The global navigation provides instant access to Discover Leads, Lists & Qualification, and Enrich & Verify.",
     ],
   },
   {
@@ -56,7 +56,7 @@ const docSections = [
     tips: [
       "Select multiple prospects from the results table and click 'Add to List' to group candidates.",
       "Click 'Save Search' on any filtered view to store the exact criteria for one-click re-execution later.",
-      "Lists can be exported directly to CSV or moved into your sales pipeline.",
+      "Lists can be exported directly to CSV or enriched with verified contact details.",
     ],
   },
   {
