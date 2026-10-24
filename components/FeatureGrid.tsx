@@ -4,7 +4,6 @@ import {
   Target,
   BrainCircuit,
   MessageSquareText,
-  KanbanSquare,
   Plug,
   Bot,
 } from "lucide-react";
@@ -35,11 +34,6 @@ const features = [
     icon: MessageSquareText,
     title: "Personalized Outreach",
     text: "Generate context-aware outreach recommendations based on the prospect and account.",
-  },
-  {
-    icon: KanbanSquare,
-    title: "CRM & Pipeline",
-    text: "Keep qualified prospects organized and move them toward action.",
   },
   {
     icon: Plug,

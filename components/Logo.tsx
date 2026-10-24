@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -6,6 +9,7 @@ interface LogoProps {
   showText?: boolean;
   size?: "sm" | "md" | "lg";
   theme?: "light" | "dark";
+  href?: string;
 }
 
 export default function Logo({
@@ -13,13 +17,33 @@ export default function Logo({
   showText = true,
   size = "md",
   theme = "light",
+  href,
 }: LogoProps) {
   const iconSize = size === "sm" ? 32 : size === "lg" ? 44 : 38;
   const textSize = size === "sm" ? "text-base" : size === "lg" ? "text-2xl" : "text-lg";
 
+  // If user is logged in, navigate directly to workspace/dashboard so they remain in system
+  const [targetHref, setTargetHref] = useState(href || "/");
+
+  useEffect(() => {
+    if (href) {
+      setTargetHref(href);
+      return;
+    }
+    try {
+      const stored = localStorage.getItem("leadintellect_user");
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u && u.email) {
+          setTargetHref(u.role === "admin" ? "/admin" : "/dashboard");
+        }
+      }
+    } catch {}
+  }, [href]);
+
   return (
     <Link
-      href="/"
+      href={targetHref}
       className={`inline-flex items-center gap-2.5 font-display group select-none transition-all ${className}`}
     >
       <div

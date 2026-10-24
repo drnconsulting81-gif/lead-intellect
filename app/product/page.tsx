@@ -97,12 +97,6 @@ const roadmapFeatures = [
     description:
       "Direct SMTP inbox connection with unsubscribe handling and bounce protection.",
   },
-  {
-    title: "Bi-Directional CRM Synchronization",
-    phase: "Q2 Roadmap",
-    description:
-      "Two-way synchronization webhooks for HubSpot and Salesforce pipeline syncing.",
-  },
 ];
 
 export default function ProductPage() {

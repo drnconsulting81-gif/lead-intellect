@@ -1,8 +1,23 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Sparkles, Search, Filter } from "lucide-react";
+import { CheckCircle2, Sparkles, Search, Filter, LayoutDashboard, ArrowRight } from "lucide-react";
 import Reveal from "./Reveal";
 
 export default function Hero() {
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("leadintellect_user");
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u && u.email) setCurrentUser(u);
+      }
+    } catch {}
+  }, []);
+
   return (
     <section id="top" className="relative pt-36 pb-20 overflow-hidden bg-white">
       <div
@@ -31,18 +46,31 @@ export default function Hero() {
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <Link
-              href="/signup"
-              className="inline-flex items-center justify-center rounded-xl bg-navy px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-slate-800 transition-all shadow-md shadow-navy/10"
-            >
-              START FREE
-            </Link>
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center justify-center rounded-xl border border-border px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-navy hover:border-navy hover:bg-surface transition-colors"
-            >
-              EXPLORE THE PLATFORM
-            </Link>
+            {currentUser ? (
+              <Link
+                href={currentUser.role === "admin" ? "/admin" : "/dashboard"}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal px-7 py-3.5 text-xs font-bold uppercase tracking-wider text-navy hover:bg-teal-dark hover:text-white transition-all shadow-md"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span>OPEN MY WORKSPACE ({typeof currentUser.credits === "number" ? currentUser.credits : 99} CREDITS)</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center justify-center rounded-xl bg-navy px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-slate-800 transition-all shadow-md shadow-navy/10"
+                >
+                  START FREE (99 CREDITS)
+                </Link>
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center justify-center rounded-xl border border-border px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-navy hover:border-navy hover:bg-surface transition-colors"
+                >
+                  EXPLORE THE PLATFORM
+                </Link>
+              </>
+            )}
           </div>
 
           <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-text-muted">
@@ -98,63 +126,29 @@ export default function Hero() {
                   <span className="text-text-muted">Role:</span> Operations VP / Director
                 </span>
                 <span className="inline-flex items-center gap-1 bg-white border border-border text-[11px] font-medium text-navy px-2.5 py-1 rounded-lg">
-                  <span className="text-text-muted">Employees:</span> 500–5,000
+                  <span className="text-text-muted">Headcount:</span> 500–5,000
                 </span>
               </div>
             </div>
 
-            {/* Matching Result Preview */}
-            <div className="rounded-xl bg-white border border-border p-4">
-              <div className="flex items-start justify-between">
+            {/* Mini matching row card */}
+            <div className="rounded-xl border border-border bg-white p-3.5 shadow-2xs">
+              <div className="flex items-center justify-between">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-navy">Sarah Jenkins</p>
-                    <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded">
-                      Deliverable Email
-                    </span>
-                  </div>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    VP, Global Plant Operations &middot; Apex Precision Manufacturing
-                  </p>
+                  <p className="text-xs font-bold text-navy">Sarah Jenkins</p>
+                  <p className="text-[11px] text-text-muted">VP Operations &middot; Nexus Industrial Solutions</p>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-xl font-extrabold text-navy leading-none">94</p>
-                  <p className="text-[10px] text-teal-dark font-semibold">ICP Fit &middot; Tier 1</p>
+                <div className="text-right">
+                  <span className="inline-block text-[11px] font-bold text-teal-dark bg-teal/10 px-2 py-0.5 rounded">
+                    ICP 94/100
+                  </span>
+                  <p className="text-[10px] text-text-muted mt-0.5">Chicago, IL &middot; 1,200 emp</p>
                 </div>
               </div>
-
-              {/* 5-Question Prospect Intelligence Box */}
-              <div className="mt-3.5 grid grid-cols-2 gap-2 text-[11px]">
-                <div className="rounded-lg bg-surface border border-border p-2">
-                  <p className="font-bold text-navy text-[10px] mb-0.5">WHO</p>
-                  <p className="text-text-muted text-[11px] leading-tight">Head of 6 manufacturing facilities.</p>
-                </div>
-                <div className="rounded-lg bg-surface border border-border p-2">
-                  <p className="font-bold text-navy text-[10px] mb-0.5">WHY</p>
-                  <p className="text-text-muted text-[11px] leading-tight">Direct fit for operations intelligence.</p>
-                </div>
-                <div className="rounded-lg bg-surface border border-border p-2">
-                  <p className="font-bold text-navy text-[10px] mb-0.5">DATA QUALITY</p>
-                  <p className="text-text-muted text-[11px] leading-tight">Corporate MX pattern verified.</p>
-                </div>
-                <div className="rounded-lg bg-surface border border-border p-2">
-                  <p className="font-bold text-navy text-[10px] mb-0.5">NEXT ACTION</p>
-                  <p className="text-text-muted text-[11px] leading-tight">Draft tailored operations introduction.</p>
-                </div>
-              </div>
-
-              <div className="mt-3 flex items-center justify-between text-[10px] text-text-muted border-t border-border pt-2.5">
-                <span>Location: <b className="text-navy">Chicago, IL, US</b></span>
-                <span>Provenance: <b className="text-navy">Master B2B Index</b></span>
-              </div>
+              <p className="mt-2 text-[11px] text-text-muted leading-relaxed line-clamp-2">
+                Evaluated against profile: Matches tier-1 role, company scale, and sector.
+              </p>
             </div>
-
-            <Link
-              href="/dashboard"
-              className="mt-3.5 w-full block text-center text-xs font-bold text-navy bg-teal/20 hover:bg-teal/30 border border-teal/40 rounded-xl py-2.5 transition-colors"
-            >
-              Run This Search in Discover
-            </Link>
           </div>
         </Reveal>
       </div>

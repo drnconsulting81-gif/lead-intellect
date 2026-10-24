@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Phone } from "lucide-react";
+import { Phone, Mail } from "lucide-react";
 import Logo from "./Logo";
 import {
   FacebookIcon,
@@ -81,6 +81,12 @@ export default function Footer() {
             <div className="mt-6 flex flex-col gap-2 text-xs text-text-muted">
               <span className="font-semibold text-navy">Global B2B Intelligence</span>
               <span className="mt-1 flex items-center gap-1.5 font-medium text-navy">
+                <Mail className="w-3.5 h-3.5 text-teal-dark shrink-0" />
+                <a href="mailto:raghu@lead-intellect.com" className="hover:text-teal-dark transition-colors">
+                  raghu@lead-intellect.com
+                </a>
+              </span>
+              <span className="flex items-center gap-1.5 font-medium text-navy">
                 <Phone className="w-3.5 h-3.5 text-teal-dark shrink-0" />
                 <a href="tel:+919985926971" className="hover:text-teal-dark transition-colors">
                   +91 9985926971

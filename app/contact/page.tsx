@@ -89,6 +89,18 @@ export default function ContactPage() {
                 <div className="space-y-4 text-sm">
                   <div className="flex items-start gap-3.5">
                     <div className="w-9 h-9 rounded-xl bg-navy text-teal flex items-center justify-center shrink-0">
+                      <Mail className="w-4.5 h-4.5" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-text-muted">Direct Email</p>
+                      <a href="mailto:raghu@lead-intellect.com" className="font-semibold text-navy hover:text-teal-dark transition-colors text-base break-all">
+                        raghu@lead-intellect.com
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-9 h-9 rounded-xl bg-navy text-teal flex items-center justify-center shrink-0">
                       <Phone className="w-4.5 h-4.5" />
                     </div>
                     <div>

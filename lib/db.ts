@@ -390,7 +390,7 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
         const u = await db.collection<UserRecord>("users").findOne({ email: cleanEmail });
         if (u) {
           const role = isCeoEmail(u.email) ? "admin" : (u.role || "user");
-          const credits = u.credits ?? (isCeoEmail(u.email) ? 3500 : 100);
+          const credits = typeof u.credits === "number" ? u.credits : 99;
           return {
             id: u.id,
             name: u.name,
@@ -416,7 +416,7 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
   const found = local.users.find((u) => u.email.toLowerCase() === cleanEmail);
   if (found) {
     found.role = isCeoEmail(found.email) ? "admin" : (found.role || "user");
-    found.credits = found.credits ?? (isCeoEmail(found.email) ? 3500 : 100);
+    found.credits = typeof found.credits === "number" ? found.credits : 99;
     return found;
   }
   return null;
@@ -425,7 +425,7 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
 export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Promise<UserRecord> {
   const cleanEmail = user.email.toLowerCase().trim();
   const role = isCeoEmail(cleanEmail) ? "admin" : (user.role || "user");
-  const credits = user.credits ?? (isCeoEmail(cleanEmail) ? 3500 : 100);
+  const credits = typeof user.credits === "number" ? user.credits : 99;
   const emailVerified = user.emailVerified ?? false;
 
   const record: UserRecord = {
@@ -548,7 +548,7 @@ export async function getUsers(): Promise<UserRecord[]> {
           password: u.password,
           provider: u.provider,
           role: isCeoEmail(u.email) ? "admin" : (u.role || "user"),
-          credits: u.credits ?? (isCeoEmail(u.email) ? 3500 : 100),
+          credits: typeof u.credits === "number" ? u.credits : 99,
           emailVerified: u.emailVerified ?? false,
           createdAt: u.createdAt,
         }));
@@ -562,7 +562,7 @@ export async function getUsers(): Promise<UserRecord[]> {
   return local.users.map((u) => ({
     ...u,
     role: isCeoEmail(u.email) ? "admin" : (u.role || "user"),
-    credits: u.credits ?? (isCeoEmail(u.email) ? 3500 : 100),
+    credits: typeof u.credits === "number" ? u.credits : 99,
   }));
 }
 
@@ -651,7 +651,7 @@ export async function deductUserCredit(
 ): Promise<{ success: boolean; remainingCredits: number; error?: string }> {
   const cleanEmail = email.toLowerCase().trim();
   const isCeo = isCeoEmail(cleanEmail);
-  const defaultInitial = isCeo ? 3500 : 100;
+  const defaultInitial = 99;
 
   // 1. Try MongoDB first if configured
   if (isMongoConfigured()) {
@@ -768,7 +768,7 @@ export async function addOrAdjustUserCredit(
 ): Promise<{ success: boolean; remainingCredits: number }> {
   const cleanEmail = email.toLowerCase().trim();
   const isCeo = isCeoEmail(cleanEmail);
-  const defaultInitial = isCeo ? 3500 : 100;
+  const defaultInitial = 99;
 
   if (isMongoConfigured()) {
     try {

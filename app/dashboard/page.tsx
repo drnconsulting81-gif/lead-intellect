@@ -671,8 +671,10 @@ export default function LeadIntellectWorkspace() {
         let activeEmail = "guest@leadintellect.ai";
         if (stored) {
           const parsed = JSON.parse(stored);
-          const isCeo = parsed.role === "admin" || (parsed.email && parsed.email.toLowerCase().includes("drnconsulting81"));
-          const genuineCredits = typeof parsed.credits === "number" ? parsed.credits : (isCeo ? 3500 : 100);
+          const isPaidPlan = parsed.plan === "pro" || parsed.plan === "business" || parsed.subscriptionStatus === "active";
+          const genuineCredits = typeof parsed.credits === "number"
+            ? (isPaidPlan ? parsed.credits : Math.min(parsed.credits, 99))
+            : 99;
           parsed.credits = genuineCredits;
           setCurrentUser(parsed);
           setCredits(genuineCredits);

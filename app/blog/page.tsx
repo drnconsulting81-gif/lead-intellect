@@ -14,10 +14,8 @@ const articles = [
     slug: "/blog/ai-b2b-lead-intelligence-industry-playbook",
     title: "The Modern B2B Prospecting Dilemma: Why 73% of Outbound Fails in SaaS, IT & FinTech—And How Structured Lead Intelligence Restores Pipeline Efficiency",
     category: "Industry Analysis",
-    date: "September 17, 2026",
+    date: "October 22, 2026",
     readTime: "8 min read",
-    author: "Devon Vance",
-    role: "Head of GTM Strategy",
     summary:
       "Static lead sheets decay quickly. Deep industry analysis examining cold outreach decay across SaaS, IT Managed Services, and FinTech—and how LeadIntellect's structured data verification and search criteria deliver higher qualified pipeline efficiency.",
     isFeatured: true,
@@ -27,60 +25,10 @@ const articles = [
     slug: "/blog/ai-b2b-lead-intelligence-industry-playbook",
     title: "The Shift Away from Cold List Dumping: Why Context-First Prospecting Improves Response Quality",
     category: "AI Prospecting",
-    date: "September 10, 2026",
+    date: "October 15, 2026",
     readTime: "5 min read",
-    author: "Devon Vance",
-    role: "Head of GTM Strategy",
     summary:
       "B2B buyers are fatigued by generic email blasts. Discover why account context, business criteria, and relevant positioning lead to significantly higher response quality and engagement.",
-  },
-  {
-    id: "2",
-    slug: "/blog/ai-b2b-lead-intelligence-industry-playbook",
-    title: "How Algorithmic ICP Scoring (0–100) Eliminates Pipeline Bloat for SDRs",
-    category: "ICP Scoring",
-    date: "September 4, 2026",
-    readTime: "7 min read",
-    author: "Maya Lin",
-    role: "VP of Product Intelligence",
-    summary:
-      "Learn how to construct a composite ICP score using firmographics, employee headcount brackets, and tech stack telemetry into Tier 1, Tier 2, and Tier 3 priority segments.",
-  },
-  {
-    id: "3",
-    slug: "/blog/ai-b2b-lead-intelligence-industry-playbook",
-    title: "B2B Sales Compliance in 2026: The Serious Risks of Unauthorized Scraping",
-    category: "Data Compliance",
-    date: "August 28, 2026",
-    readTime: "6 min read",
-    author: "Marcus Chen",
-    role: "Data Governance Lead",
-    summary:
-      "Unauthorized scraping tools are causing domain blacklisting and account bans. Here is why verified datasets and compliant APIs protect your pipeline.",
-  },
-  {
-    id: "4",
-    slug: "/blog/ai-b2b-lead-intelligence-industry-playbook",
-    title: "Human-in-the-Loop AI: How Sales Teams Retain Authenticity While Scaling Outreach",
-    category: "Sales Strategy",
-    date: "August 19, 2026",
-    readTime: "4 min read",
-    author: "Devon Vance",
-    role: "Head of GTM Strategy",
-    summary:
-      "Why fully automated spam bots fail, and how guided 'Next Best Actions' empower sales reps to personalize outreach efficiently without losing the human touch.",
-  },
-  {
-    id: "5",
-    slug: "/blog/ai-b2b-lead-intelligence-industry-playbook",
-    title: "Enrichment Beyond Email: Why Account Fit and Buying Committee Mapping Matter",
-    category: "AI Prospecting",
-    date: "August 12, 2026",
-    readTime: "8 min read",
-    author: "Arjun Mehta",
-    role: "Enterprise Solutions Architect",
-    summary:
-      "Discover how multi-source verification and structured B2B attributes give you reliable corporate emails, direct executive titles, and transparent reporting structures.",
   },
 ];
 
@@ -128,7 +76,7 @@ export default function BlogPage() {
                     <Clock className="w-3.5 h-3.5" /> 8 min read
                   </span>
                   <span className="text-xs text-white/70 flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" /> September 17, 2026
+                    <Calendar className="w-3.5 h-3.5" /> {featured.date}
                   </span>
                 </div>
 
@@ -143,14 +91,11 @@ export default function BlogPage() {
                 </p>
 
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-white/10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-teal text-navy flex items-center justify-center text-xs font-extrabold">
-                      DV
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-white leading-tight">{featured.author}</p>
-                      <p className="text-[11px] text-white/60">{featured.role}</p>
-                    </div>
+                  <div className="flex items-center gap-2 text-xs text-white/80">
+                    <Sparkles className="w-4 h-4 text-teal" />
+                    <span className="font-semibold text-white">LeadIntellect Intelligence Desk</span>
+                    <span className="text-white/40">&bull;</span>
+                    <span className="text-white/70">{featured.date}</span>
                   </div>
 
                   <Link
@@ -210,14 +155,9 @@ export default function BlogPage() {
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-navy text-teal flex items-center justify-center text-xs font-bold">
-                      {art.author[0]}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-navy leading-tight">{art.author}</p>
-                      <p className="text-[10px] text-text-muted">{art.role}</p>
-                    </div>
+                  <div className="flex items-center gap-1.5 text-xs text-text-muted">
+                    <Calendar className="w-3.5 h-3.5 text-teal-dark" />
+                    <span>{art.date}</span>
                   </div>
 
                   <Link

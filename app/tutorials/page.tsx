@@ -9,81 +9,34 @@ import {
   CheckCircle2,
   ArrowRight,
   ExternalLink,
-  X,
+  Sparkles,
+  Download,
+  Share2,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductDemoVideoModal from "@/components/ProductDemoVideoModal";
+import { YouTubeIcon } from "@/components/SocialIcons";
 
-const tutorials = [
-  {
-    id: "tut-1",
-    title: "Quickstart: Configuring Your First 0-100 ICP Scoring Model",
-    duration: "4:15",
-    level: "Beginner",
-    category: "ICP Framework",
-    summary:
-      "A step-by-step walkthrough of setting company size, revenue, tech stack, and role weights to compute automated composite scores.",
-    videoUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0",
-    embedId: "dQw4w9WgXcQ",
-    steps: [
-      "Define target industry verticals and excluded segments",
-      "Assign weight factors to seniority and job titles",
-      "Preview Tier 1 threshold scoring before launching live searches",
-    ],
-  },
-  {
-    id: "tut-2",
-    title: "Prompting the AI Prospecting Agent: From Plain English to 87 Qualified Leads",
-    duration: "6:30",
-    level: "Intermediate",
-    category: "AI Agent",
-    summary:
-      "Learn how to structure natural language prompts to pinpoint specific buying committees in healthcare, fintech, and enterprise SaaS.",
-    videoUrl: "https://www.youtube-nocookie.com/embed/L_LUpnjgPso?autoplay=1&rel=0",
-    embedId: "L_LUpnjgPso",
-    steps: [
-      "Translating target customer personas into agent parameters",
-      "Reviewing illustrative output stats across Tiers 1-3",
-      "Refining search geography and employee count ranges",
-    ],
-  },
-  {
-    id: "tut-3",
-    title: "Multi-Source Enrichment: Business Email Verification and Contact Revelation",
-    duration: "5:45",
-    level: "Intermediate",
-    category: "Data Enrichment",
-    summary:
-      "How LeadIntellect validates business email deliverability through multi-tier verification and provider-neutral data enrichment without unauthorized scraping.",
-    videoUrl: "https://www.youtube-nocookie.com/embed/2eebptXfEvw?autoplay=1&rel=0",
-    embedId: "2eebptXfEvw",
-    steps: [
-      "Connecting your API keys or using native LeadIntellect credits",
-      "Checking data verification flags (Verified, Deliverable, High Confidence)",
-      "Understanding compliance and bounce-rate mitigation",
-    ],
-  },
-  {
-    id: "tut-4",
-    title: "Reviewing Prospect Context & Executing Next Best Actions",
-    duration: "3:50",
-    level: "Advanced",
-    category: "Outreach Strategy",
-    summary:
-      "How to use the AI-generated pain point intelligence and context summary to tailor discovery call conversation angles.",
-    videoUrl: "https://www.youtube-nocookie.com/embed/rP3iMmsP7j8?autoplay=1&rel=0",
-    embedId: "rP3iMmsP7j8",
-    steps: [
-      "Reviewing the WHO, WHY, PAIN, and FIT prospect cards",
-      "Generating authentic, human-reviewed email icebreakers",
-      "Logging recommended next steps into your CRM workflow",
-    ],
-  },
-];
+const officialDemo = {
+  id: "official-product-demo",
+  title: "LeadIntellect End-to-End Product Demo & Walkthrough",
+  tagline: "From Whole-Web Buyer Intent to Verified Decision-Makers & Outbound Cadences",
+  duration: "4:30",
+  level: "Full Product Tour",
+  category: "Official Product Masterclass",
+  youtubeChannelUrl: "https://www.youtube.com/@Leadintellect",
+  summary:
+    "An end-to-end walkthrough showing how high-growth B2B sales teams identify verified prospects across SaaS, Healthcare, and Enterprise IT. Discover how to leverage 7-channel intent data, filter by granular ICP parameters, verify emails with transparent credit deduction, and draft personalized outreach sequences in seconds.",
+  keyCapabilities: [
+    "Whole-Web Buyer Intent: Monitor G2 review spikes, Reddit technical discussions, Quora inquiries, and SEC capital filings in real time.",
+    "ICP Discovery & Granular Filters: Query 50,000+ verified decision-makers across US, India, and global markets with 0-100 fit scoring.",
+    "Zero-Decay Deliverability Verification: Multi-tier SMTP and MX verification with transparent credit accounting (only 99 credits for free accounts).",
+    "4-Step AI Outreach Studio: Generate context-tailored cold emails, follow-up icebreakers, and objection-handling battlecards with 1 click.",
+  ],
+};
 
 export default function TutorialsPage() {
-  const [selectedVideo, setSelectedVideo] = useState<typeof tutorials[0] | null>(null);
   const [demoModalOpen, setDemoModalOpen] = useState(false);
 
   return (
@@ -96,208 +49,148 @@ export default function TutorialsPage() {
           <div className="max-w-2xl mx-auto text-center mb-10">
             <div className="inline-flex items-center gap-2 text-xs font-semibold text-teal-dark bg-teal/10 border border-teal/20 px-3.5 py-1.5 rounded-full mb-3">
               <Video className="w-3.5 h-3.5" />
-              PRODUCT ACADEMY &amp; VIDEO TUTORIALS
+              PRODUCT DEMO &amp; MASTERCLASS
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-navy tracking-tight">
-              Master B2B Sales Intelligence in Minutes
+              LeadIntellect Product Demo
             </h1>
             <p className="mt-3 text-sm text-text-muted leading-relaxed">
-              Watch interactive walkthroughs showing how to configure your ICP, command the AI prospecting agent, and unlock verified pipeline.
+              Explore our official product tour demonstrating how to search, qualify, verify, and engage high-value B2B decision-makers.
             </p>
           </div>
 
-          {/* Master Walkthrough Video Banner */}
-          <div className="max-w-5xl mx-auto mb-12 rounded-2xl bg-[#0B132B] text-white p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 border border-slate-700 shadow-md">
-            <div className="space-y-2 max-w-xl">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal text-navy text-[10px] font-extrabold uppercase tracking-wider">
-                Full 4-Scene Interactive Walkthrough
-              </span>
-              <h2 className="text-xl font-bold text-white">
-                LeadIntellect End-to-End Product Demo Tour
-              </h2>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Watch our official product walkthrough covering Whole-Web Intent (G2, Reddit, Quora), ICP Discovery, 0-Decay Email Verification, and 4-Step Omnichannel Outbound.
-              </p>
-            </div>
-            <div className="shrink-0">
-              <button
-                type="button"
-                onClick={() => setDemoModalOpen(true)}
-                className="px-5 py-3 rounded-xl bg-teal text-navy hover:bg-teal-dark hover:text-white font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-lg transition-all"
-              >
-                <Play className="w-4 h-4 fill-current" />
-                <span>Watch Demo Tour</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Video Cards Grid */}
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {tutorials.map((tut) => (
+          {/* Single Featured Official Product Demo Card */}
+          <div className="max-w-5xl mx-auto bg-white rounded-3xl border border-border shadow-xl overflow-hidden">
+            {/* Top Video Player Stage */}
+            <div className="relative aspect-video bg-navy overflow-hidden group cursor-pointer" onClick={() => setDemoModalOpen(true)}>
+              {/* Background Glow */}
               <div
-                key={tut.id}
-                className="rounded-2xl border border-border bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-teal/50 transition-all flex flex-col"
-              >
-                {/* Video Mock Player Thumbnail */}
-                <div
-                  onClick={() => setSelectedVideo(tut)}
-                  className="relative aspect-video bg-navy flex items-center justify-center cursor-pointer group overflow-hidden"
-                >
-                  <div
-                    aria-hidden
-                    className="absolute inset-0 opacity-20 bg-gradient-to-tr from-teal via-navy to-violet group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="relative z-10 w-14 h-14 rounded-full bg-teal text-navy flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:bg-white transition-all">
-                    <Play className="w-6 h-6 fill-current ml-1" />
+                aria-hidden
+                className="absolute inset-0 bg-gradient-to-tr from-[#0B132B] via-[#0E2044] to-[#12315E] group-hover:scale-105 transition-transform duration-700"
+              />
+
+              {/* Decorative Animated Tech Grid */}
+              <div className="absolute inset-0 bg-[radial-gradient(#14b8a6_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none" />
+
+              {/* Center Play Button */}
+              <div className="relative z-10 flex flex-col items-center justify-center h-full px-6 text-center">
+                <div className="w-20 h-20 rounded-full bg-teal text-navy flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:bg-white transition-all duration-300">
+                  <Play className="w-8 h-8 fill-current ml-1" />
+                </div>
+                <p className="mt-4 text-base sm:text-lg font-bold text-white drop-shadow-sm">
+                  Click to Watch Official Product Walkthrough
+                </p>
+                <p className="text-xs text-teal mt-1 font-semibold">
+                  Interactive 4-Scene Demonstration &bull; {officialDemo.duration}
+                </p>
+              </div>
+
+              {/* Duration & Badge */}
+              <div className="absolute top-4 left-4 z-10 bg-teal text-navy text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
+                Official Product Demo
+              </div>
+              <div className="absolute bottom-4 right-4 z-10 bg-navy/85 backdrop-blur-md text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-white/10 shadow-md">
+                <Clock className="w-3.5 h-3.5 text-teal" />
+                {officialDemo.duration}
+              </div>
+            </div>
+
+            {/* Video Details & Actions */}
+            <div className="p-6 sm:p-10 space-y-8">
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 border-b border-border pb-8">
+                <div className="space-y-2 max-w-2xl">
+                  <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-teal-dark bg-teal/10 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    <Sparkles className="w-3 h-3" /> {officialDemo.level}
                   </div>
-                  <div className="absolute bottom-3 right-3 z-10 bg-navy/80 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-md flex items-center gap-1 border border-white/10">
-                    <Clock className="w-3 h-3 text-teal" />
-                    {tut.duration}
-                  </div>
-                  <div className="absolute top-3 left-3 z-10 bg-teal text-navy text-[10px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider">
-                    {tut.category}
-                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-extrabold text-navy">
+                    {officialDemo.title}
+                  </h2>
+                  <p className="text-sm font-medium text-teal-dark">
+                    {officialDemo.tagline}
+                  </p>
+                  <p className="text-xs sm:text-sm text-text-muted leading-relaxed pt-2">
+                    {officialDemo.summary}
+                  </p>
                 </div>
 
-                {/* Content */}
-                <div className="p-6 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h2 className="text-base font-bold text-navy leading-snug">
-                      {tut.title}
-                    </h2>
-                    <p className="mt-2 text-xs text-text-muted leading-relaxed">
-                      {tut.summary}
-                    </p>
+                {/* Primary Action Buttons */}
+                <div className="flex flex-col gap-3 shrink-0 sm:w-64">
+                  <button
+                    type="button"
+                    onClick={() => setDemoModalOpen(true)}
+                    className="w-full py-3 px-5 rounded-xl bg-teal text-navy hover:bg-teal-dark hover:text-white font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all"
+                  >
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>Watch Interactive Demo</span>
+                  </button>
 
-                    <div className="mt-4 pt-3 border-t border-border/80">
-                      <p className="text-[11px] font-semibold text-navy mb-2">Key skills learned:</p>
-                      <ul className="space-y-1.5">
-                        {tut.steps.map((step, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-xs text-text-muted">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-teal-dark shrink-0 mt-0.5" />
-                            <span>{step}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
+                  <a
+                    href={officialDemo.youtubeChannelUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 px-5 rounded-xl bg-[#ff0000] text-white hover:bg-[#cc0000] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-sm transition-all"
+                  >
+                    <YouTubeIcon className="w-4 h-4" />
+                    <span>Visit YouTube Channel</span>
+                    <ExternalLink className="w-3.5 h-3.5 ml-auto opacity-80" />
+                  </a>
 
-                  <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
-                    <span className="text-xs font-semibold text-text-muted">
-                      Level: <strong className="text-navy">{tut.level}</strong>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedVideo(tut)}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-dark hover:text-navy cursor-pointer"
-                    >
-                      Watch Tutorial
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  <Link
+                    href="/dashboard"
+                    className="w-full py-2.5 px-4 rounded-xl border border-border hover:border-navy text-navy font-semibold text-xs text-center transition-colors"
+                  >
+                    Open Live Platform
+                  </Link>
                 </div>
               </div>
-            ))}
+
+              {/* Key Features Breakdown */}
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-wider text-navy mb-4">
+                  What You Will See in This Demo
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {officialDemo.keyCapabilities.map((cap, idx) => (
+                    <div
+                      key={idx}
+                      className="p-4 rounded-xl border border-border bg-surface flex items-start gap-3 hover:border-teal/40 transition-colors"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-teal-dark shrink-0 mt-0.5" />
+                      <p className="text-xs text-text-muted leading-relaxed font-normal">
+                        {cap}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Bottom CTA */}
-          <div className="mt-16 max-w-4xl mx-auto rounded-2xl bg-white border border-border p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm">
-            <div>
-              <h2 className="text-lg font-bold text-navy">Need a custom training session for your SDR team?</h2>
-              <p className="text-xs text-text-muted mt-1">
-                Our sales engineering team provides complimentary onboarding workshops for all trial teams.
+          {/* Bottom Live Demo CTA */}
+          <div className="mt-16 max-w-4xl mx-auto rounded-2xl bg-navy text-white p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl border border-teal/30">
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-white">Want a 1-on-1 Personalized Walkthrough?</h3>
+              <p className="text-xs text-white/70">
+                Book a confidential 15-minute product session with our leadership team for custom query setup.
               </p>
             </div>
             <div className="flex gap-3 shrink-0">
+              <a
+                href="mailto:raghu@lead-intellect.com?subject=Personalized%20LeadIntellect%20Demo%20Request"
+                className="text-xs font-semibold px-5 py-2.5 rounded-xl border border-white/20 hover:border-teal text-white transition-colors"
+              >
+                Email Raghu
+              </a>
               <Link
                 href="/book-demo"
-                className="text-xs font-semibold px-5 py-2.5 rounded-xl border border-border hover:border-navy text-navy transition-colors"
+                className="text-xs font-bold px-5 py-2.5 rounded-xl bg-teal text-navy hover:bg-teal-dark hover:text-white transition-colors"
               >
-                Book Team Demo
-              </Link>
-              <Link
-                href="/start-trial"
-                className="text-xs font-semibold px-5 py-2.5 rounded-xl bg-teal text-navy hover:bg-teal-dark hover:text-white transition-colors"
-              >
-                Start Free Trial
+                Book VIP Demo
               </Link>
             </div>
           </div>
         </div>
       </main>
-
-      {/* Video Modal Player */}
-      {selectedVideo && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 bg-navy/80 backdrop-blur-sm flex items-center justify-center p-4"
-        >
-          <div className="bg-navy rounded-2xl max-w-3xl w-full border border-white/20 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="p-4 flex items-center justify-between border-b border-white/10 text-white">
-              <div>
-                <span className="text-[10px] text-teal font-bold uppercase tracking-wider">
-                  {selectedVideo.category}
-                </span>
-                <h3 className="text-sm font-bold text-white leading-tight">
-                  {selectedVideo.title}
-                </h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <a
-                  href={`https://www.youtube.com/watch?v=${selectedVideo.embedId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-white/80 hover:text-white flex items-center gap-1 bg-white/10 px-2.5 py-1 rounded-lg transition-colors"
-                >
-                  <span>Open in YouTube</span>
-                  <ExternalLink className="w-3 h-3 text-teal" />
-                </a>
-                <button
-                  onClick={() => setSelectedVideo(null)}
-                  className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Interactive working video player */}
-            <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
-              <iframe
-                src={selectedVideo.videoUrl}
-                title={selectedVideo.title}
-                className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
-            </div>
-
-            <div className="p-4 bg-navy-dark border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
-              <div className="text-white/80">
-                <span className="font-semibold text-white">Lesson Summary:</span> {selectedVideo.summary}
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <Link
-                  href="/start-trial"
-                  onClick={() => setSelectedVideo(null)}
-                  className="inline-flex items-center gap-1 font-bold bg-teal text-navy px-3 py-1.5 rounded-lg hover:bg-teal-dark hover:text-white transition-colors text-xs"
-                >
-                  Try In Live Workspace
-                  <ArrowRight className="w-3 h-3" />
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setSelectedVideo(null)}
-                  className="text-teal hover:underline cursor-pointer font-medium"
-                >
-                  Close Player
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Interactive Product Demo Walkthrough Modal */}
       <ProductDemoVideoModal

@@ -28,9 +28,9 @@ const docSections = [
     icon: BookOpen,
     title: "1. Getting Started",
     description:
-      "Creating your account, navigating the global menu, understanding your starting 100-credit evaluation balance, and running your initial B2B search.",
+      "Creating your account, navigating the global menu, understanding your starting 99-credit evaluation balance, and running your initial B2B search.",
     tips: [
-      "Every new user receives 100 free evaluation credits on signup.",
+      "Every new user receives 99 free evaluation credits on signup.",
       "Browse the Discover workspace without consuming any credits until you choose to reveal contact details.",
       "The global navigation provides instant access to Discover Leads, Lists & Qualification, and Enrich & Verify.",
     ],

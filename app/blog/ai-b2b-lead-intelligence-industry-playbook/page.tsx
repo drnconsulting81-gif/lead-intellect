@@ -46,8 +46,8 @@ export const metadata: Metadata = {
     url: "https://lead-intellect.com/blog/ai-b2b-lead-intelligence-industry-playbook",
     siteName: "LeadIntellect",
     type: "article",
-    publishedTime: "2026-09-17T00:00:00.000Z",
-    authors: ["Devon Vance"],
+    publishedTime: "2026-10-22T00:00:00.000Z",
+    authors: ["LeadIntellect Intelligence Desk"],
   },
 };
 
@@ -59,12 +59,11 @@ const articleSchema = {
   description:
     "An in-depth cross-industry analysis examining cold outreach decay, data rot, and multi-threaded buying committees—and how LeadIntellect provides structured contact verification and account intelligence.",
   image: "https://lead-intellect.com/logo.png",
-  datePublished: "2026-09-17T00:00:00.000Z",
-  dateModified: "2026-09-17T00:00:00.000Z",
+  datePublished: "2026-10-22T00:00:00.000Z",
+  dateModified: "2026-10-22T00:00:00.000Z",
   author: {
-    "@type": "Person",
-    name: "Devon Vance",
-    jobTitle: "Head of GTM Strategy at LeadIntellect",
+    "@type": "Organization",
+    name: "LeadIntellect Intelligence Desk",
   },
   publisher: {
     "@type": "Organization",
@@ -107,7 +106,7 @@ export default function IndustryBlogArticlePage() {
               Industry Deep Dive &middot; 2026 Strategy
             </span>
             <span className="text-xs text-text-muted flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5" /> September 17, 2026
+              <Calendar className="w-3.5 h-3.5" /> October 22, 2026
             </span>
             <span className="text-xs text-text-muted flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" /> 8 min read
@@ -122,24 +121,24 @@ export default function IndustryBlogArticlePage() {
             Static lead sheets are dead. Saturated inboxes, strict spam algorithms, and multi-stakeholder buying committees have crushed legacy cold outreach. Here is how top revenue teams are combining verified B2B data with AI reasoning to dominate their pipeline.
           </p>
 
-          {/* Author Card */}
+          {/* Article Info Bar */}
           <div className="mt-8 pt-6 border-t border-border flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-full bg-navy text-teal flex items-center justify-center font-extrabold text-base shadow-xs">
-                DV
+              <div className="w-10 h-10 rounded-full bg-navy text-teal flex items-center justify-center font-extrabold text-xs shadow-xs">
+                LI
               </div>
               <div>
-                <p className="text-sm font-bold text-navy">Devon Vance</p>
-                <p className="text-xs text-text-muted">Head of GTM Strategy &middot; LeadIntellect</p>
+                <p className="text-sm font-bold text-navy">LeadIntellect Intelligence Desk</p>
+                <p className="text-xs text-text-muted">Published October 22, 2026 &middot; 8 min read</p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               <Link
-                href="/start-trial"
-                className="inline-flex items-center gap-1 text-xs font-bold px-3.5 py-1.5 rounded-lg bg-teal text-navy hover:bg-teal-dark hover:text-white transition-colors"
+                href="/signup"
+                className="inline-flex items-center gap-1 text-xs font-bold px-4 py-2 rounded-lg bg-teal text-navy hover:bg-teal-dark hover:text-white transition-colors"
               >
-                <span>Start Free Trial</span>
+                <span>Start Free</span>
                 <ArrowRight className="w-3 h-3" />
               </Link>
             </div>

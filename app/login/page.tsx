@@ -182,7 +182,7 @@ export default function LoginPage() {
         setSuccessMsg(
           tab === "login"
             ? `Welcome back, ${data.user.name}! Redirecting to workspace...`
-            : `✓ Account created successfully! 100 free prospecting credits added. Redirecting...`
+            : `✓ Account created successfully! 99 free prospecting credits added. Redirecting to workspace...`
         );
         setTimeout(() => {
           if (data.user.role === "admin") {
@@ -224,7 +224,7 @@ export default function LoginPage() {
             <p className="mt-1.5 text-xs sm:text-sm text-text-muted">
               {tab === "login"
                 ? "Sign in with your Google account or work email"
-                : "Get 100 free prospecting credits & verified B2B intelligence"}
+                : "Get 99 free prospecting credits & verified B2B intelligence"}
             </p>
           </div>
 
@@ -293,7 +293,7 @@ export default function LoginPage() {
                   tab === "signup" ? "bg-white text-navy shadow-xs" : "text-text-muted hover:text-navy"
                 }`}
               >
-                Sign Up (100 Free Credits)
+                Sign Up (99 Free Credits)
               </button>
             </div>
 
@@ -350,7 +350,7 @@ export default function LoginPage() {
                     }}
                     className="text-left font-bold text-teal-dark hover:underline cursor-pointer pl-6"
                   >
-                    &rarr; Click here to create your free account (100 credits)
+                    &rarr; Click here to create your free account (99 credits)
                   </button>
                 )}
                 {errorMsg.toLowerCase().includes("already exists") && (
@@ -507,7 +507,7 @@ export default function LoginPage() {
                   <span>Authenticating...</span>
                 ) : (
                   <>
-                    <span>{tab === "login" ? "Sign In to LeadIntellect" : "Create Free Account (100 Credits)"}</span>
+                    <span>{tab === "login" ? "Sign In to LeadIntellect" : "Create Free Account (99 Credits)"}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}

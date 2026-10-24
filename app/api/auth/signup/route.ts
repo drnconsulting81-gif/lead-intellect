@@ -51,7 +51,7 @@ export async function POST(req: Request) {
         name: user.name,
         email: user.email,
         company: user.company,
-        credits: user.credits || 100,
+        credits: user.credits || 99,
       }).catch((err) => console.error("Error sending welcome email:", err));
 
       // Dispatch alert to CEO
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         success: true,
-        message: `Account created with ${provider.toUpperCase()}. 100 free prospecting credits added!`,
+        message: `Account created with ${provider.toUpperCase()}. 99 free prospecting credits added!`,
         user: {
           id: user.id,
           name: user.name,
@@ -122,7 +122,7 @@ export async function POST(req: Request) {
       name: user.name,
       email: user.email,
       company: user.company,
-      credits: user.credits || 100,
+      credits: user.credits || 99,
     }).catch((err) => console.error("Error sending user confirmation email:", err));
 
     // 6. Send Alert Email to CEO
@@ -147,7 +147,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Account created successfully! Confirmation email dispatched with 100 free credits.",
+      message: "Account created successfully! Confirmation email dispatched with 99 free credits.",
       user: {
         id: user.id,
         name: user.name,

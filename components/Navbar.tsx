@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { Menu, X, ChevronDown, BookOpen, Video, HelpCircle, Play } from "lucide-react";
+import { Menu, X, ChevronDown, BookOpen, Video, HelpCircle, Play, LayoutDashboard, Coins } from "lucide-react";
 import Logo from "./Logo";
 
 export default function Navbar() {
@@ -10,7 +10,18 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("leadintellect_user");
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u && u.email) setCurrentUser(u);
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -44,6 +55,15 @@ export default function Navbar() {
 
           {/* Desktop Links */}
           <div className="hidden lg:flex items-center gap-7">
+            {currentUser && (
+              <Link
+                href={currentUser.role === "admin" ? "/admin" : "/dashboard"}
+                className="text-sm font-bold text-teal-dark hover:text-navy px-2 py-1 rounded-md bg-teal/10 hover:bg-teal/20 transition-colors flex items-center gap-1.5"
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Workspace</span>
+              </Link>
+            )}
             <Link
               href="/"
               className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors"
@@ -153,20 +173,39 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Action Buttons: Strictly Login and Book a Demo (No Start Free button) */}
-        <div className="hidden lg:flex items-center gap-4">
-          <Link
-            href="/login"
-            className="text-sm font-semibold text-text-muted hover:text-navy transition-colors px-2 py-2"
-          >
-            Login
-          </Link>
-          <Link
-            href="/book-demo"
-            className="text-sm font-bold text-white bg-navy px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all shadow-xs"
-          >
-            Book a Demo
-          </Link>
+        {/* Action Buttons: Logged In Workspace vs Guest Login */}
+        <div className="hidden lg:flex items-center gap-3">
+          {currentUser ? (
+            <>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-navy">
+                <Coins className="w-3.5 h-3.5 text-teal-dark" />
+                <span>{typeof currentUser.credits === "number" ? currentUser.credits : 99}</span>
+                <span className="text-[10px] text-text-muted font-normal">credits</span>
+              </div>
+              <Link
+                href={currentUser.role === "admin" ? "/admin" : "/dashboard"}
+                className="text-xs font-bold text-navy bg-teal px-4 py-2.5 rounded-xl hover:bg-teal-dark hover:text-white transition-all shadow-xs flex items-center gap-1.5"
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Open Workspace</span>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-sm font-semibold text-text-muted hover:text-navy transition-colors px-2 py-2"
+              >
+                Login
+              </Link>
+              <Link
+                href="/book-demo"
+                className="text-sm font-bold text-white bg-navy px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all shadow-xs"
+              >
+                Book a Demo
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile menu toggle button */}
@@ -184,6 +223,21 @@ export default function Navbar() {
       {open && (
         <div className="lg:hidden bg-white border-t border-border shadow-xl">
           <div className="container-page flex flex-col py-4 gap-1">
+            {currentUser && (
+              <Link
+                href={currentUser.role === "admin" ? "/admin" : "/dashboard"}
+                onClick={() => setOpen(false)}
+                className="py-2.5 px-3 mb-2 rounded-xl bg-teal/15 text-navy font-bold text-xs flex items-center justify-between"
+              >
+                <span className="flex items-center gap-1.5">
+                  <LayoutDashboard className="w-4 h-4 text-teal-dark" />
+                  <span>Return to My Workspace</span>
+                </span>
+                <span className="text-[11px] font-semibold text-teal-dark">
+                  {typeof currentUser.credits === "number" ? currentUser.credits : 99} credits
+                </span>
+              </Link>
+            )}
             <Link
               href="/"
               onClick={() => setOpen(false)}

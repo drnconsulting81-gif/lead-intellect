@@ -11,7 +11,7 @@ export async function GET(req: Request) {
     const user = await findUserByEmail(cleanEmail);
     const history = await getCreditHistoryByUser(cleanEmail);
 
-    const balance = user ? (user.credits ?? (isCeo ? 3500 : 100)) : (isCeo ? 3500 : 100);
+    const balance = user ? (typeof user.credits === "number" ? user.credits : 99) : 99;
 
     return NextResponse.json({
       success: true,

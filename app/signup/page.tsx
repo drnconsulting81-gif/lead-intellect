@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -19,6 +19,24 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [existingUser, setExistingUser] = useState<any>(null);
+
+  // If already logged in, redirect into the workspace system
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("leadintellect_user");
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u && u.email) {
+          setExistingUser(u);
+          setSuccessMsg(`You are already signed in as ${u.name || u.email}. Taking you to your workspace...`);
+          setTimeout(() => {
+            window.location.href = u.role === "admin" ? "/admin" : "/dashboard";
+          }, 1200);
+        }
+      }
+    } catch {}
+  }, []);
 
   // Form states
   const [name, setName] = useState("");
@@ -50,7 +68,7 @@ export default function SignupPage() {
       const data = await res.json();
       if (res.ok && data.user) {
         localStorage.setItem("leadintellect_user", JSON.stringify(data.user));
-        setSuccessMsg(`Welcome! Account created via ${provider.toUpperCase()}. 100 credits granted!`);
+        setSuccessMsg(`Welcome! Account created via ${provider.toUpperCase()}. 99 credits granted!`);
         setTimeout(() => {
           window.location.href = data.user.role === "admin" ? "/admin" : "/dashboard";
         }, 900);
@@ -87,7 +105,7 @@ export default function SignupPage() {
 
       if (res.ok && data.user) {
         localStorage.setItem("leadintellect_user", JSON.stringify(data.user));
-        setSuccessMsg("✓ Account created! 100 free prospecting credits added & confirmation email dispatched. Redirecting...");
+        setSuccessMsg("✓ Account created! 99 free prospecting credits added & confirmation email dispatched. Redirecting to workspace...");
         setTimeout(() => {
           // Regular users ALWAYS go to /dashboard; only CEO goes to /admin
           window.location.href = data.user.role === "admin" ? "/admin" : "/dashboard";
@@ -134,7 +152,7 @@ export default function SignupPage() {
                 <Zap className="w-4 h-4" />
               </div>
               <div>
-                <span className="font-extrabold">100 Free Prospecting Credits</span>
+                <span className="font-extrabold">99 Free Prospecting Credits</span>
                 <p className="text-[11px] text-teal-dark">Instant access to verified C-Suite &amp; VP contacts upon signup.</p>
               </div>
             </div>
@@ -269,7 +287,7 @@ export default function SignupPage() {
                 disabled={loading}
                 className="w-full py-3 rounded-xl bg-teal hover:bg-teal-dark text-navy hover:text-white font-extrabold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
-                {loading ? "Creating Account..." : "Create Free Account (100 Credits) →"}
+                {loading ? "Creating Account..." : "Create Free Account (99 Credits) →"}
               </button>
             </form>
 
