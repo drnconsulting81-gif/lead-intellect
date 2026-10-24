@@ -12,14 +12,19 @@ import {
   Sparkles,
   CheckCircle2,
   ArrowRight,
-  Maximize2,
   Mail,
   Users,
   ShieldCheck,
   Send,
-  Kanban,
   ExternalLink,
+  Search,
+  Filter,
+  BookmarkPlus,
+  Layers,
+  Database,
+  Building,
 } from "lucide-react";
+import { YouTubeIcon } from "./SocialIcons";
 
 interface ProductDemoVideoModalProps {
   isOpen: boolean;
@@ -31,39 +36,53 @@ interface ProductDemoVideoModalProps {
 const scenes = [
   {
     id: 1,
-    title: "1. Whole-Web Intent Search",
-    badge: "G2, Reddit, Quora & News",
+    title: "1. Search Leads & Filters",
+    badge: "Natural Language AI Translation",
+    timestamp: "0:00",
     duration: 8,
     narration:
-      "LeadIntellect monitors 7 public web channels: G2 software review spikes, Reddit technical discussions (r/sysadmin, r/sales), Quora inquiries, and SEC capital filings.",
-    highlight: "G2 Buyer Intent & Reddit Telemetry",
+      "Type conversational queries like 'Operations leaders at US manufacturing firms with 500+ employees'. LeadIntellect automatically parses your query into structured Boolean filters (Country, Industry, Headcount, Seniority) and matches 50,000+ verified decision-makers with a 0-100 ICP fit score.",
+    highlight: "Natural Query Translation & ICP 0-100 Scoring",
   },
   {
     id: 2,
-    title: "2. Build & Verify Target Lists",
-    badge: "1-Credit Real-Time Waterfall",
+    title: "2. Create & Manage Lists",
+    badge: "Target List Organization",
+    timestamp: "1:15",
     duration: 8,
     narration:
-      "Filter decision-makers by seniority and ICP score. Save prospects to qualified lists, reveal verified direct work emails and cell phones with transparent credit accounting.",
-    highlight: "Multi-Source Deliverability Engine",
+      "Select high-intent prospects and create segmented target lists in 1 click. Name your list, tag target accounts, organize buying committees across departments, and review firmographics or export cleanly to CSV.",
+    highlight: "1-Click Custom Target List Creation",
   },
   {
     id: 3,
-    title: "3. AI Email Sequence Dispatch",
-    badge: "Contextual Icebreaker Personalization",
-    duration: 9,
+    title: "3. Verify & 99 Credits",
+    badge: "Zero-Decay Deliverability Waterfall",
+    timestamp: "2:10",
+    duration: 8,
     narration:
-      "Craft multi-touch cadences. One-click AI personalization automatically generates icebreakers referencing the lead's exact Reddit discussion or G2 evaluation topic.",
-    highlight: "4-Touch Multi-Channel Cadence",
+      "Reveal verified corporate emails and direct cell phone numbers with our multi-tier SMTP and MX deliverability check. Free accounts receive 99 evaluation credits on signup—0 credits are ever charged for searching or filtering.",
+    highlight: "Multi-Source Handshake & 99 Free Credits",
   },
   {
     id: 4,
-    title: "4. Live Replies & CRM Pipeline",
-    badge: "Lead-to-Revenue Conversion",
+    title: "4. AI Outreach Studio",
+    badge: "1:1 Personalized Cadences",
+    timestamp: "3:05",
+    duration: 9,
+    narration:
+      "Generate 4-step personalized cadences with 1 click. The AI analyzes buyer context to draft high-converting email icebreakers, follow-up touchpoints, LinkedIn messages, and objection battlecards.",
+    highlight: "4-Touch Multi-Channel Sequence",
+  },
+  {
+    id: 5,
+    title: "5. Views & Deal Tracking",
+    badge: "People & Company Views & Stages",
+    timestamp: "4:00",
     duration: 8,
     narration:
-      "Track open and reply rates in real time. Convert interested decision-makers directly into Stage 6 CRM Pipeline deals with pre-filled deal values ($25,000+).",
-    highlight: "1-Click Pipeline Deal Creation",
+      "Switch effortlessly between People View and Company View. Track lead progression across deal stages (Identified -> Contacted -> Demo Booked -> Won) to turn cold prospects into predictable revenue.",
+    highlight: "Dual View Architecture & Revenue Tracking",
   },
 ];
 
@@ -108,26 +127,38 @@ export default function ProductDemoVideoModal({
   const currentScene = scenes[activeSceneIndex];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="w-full max-w-4xl bg-[#0B132B] rounded-3xl overflow-hidden shadow-2xl border border-slate-700 flex flex-col max-h-[92vh]">
         {/* Top Header */}
         <div className="px-6 py-4 bg-[#080E21] border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="w-3 h-3 rounded-full bg-rose-500 animate-pulse" />
             <span className="text-xs font-bold uppercase tracking-wider text-teal">
-              Official Product Demo Walkthrough
+              Official Product Walkthrough &amp; Masterclass
             </span>
-            <span className="text-xs text-slate-400 font-mono">
-              LeadIntellect v2.4 (Enterprise Edition)
+            <span className="hidden sm:inline-block text-xs text-slate-400 font-mono">
+              LeadIntellect Enterprise Intelligence
             </span>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href="https://www.youtube.com/@Leadintellect"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-bold bg-[#ff0000] text-white px-3 py-1.5 rounded-lg hover:bg-[#cc0000] transition-colors flex items-center gap-1.5"
+            >
+              <YouTubeIcon className="w-3.5 h-3.5" />
+              <span>YouTube Channel</span>
+              <ExternalLink className="w-3 h-3 opacity-80" />
+            </a>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Video Canvas Stage */}
@@ -143,120 +174,188 @@ export default function ProductDemoVideoModal({
               <span>{currentScene.badge}</span>
             </div>
             <div className="text-xs font-mono text-slate-400">
-              Scene {activeSceneIndex + 1} of {scenes.length}
+              Chapter {activeSceneIndex + 1} of {scenes.length} &bull; {currentScene.timestamp}
             </div>
           </div>
 
           {/* Animated Interactive Mockup for Current Scene */}
-          <div className="relative z-10 my-auto py-4">
+          <div className="relative z-10 my-auto py-2">
+            {/* Scene 1: Search Leads & Natural Query Translation */}
             {activeSceneIndex === 0 && (
-              <div className="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-5 shadow-2xl backdrop-blur-sm max-w-2xl mx-auto space-y-4 animate-in fade-in zoom-in-95 duration-300">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="bg-slate-900/95 border border-slate-700/80 rounded-2xl p-5 shadow-2xl backdrop-blur-sm max-w-2xl mx-auto space-y-3 animate-in fade-in zoom-in-95 duration-300">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                   <div className="flex items-center gap-2 text-xs font-bold text-white">
-                    <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 font-mono text-[10px]">
-                      G2.com Intent
-                    </span>
-                    <span>David Karlsberg &middot; Director, Network Operations</span>
+                    <Search className="w-4 h-4 text-teal" />
+                    <span>Search Leads: Natural Language Query &rarr; Filters</span>
                   </div>
-                  <span className="text-[11px] text-teal font-mono">98% ICP Fit</span>
+                  <span className="text-[10px] bg-teal/20 text-teal px-2 py-0.5 rounded-full font-mono font-bold">
+                    50,000+ Cleaned Records
+                  </span>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/50 space-y-1.5">
-                  <div className="flex items-center gap-2 text-xs text-amber-300 font-semibold">
-                    <Zap className="w-3.5 h-3.5" />
-                    <span>Active Review Comparison on G2 (Cloud &amp; ERP Stack)</span>
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed italic">
-                    &ldquo;Multiple sessions comparing enterprise software reviews &amp; API uptime benchmarks from 1-800-Flowers.com IP range.&rdquo;
+
+                <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center gap-2">
+                  <Search className="w-3.5 h-3.5 text-teal shrink-0" />
+                  <p className="text-xs text-white font-medium truncate">
+                    &ldquo;Find Operations &amp; IT leaders at US manufacturing firms with 500&ndash;5,000 headcount&rdquo;
                   </p>
                 </div>
-                <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                  <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300">Reddit r/sysadmin Thread Verified</span>
-                  <span>&middot;</span>
-                  <span>Signal Age: 12 days ago</span>
+
+                <div className="flex flex-wrap gap-1.5 text-[10px]">
+                  <span className="px-2 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700">Country: United States</span>
+                  <span className="px-2 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700">Seniority: VP / Director</span>
+                  <span className="px-2 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700">Industry: Manufacturing</span>
+                  <span className="px-2 py-1 rounded-md bg-teal/15 text-teal font-bold border border-teal/30">ICP Score: &gt; 90/100</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/40 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-white">Sarah Jenkins &middot; VP Operations</p>
+                    <p className="text-[11px] text-slate-400">Nexus Industrial Solutions (Chicago, IL &bull; 1,200 emp)</p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-bold">
+                    ICP 94/100
+                  </span>
                 </div>
               </div>
             )}
 
+            {/* Scene 2: Creating & Managing Lists */}
             {activeSceneIndex === 1 && (
-              <div className="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-5 shadow-2xl backdrop-blur-sm max-w-2xl mx-auto space-y-4 animate-in fade-in zoom-in-95 duration-300">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="bg-slate-900/95 border border-slate-700/80 rounded-2xl p-5 shadow-2xl backdrop-blur-sm max-w-2xl mx-auto space-y-3 animate-in fade-in zoom-in-95 duration-300">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                  <div className="flex items-center gap-2 text-xs font-bold text-white">
+                    <BookmarkPlus className="w-4 h-4 text-teal" />
+                    <span>Save Prospects to Custom Target Lists</span>
+                  </div>
+                  <span className="text-[10px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full font-bold">
+                    1-Click Segmentation
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-800/80 border border-teal/40 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white">List Name: &ldquo;Q4 Priority Healthcare &amp; IT Targets&rdquo;</span>
+                    <span className="text-[10px] bg-teal text-navy font-extrabold px-2 py-0.5 rounded">Active List</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    42 high-scoring decision-makers saved &middot; Auto-tag: Tier 1 ICP Accounts &middot; Direct export ready
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="p-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                    <span className="text-slate-400 block text-[10px]">Saved Prospects</span>
+                    <span className="font-bold text-white text-xs">42 Decision-Makers</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                    <span className="text-slate-400 block text-[10px]">Export Options</span>
+                    <span className="font-bold text-teal text-xs">CSV Auto-Column Mapping</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Scene 3: Contact Verification & 99 Credits */}
+            {activeSceneIndex === 2 && (
+              <div className="bg-slate-900/95 border border-slate-700/80 rounded-2xl p-5 shadow-2xl backdrop-blur-sm max-w-2xl mx-auto space-y-3 animate-in fade-in zoom-in-95 duration-300">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                   <div className="flex items-center gap-2 text-xs font-bold text-white">
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    <span>Stage 2 &amp; 3: List Qualification &amp; Contact Reveal</span>
+                    <span>Real-Time Deliverability Handshake &amp; Credit Ledger</span>
                   </div>
                   <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-bold">
-                    Multi-Tier Verified
+                    Zero-Decay Verified
                   </span>
                 </div>
+
                 <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/50">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold">Work Email</span>
-                    <p className="font-mono text-teal font-bold mt-1 text-[11px]">d.karlsberg@1800flowers.com</p>
-                    <span className="text-[9px] text-emerald-400">SMTP Handshake OK (Deliverable)</span>
+                  <div className="p-3 rounded-xl bg-slate-800/70 border border-slate-700/60">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Corporate Email</span>
+                    <p className="font-mono text-teal font-bold mt-1 text-[11px]">s.jenkins@nexusindustrial.com</p>
+                    <span className="text-[9px] text-emerald-400">MX + SMTP Validated (100% Deliverable)</span>
                   </div>
-                  <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/50">
+                  <div className="p-3 rounded-xl bg-slate-800/70 border border-slate-700/60">
                     <span className="text-[10px] text-slate-400 uppercase font-bold">Direct Phone</span>
-                    <p className="font-mono text-white font-bold mt-1 text-[11px]">+1 (516) 237-4921</p>
-                    <span className="text-[9px] text-teal">Direct Mobile Verified</span>
+                    <p className="font-mono text-white font-bold mt-1 text-[11px]">+1 (312) 554-8219</p>
+                    <span className="text-[9px] text-teal">Telecom Carrier Confirmed Active</span>
                   </div>
                 </div>
+
                 <div className="p-2.5 rounded-xl bg-teal/10 border border-teal/30 flex items-center justify-between text-xs text-teal">
-                  <span>Transparent Deduction: 1 Credit per verified work email</span>
-                  <span className="font-bold">Balance: 98 Credits</span>
+                  <span>Transparent 1-credit lookup policy</span>
+                  <span className="font-bold">Free Signup Balance: 99 Credits</span>
                 </div>
               </div>
             )}
 
-            {activeSceneIndex === 2 && (
-              <div className="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-5 shadow-2xl backdrop-blur-sm max-w-2xl mx-auto space-y-4 animate-in fade-in zoom-in-95 duration-300">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            {/* Scene 4: AI Outreach Studio */}
+            {activeSceneIndex === 3 && (
+              <div className="bg-slate-900/95 border border-slate-700/80 rounded-2xl p-5 shadow-2xl backdrop-blur-sm max-w-2xl mx-auto space-y-3 animate-in fade-in zoom-in-95 duration-300">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                   <div className="flex items-center gap-2 text-xs font-bold text-white">
                     <Sparkles className="w-4 h-4 text-teal" />
-                    <span>AI Outbound Cadence: 4 Touchpoints</span>
+                    <span>4-Touch AI Personalization Studio</span>
                   </div>
-                  <span className="text-[10px] text-teal font-bold bg-teal/20 px-2 py-0.5 rounded">
-                    DKIM/SPF Safe Warmup (50/day)
+                  <span className="text-[10px] bg-teal/20 text-teal px-2 py-0.5 rounded font-bold">
+                    Context-Aware Copy
                   </span>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/50 text-xs text-slate-200 font-mono space-y-2">
-                  <p className="text-teal font-semibold">Subject: Quick question regarding 1-800-Flowers.com&apos;s cloud evaluation</p>
+
+                <div className="p-3 rounded-xl bg-slate-800/70 border border-slate-700/60 text-xs font-mono space-y-1.5">
+                  <p className="text-teal font-semibold text-[11px]">Subject: Operations streamlining at Nexus Industrial &mdash; Quick question</p>
                   <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
-                    &ldquo;Hi David, noticed your team has been researching modern software infrastructure on G2 and Reddit recently. We help teams eliminate data decay without legacy contract lock-in...&rdquo;
+                    &ldquo;Hi Sarah, noticed your team manages operations across 1,200 headcount. Most VPs we speak with want to cut vendor data silos without downtime. We helped similar industrial leaders accelerate output by 40%...&rdquo;
                   </p>
                 </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span>Step 1: AI Cold Email</span>
+
+                <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                  <span>Step 1: 1:1 Cold Email</span>
                   <span>&rarr;</span>
                   <span>Step 2: LinkedIn Touch</span>
                   <span>&rarr;</span>
                   <span>Step 3: ROI Case Study</span>
                   <span>&rarr;</span>
-                  <span>Step 4: Direct Call</span>
+                  <span>Step 4: Phone Battlecard</span>
                 </div>
               </div>
             )}
 
-            {activeSceneIndex === 3 && (
-              <div className="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-5 shadow-2xl backdrop-blur-sm max-w-2xl mx-auto space-y-4 animate-in fade-in zoom-in-95 duration-300">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            {/* Scene 5: Views & Deal Stage Tracking */}
+            {activeSceneIndex === 4 && (
+              <div className="bg-slate-900/95 border border-slate-700/80 rounded-2xl p-5 shadow-2xl backdrop-blur-sm max-w-2xl mx-auto space-y-3 animate-in fade-in zoom-in-95 duration-300">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                   <div className="flex items-center gap-2 text-xs font-bold text-white">
-                    <Kanban className="w-4 h-4 text-teal" />
-                    <span>Stage 5 Engagement &rarr; Stage 6 CRM Pipeline</span>
+                    <Layers className="w-4 h-4 text-teal" />
+                    <span>People View, Company View &amp; Deal Tracking</span>
                   </div>
                   <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-bold">
-                    Reply Received (Interested)
+                    Revenue Conversion
                   </span>
                 </div>
-                <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-xs text-emerald-200 space-y-1">
-                  <span className="font-bold text-[10px] uppercase tracking-wider text-emerald-400">Prospect Response:</span>
-                  <p className="italic text-[11px]">
-                    &ldquo;Thanks for reaching out. Yes, we are actively replacing our legacy data vendor this month. Can you share pricing for 20 seats?&rdquo;
-                  </p>
+
+                <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                  <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700">
+                    <span className="text-[10px] text-slate-400 block">Identified</span>
+                    <span className="font-bold text-white text-xs">48 Leads</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700">
+                    <span className="text-[10px] text-slate-400 block">Contacted</span>
+                    <span className="font-bold text-teal text-xs">24 Sent</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700">
+                    <span className="text-[10px] text-slate-400 block">Replies</span>
+                    <span className="font-bold text-amber-300 text-xs">12 Active</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-emerald-950/40 border border-emerald-500/40">
+                    <span className="text-[10px] text-emerald-400 block">Won</span>
+                    <span className="font-bold text-emerald-300 text-xs">$35,000+</span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-xs font-bold text-white">Deal Added to CRM Pipeline: $50,000</span>
-                  <span className="px-3 py-1 rounded-xl bg-teal text-navy text-xs font-extrabold uppercase">
-                    Discovery Call Scheduled
+
+                <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50 flex items-center justify-between text-xs text-slate-300">
+                  <span className="flex items-center gap-1.5">
+                    <Building className="w-3.5 h-3.5 text-teal" />
+                    <span>Company View &bull; 50,000+ Verified Accounts with Hierarchy &amp; Tech Stack</span>
                   </span>
                 </div>
               </div>
@@ -300,7 +399,7 @@ export default function ProductDemoVideoModal({
                   setIsPlaying(true);
                 }}
                 className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
-                title="Restart Scene"
+                title="Restart Chapter"
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
@@ -344,10 +443,11 @@ export default function ProductDemoVideoModal({
                   onClose();
                   const navFn = onNavigate || onNavigateToStage;
                   if (navFn) navFn("discover");
+                  else window.location.href = "/dashboard";
                 }}
                 className="px-4 py-2 rounded-xl bg-white text-navy hover:bg-slate-100 text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
               >
-                <span>Try Live in Discover</span>
+                <span>Try In Live Workspace</span>
                 <ArrowRight className="w-3.5 h-3.5 text-teal" />
               </button>
             </div>

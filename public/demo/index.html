@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LeadIntellect - Official Client Product Demo Tour</title>
+  <title>LeadIntellect - Official Product Walkthrough & Demo Tour</title>
   <style>
     :root {
       --navy: #0B132B;
@@ -45,8 +45,8 @@
       gap: 12px;
     }
     .brand-logo {
-      width: 36px;
-      height: 36px;
+      width: 38px;
+      height: 38px;
       background: var(--teal);
       border-radius: 10px;
       display: flex;
@@ -73,7 +73,7 @@
       text-decoration: none;
       font-size: 13px;
       font-weight: 600;
-      margin-left: 16px;
+      margin-left: 12px;
       padding: 8px 14px;
       border-radius: 8px;
       background: var(--navy-light);
@@ -121,7 +121,7 @@
     .timeline-container {
       width: 100%;
       display: flex;
-      gap: 8px;
+      gap: 6px;
     }
     .timeline-segment {
       flex: 1;
@@ -182,28 +182,28 @@
       max-width: 1100px;
       margin-top: 24px;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
     }
     .scene-card {
       background: var(--navy);
       border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 16px;
+      padding: 14px;
       cursor: pointer;
       transition: all 0.2s;
     }
     .scene-card.active {
       border-color: var(--teal);
-      box-shadow: 0 0 20px rgba(20, 184, 166, 0.2);
+      box-shadow: 0 0 20px rgba(20, 184, 166, 0.25);
     }
     .scene-card h4 {
-      font-size: 14px;
+      font-size: 13px;
       color: #fff;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
     .scene-card p {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-muted);
       line-height: 1.4;
     }
@@ -215,7 +215,7 @@
       letter-spacing: 0.5px;
       padding: 2px 8px;
       border-radius: 4px;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       background: rgba(20, 184, 166, 0.15);
       color: var(--teal);
     }
@@ -238,12 +238,12 @@
       <div class="brand-logo">LI</div>
       <div>
         <div class="brand-title">Lead<span>Intellect</span></div>
-        <div class="tagline">Official Product Demo & Walkthrough for Clients</div>
+        <div class="tagline">Official Product Walkthrough & Feature Masterclass</div>
       </div>
     </div>
     <div class="header-links">
-      <a href="https://www.youtube.com/@Leadintellect" target="_blank" class="yt-btn">▶ YouTube Channel</a>
-      <a href="mailto:raghu@lead-intellect.com">Contact Raghu</a>
+      <a href="https://www.youtube.com/@Leadintellect" target="_blank" class="yt-btn">▶ YouTube Channel (@Leadintellect)</a>
+      <a href="mailto:raghu@lead-intellect.com">Contact: raghu@lead-intellect.com</a>
     </div>
   </header>
 
@@ -257,44 +257,50 @@
       <div class="timeline-segment" onclick="jumpToScene(1)"><div class="timeline-fill" id="fill-1"></div></div>
       <div class="timeline-segment" onclick="jumpToScene(2)"><div class="timeline-fill" id="fill-2"></div></div>
       <div class="timeline-segment" onclick="jumpToScene(3)"><div class="timeline-fill" id="fill-3"></div></div>
+      <div class="timeline-segment" onclick="jumpToScene(4)"><div class="timeline-fill" id="fill-4"></div></div>
     </div>
 
     <div class="btn-group">
       <button class="btn-primary" id="playBtn" onclick="togglePlay()">⏸ Pause</button>
       <button class="btn-secondary" onclick="restart()">↺ Restart</button>
-      <button class="btn-secondary" id="recordBtn" onclick="downloadRecordedVideo()">⬇ Save Video (.webm)</button>
+      <button class="btn-secondary" id="recordBtn" onclick="downloadRecordedVideo()">⬇ Export Video (.webm / .mp4)</button>
     </div>
 
     <div class="scene-meta" id="sceneMeta">
-      Scene <strong id="sceneNum">1</strong> of 4: <strong id="sceneTitle">Whole-Web Intent Search</strong>
+      Chapter <strong id="sceneNum">1</strong> of 5: <strong id="sceneTitle">How to Search Leads & Filters</strong>
     </div>
   </div>
 
   <div class="scene-cards">
     <div class="scene-card active" id="card-0" onclick="jumpToScene(0)">
-      <span class="badge">Scene 1</span>
-      <h4>1. Whole-Web Intent Telemetry</h4>
-      <p>Continuous monitoring across G2 software review spikes, Reddit technical discussions (r/sysadmin), and SEC funding announcements.</p>
+      <span class="badge">Chapter 1</span>
+      <h4>1. Search Leads & Filters</h4>
+      <p>Natural query translation, Boolean filters (Seniority, Headcount, Location), and 0-100 ICP fit scoring.</p>
     </div>
     <div class="scene-card" id="card-1" onclick="jumpToScene(1)">
-      <span class="badge">Scene 2</span>
-      <h4>2. 50,000+ Verified Contacts</h4>
-      <p>Granular ICP filtering (Seniority, Department, Headcount, Tech stack) with real-time 0–100 fit qualification scoring.</p>
+      <span class="badge">Chapter 2</span>
+      <h4>2. Create & Manage Lists</h4>
+      <p>1-Click prospect selection, creating categorized lists, tagging accounts, and instant CSV exports.</p>
     </div>
     <div class="scene-card" id="card-2" onclick="jumpToScene(2)">
-      <span class="badge">Scene 3</span>
-      <h4>3. Zero-Decay Deliverability</h4>
-      <p>Multi-source verification with 99 free evaluation credits. Deliverability flags prevent bounces and domain blacklisting.</p>
+      <span class="badge">Chapter 3</span>
+      <h4>3. Verification & 99 Credits</h4>
+      <p>Multi-source deliverability check with 99 free evaluation credits. 0 credits charged for browsing.</p>
     </div>
     <div class="scene-card" id="card-3" onclick="jumpToScene(3)">
-      <span class="badge">Scene 4</span>
-      <h4>4. AI Cadences & Pipeline</h4>
-      <p>1-Click personalized cold email generation and high-converting deal conversion directly into your sales pipeline.</p>
+      <span class="badge">Chapter 4</span>
+      <h4>4. AI Outreach Studio</h4>
+      <p>1:1 personalized cold email generation, multi-touch sequences, and LinkedIn conversation icebreakers.</p>
+    </div>
+    <div class="scene-card" id="card-4" onclick="jumpToScene(4)">
+      <span class="badge">Chapter 5</span>
+      <h4>5. Views & Deal Stages</h4>
+      <p>People View, Company View, and tracking opportunities across deal stages to revenue won.</p>
     </div>
   </div>
 
   <footer>
-    LeadIntellect Platform Demo &bull; Contact: <a href="mailto:raghu@lead-intellect.com">raghu@lead-intellect.com</a> &bull; Phone: +91 9985926971 &bull; YouTube: <a href="https://www.youtube.com/@Leadintellect" target="_blank">@Leadintellect</a>
+    LeadIntellect Platform Demo &bull; Contact: <a href="mailto:raghu@lead-intellect.com">raghu@lead-intellect.com</a> &bull; Direct Phone: +91 9985926971 &bull; YouTube: <a href="https://www.youtube.com/@Leadintellect" target="_blank">@Leadintellect</a>
   </footer>
 
   <script>
@@ -304,221 +310,208 @@
     const scenes = [
       {
         id: 0,
-        name: "Whole-Web Buyer Intent Telemetry",
-        subtitle: "Monitoring G2 Reviews, Reddit Discussions & Capital Filings",
+        name: "How to Search Leads & Natural Query Translation",
         duration: 7,
-        badge: "7 WEB CHANNELS",
-        color: "#14B8A6",
-        draw: (progress, t) => {
-          // Dark canvas background
+        draw: (progress) => {
           ctx.fillStyle = "#0B132B";
           ctx.fillRect(0, 0, 1280, 720);
 
           // Grid
           ctx.strokeStyle = "rgba(20, 184, 166, 0.08)";
           ctx.lineWidth = 1;
-          for (let x = 0; x < 1280; x += 40) {
-            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 720); ctx.stroke();
-          }
-          for (let y = 0; y < 720; y += 40) {
-            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1280, y); ctx.stroke();
-          }
+          for (let x = 0; x < 1280; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 720); ctx.stroke(); }
+          for (let y = 0; y < 720; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1280, y); ctx.stroke(); }
 
           // Header
           ctx.fillStyle = "#14B8A6";
           ctx.font = "bold 14px sans-serif";
-          ctx.fillText("LEADINTELLECT WORKSPACE DEMO // SCENE 1", 60, 60);
+          ctx.fillText("LEADINTELLECT WALKTHROUGH // CHAPTER 1", 60, 60);
 
           ctx.fillStyle = "#FFFFFF";
           ctx.font = "bold 32px sans-serif";
-          ctx.fillText("Whole-Web Buyer Intent Detection", 60, 105);
+          ctx.fillText("How to Search Verified Decision-Makers & Translate Queries", 60, 105);
 
           ctx.fillStyle = "#94A3B8";
           ctx.font = "16px sans-serif";
-          ctx.fillText("Surfacing high-fit decision-makers exhibiting live evaluation behavior across 7 public channels.", 60, 138);
+          ctx.fillText("Type plain English requests. The AI engine automatically parses them into structured Boolean filters.", 60, 138);
 
-          // Cards
-          const items = [
-            { source: "G2 Review Spike", lead: "Marcus Vance · VP Infrastructure", company: "FinTech Cloud Inc", intent: "Comparing AWS vs GCP Security Stack", score: "ICP: 98/100" },
-            { source: "Reddit r/sysadmin", lead: "Sarah Jenkins · Director IT Operations", company: "Nexus Industrial", intent: "Asking for enterprise email migration tools", score: "ICP: 94/100" },
-            { source: "SEC Capital Filing", lead: "Chelsea Hoff · Chief Technology Officer", company: "555 Corp Global", intent: "$35M Series B expansion announced", score: "ICP: 96/100" },
-          ];
+          // Search Box Simulation
+          ctx.fillStyle = "#1E293B";
+          ctx.strokeStyle = "#14B8A6";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(60, 170, 1160, 65, 12);
+          ctx.fill();
+          ctx.stroke();
 
-          items.forEach((item, idx) => {
-            const y = 180 + idx * 160;
-            const revealAlpha = Math.min(1, Math.max(0, (progress * 3) - idx * 0.7));
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "16px sans-serif";
+          ctx.fillText("🔍 \"Find Operations & IT Directors at US & Indian manufacturing companies with 500+ employees\"", 90, 210);
 
-            ctx.save();
-            ctx.globalAlpha = revealAlpha;
-
-            // Card background
+          // Interpreted Chips
+          const chips = ["Country: United States & India", "Seniority: VP / Director", "Industry: Manufacturing & Tech", "Headcount: 500–5,000", "ICP Match: > 90/100"];
+          chips.forEach((c, idx) => {
+            const cx = 60 + idx * 235;
             ctx.fillStyle = "#1C2541";
-            ctx.strokeStyle = idx === 0 ? "#14B8A6" : "#334155";
-            ctx.lineWidth = idx === 0 ? 2 : 1;
+            ctx.strokeStyle = "#38BDF8";
+            ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.roundRect(60, y, 1160, 135, 12);
+            ctx.roundRect(cx, 260, 220, 36, 6);
             ctx.fill();
             ctx.stroke();
 
-            // Source Badge
-            ctx.fillStyle = idx === 0 ? "#14B8A6" : idx === 1 ? "#F59E0B" : "#8B5CF6";
-            ctx.beginPath();
-            ctx.roundRect(90, y + 25, 140, 26, 6);
-            ctx.fill();
-            ctx.fillStyle = "#0B132B";
-            ctx.font = "bold 12px sans-serif";
-            ctx.fillText(item.source, 105, y + 43);
+            ctx.fillStyle = "#38BDF8";
+            ctx.font = "bold 11px sans-serif";
+            ctx.fillText(c, cx + 12, 283);
+          });
 
-            // Lead Name
+          // Results Preview
+          const results = [
+            { name: "Sarah Jenkins", role: "VP Operations", comp: "Nexus Industrial (Chicago, IL)", score: "ICP 94/100" },
+            { name: "Vikram Malhotra", role: "Chief Information Officer", comp: "Alpha Healthcare Tech (Dallas, TX)", score: "ICP 98/100" },
+            { name: "Ananya Deshmukh", role: "Director ERP Systems", comp: "SaaS Matrix Pvt Ltd (Bengaluru, IN)", score: "ICP 95/100" },
+          ];
+
+          results.forEach((r, idx) => {
+            const ry = 325 + idx * 115;
+            ctx.fillStyle = "#1C2541";
+            ctx.beginPath();
+            ctx.roundRect(60, ry, 1160, 95, 10);
+            ctx.fill();
+
             ctx.fillStyle = "#FFFFFF";
-            ctx.font = "bold 20px sans-serif";
-            ctx.fillText(item.lead, 250, y + 44);
+            ctx.font = "bold 18px sans-serif";
+            ctx.fillText(r.name, 90, ry + 42);
 
             ctx.fillStyle = "#94A3B8";
             ctx.font = "14px sans-serif";
-            ctx.fillText(item.company, 250, y + 70);
+            ctx.fillText(r.role + " · " + r.comp, 90, ry + 70);
 
-            // Intent description
-            ctx.fillStyle = "#38BDF8";
-            ctx.font = "italic 14px sans-serif";
-            ctx.fillText("Intent Signal: \"" + item.intent + "\"", 250, y + 102);
-
-            // Score Badge
             ctx.fillStyle = "#10B981";
             ctx.font = "bold 18px sans-serif";
-            ctx.fillText(item.score, 1050, y + 48);
+            ctx.fillText(r.score, 1020, ry + 45);
 
-            ctx.fillStyle = "#64748B";
-            ctx.font = "12px sans-serif";
-            ctx.fillText("LIVE TELEMETRY", 1050, y + 72);
-
-            ctx.restore();
+            ctx.fillStyle = "#14B8A6";
+            ctx.font = "bold 12px sans-serif";
+            ctx.fillText("50,000+ VERIFIED DATABASE", 1000, ry + 72);
           });
         }
       },
       {
         id: 1,
-        name: "50,000+ Cleaned Master Contacts & ICP Scoring",
-        subtitle: "Granular Multi-Dimensional ICP Qualification (0-100 Score)",
+        name: "How to Create, Segment & Manage Custom Lists",
         duration: 7,
-        badge: "VERIFIED DATABASE",
-        color: "#38BDF8",
-        draw: (progress, t) => {
+        draw: (progress) => {
           ctx.fillStyle = "#0B132B";
           ctx.fillRect(0, 0, 1280, 720);
 
-          // Header
           ctx.fillStyle = "#38BDF8";
           ctx.font = "bold 14px sans-serif";
-          ctx.fillText("LEADINTELLECT WORKSPACE DEMO // SCENE 2", 60, 60);
+          ctx.fillText("LEADINTELLECT WALKTHROUGH // CHAPTER 2", 60, 60);
 
           ctx.fillStyle = "#FFFFFF";
           ctx.font = "bold 32px sans-serif";
-          ctx.fillText("Cleaned Master Database & Boolean Filter Engine", 60, 105);
+          ctx.fillText("How to Create Target Lists & Organize Buying Committees", 60, 105);
 
           ctx.fillStyle = "#94A3B8";
           ctx.font = "16px sans-serif";
-          ctx.fillText("Search 50,000+ decision-makers across US, India, and global regions with granular ICP weights.", 60, 138);
+          ctx.fillText("Select qualified prospects in bulk and assign them to custom lists for targeted outbound campaigns.", 60, 138);
 
-          // Filter bar visualization
-          ctx.fillStyle = "#1E293B";
+          // List modal mockup
+          ctx.fillStyle = "#1C2541";
+          ctx.strokeStyle = "#38BDF8";
+          ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.roundRect(60, 170, 1160, 65, 10);
+          ctx.roundRect(60, 180, 560, 480, 16);
           ctx.fill();
+          ctx.stroke();
 
-          const filters = ["Geography: US & India", "Seniority: C-Suite, VP, Director", "Industry: SaaS, IT, Healthcare", "Company Size: 50–5,000"];
-          filters.forEach((f, i) => {
-            ctx.fillStyle = "#0F172A";
-            ctx.strokeStyle = "#38BDF8";
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.roundRect(80 + i * 270, 185, 250, 36, 6);
-            ctx.fill();
-            ctx.stroke();
-            ctx.fillStyle = "#E2E8F0";
-            ctx.font = "13px sans-serif";
-            ctx.fillText(f, 95 + i * 270, 208);
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "bold 22px sans-serif";
+          ctx.fillText("Create New Target List", 95, 230);
+
+          ctx.fillStyle = "#0F172A";
+          ctx.beginPath();
+          ctx.roundRect(95, 260, 490, 50, 8);
+          ctx.fill();
+          ctx.fillStyle = "#E2E8F0";
+          ctx.font = "15px sans-serif";
+          ctx.fillText("List: Q4 Priority Healthcare & IT Targets", 115, 292);
+
+          const listItems = [
+            "✓ Selected: 42 Tier-1 Qualified Prospects",
+            "✓ Auto-Tag: 'Manufacturing & Healthcare 2026'",
+            "✓ Multi-Thread Buying Committees Included",
+            "✓ Instant CSV Auto-Mapping Ready",
+            "✓ Real-time Sync to Outreach Studio",
+          ];
+          listItems.forEach((li, idx) => {
+            ctx.fillStyle = "#38BDF8";
+            ctx.font = "15px sans-serif";
+            ctx.fillText(li, 95, 360 + idx * 45);
           });
 
-          // Table Header
-          ctx.fillStyle = "#334155";
+          // Right Box: Active List View
+          ctx.fillStyle = "#1C2541";
+          ctx.strokeStyle = "#334155";
+          ctx.lineWidth = 1;
           ctx.beginPath();
-          ctx.roundRect(60, 260, 1160, 40, 6);
+          ctx.roundRect(660, 180, 560, 480, 16);
           ctx.fill();
-          ctx.fillStyle = "#94A3B8";
-          ctx.font = "bold 12px sans-serif";
-          ctx.fillText("DECISION-MAKER", 85, 285);
-          ctx.fillText("TITLE & LEVEL", 350, 285);
-          ctx.fillText("ORGANIZATION", 620, 285);
-          ctx.fillText("ICP MATCH", 900, 285);
-          ctx.fillText("STATUS", 1080, 285);
+          ctx.stroke();
 
-          // Rows
-          const rows = [
-            { name: "Vikram Malhotra", title: "Chief Information Officer", org: "Alpha Healthcare Tech (US)", icp: "98/100", status: "VERIFIED" },
-            { name: "Ananya Deshmukh", title: "VP Product Engineering", org: "SaaS Matrix Pvt Ltd (IN)", icp: "95/100", status: "VERIFIED" },
-            { name: "Robert DeCosta", title: "Director Cloud Procurement", org: "Omni Logistics (US)", icp: "91/100", status: "VERIFIED" },
-            { name: "Elena Rostova", title: "VP Sales Strategy", org: "CyberGuard Defense (US)", icp: "93/100", status: "VERIFIED" },
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "bold 20px sans-serif";
+          ctx.fillText("Saved Lists & Segmentation Hub", 695, 230);
+
+          const allLists = [
+            { name: "Q4 Healthcare Leaders", count: "42 Contacts", date: "Created 2 days ago" },
+            { name: "US SaaS Founders & CTOs", count: "118 Contacts", date: "Created 1 week ago" },
+            { name: "FinTech Infrastructure VPs", count: "85 Contacts", date: "Created 2 weeks ago" },
           ];
 
-          rows.forEach((r, idx) => {
-            const y = 320 + idx * 85;
-            ctx.fillStyle = idx % 2 === 0 ? "#1C2541" : "#131C38";
+          allLists.forEach((l, idx) => {
+            const ly = 270 + idx * 115;
+            ctx.fillStyle = "#0F172A";
             ctx.beginPath();
-            ctx.roundRect(60, y, 1160, 70, 8);
+            ctx.roundRect(695, ly, 490, 90, 10);
             ctx.fill();
 
             ctx.fillStyle = "#FFFFFF";
-            ctx.font = "bold 15px sans-serif";
-            ctx.fillText(r.name, 85, y + 42);
-
-            ctx.fillStyle = "#CBD5E1";
-            ctx.font = "14px sans-serif";
-            ctx.fillText(r.title, 350, y + 42);
-
-            ctx.fillStyle = "#94A3B8";
-            ctx.font = "14px sans-serif";
-            ctx.fillText(r.org, 620, y + 42);
+            ctx.font = "bold 16px sans-serif";
+            ctx.fillText(l.name, 720, ly + 38);
 
             ctx.fillStyle = "#10B981";
-            ctx.font = "bold 16px sans-serif";
-            ctx.fillText(r.icp, 900, y + 42);
+            ctx.font = "bold 14px sans-serif";
+            ctx.fillText(l.count, 720, ly + 65);
 
-            ctx.fillStyle = "#14B8A6";
-            ctx.beginPath();
-            ctx.roundRect(1070, y + 25, 90, 24, 4);
-            ctx.fill();
-            ctx.fillStyle = "#0B132B";
-            ctx.font = "bold 11px sans-serif";
-            ctx.fillText(r.status, 1085, y + 41);
+            ctx.fillStyle = "#64748B";
+            ctx.font = "12px sans-serif";
+            ctx.fillText(l.date, 1030, ly + 65);
           });
         }
       },
       {
         id: 2,
-        name: "Deliverability Verification & 99 Free Credits",
-        subtitle: "Multi-Source Handshake & Zero Bounce-Rate Mitigation",
+        name: "Zero-Decay Deliverability & 99 Free Credits",
         duration: 7,
-        badge: "99 FREE CREDITS",
-        color: "#10B981",
-        draw: (progress, t) => {
+        draw: (progress) => {
           ctx.fillStyle = "#0B132B";
           ctx.fillRect(0, 0, 1280, 720);
 
-          // Header
           ctx.fillStyle = "#10B981";
           ctx.font = "bold 14px sans-serif";
-          ctx.fillText("LEADINTELLECT WORKSPACE DEMO // SCENE 3", 60, 60);
+          ctx.fillText("LEADINTELLECT WALKTHROUGH // CHAPTER 3", 60, 60);
 
           ctx.fillStyle = "#FFFFFF";
           ctx.font = "bold 32px sans-serif";
-          ctx.fillText("Deliverability Engine & Transparent 99 Credits", 60, 105);
+          ctx.fillText("Deliverability Verification & 99 Free Credits Policy", 60, 105);
 
           ctx.fillStyle = "#94A3B8";
           ctx.font = "16px sans-serif";
-          ctx.fillText("Every free account receives 99 verified prospect credits. Zero credits charged for searching or filtering.", 60, 138);
+          ctx.fillText("Never pay for bounces or invalid leads. 99 free evaluation credits are allocated instantly upon signup.", 60, 138);
 
-          // Left Box: Credit Accounting
+          // Left Box: 99 Credits
           ctx.fillStyle = "#1C2541";
           ctx.strokeStyle = "#10B981";
           ctx.lineWidth = 2;
@@ -532,29 +525,29 @@
           ctx.fillText("Free Account Allocation", 95, 230);
 
           ctx.fillStyle = "#10B981";
-          ctx.font = "bold 64px sans-serif";
-          ctx.fillText("99", 95, 310);
+          ctx.font = "bold 72px sans-serif";
+          ctx.fillText("99", 95, 315);
 
-          ctx.fillStyle = "#94A3B8";
+          ctx.fillStyle = "#CBD5E1";
           ctx.font = "bold 18px sans-serif";
-          ctx.fillText("Full Contact Reveal Credits", 200, 280);
+          ctx.fillText("Full Contact Reveal Credits", 210, 280);
           ctx.font = "14px sans-serif";
-          ctx.fillText("Free on Signup &bull; No credit card required", 200, 305);
+          ctx.fillText("0 credits charged for browsing", 210, 305);
 
           const rules = [
-            "✓ Searches & Boolean queries: 0 Credits",
+            "✓ Natural search & filtering: 0 Credits",
             "✓ Profile inspection (WHO, WHY, FIT): 0 Credits",
-            "✓ CSV Import & List Organization: 0 Credits",
+            "✓ List creation & organization: 0 Credits",
             "✓ Verified direct corporate email: 1 Credit",
-            "✓ Direct phone & mobile line: 1 Credit",
+            "✓ Direct phone & cellular line: 1 Credit",
           ];
-          rules.forEach((rule, idx) => {
-            ctx.fillStyle = idx < 3 ? "#34D399" : "#F8FAFC";
+          rules.forEach((r, idx) => {
+            ctx.fillStyle = idx < 3 ? "#34D399" : "#FFFFFF";
             ctx.font = "15px sans-serif";
-            ctx.fillText(rule, 95, 370 + idx * 45);
+            ctx.fillText(r, 95, 375 + idx * 45);
           });
 
-          // Right Box: Verification Handshake
+          // Right Box: Handshake Check
           ctx.fillStyle = "#1C2541";
           ctx.strokeStyle = "#334155";
           ctx.lineWidth = 1;
@@ -564,94 +557,90 @@
           ctx.stroke();
 
           ctx.fillStyle = "#FFFFFF";
-          ctx.font = "bold 22px sans-serif";
-          ctx.fillText("Live Verification Waterfall", 620, 230);
+          ctx.font = "bold 20px sans-serif";
+          ctx.fillText("Live Deliverability Verification Waterfall", 620, 230);
 
-          const steps = [
-            { stage: "Step 1: MX & DNS Deliverability Check", result: "PASSED: Google Workspace MX Active", ok: true },
-            { stage: "Step 2: SMTP Handshake (No Ping Spam)", result: "DELIVERABLE: Mailbox Confirmed", ok: true },
-            { stage: "Step 3: Catch-All Domain Detection", result: "SAFE: Individual User Mailbox Verified", ok: true },
-            { stage: "Step 4: Real-Time Phone Validation", result: "ACTIVE: Telecom Line Validated (US Cellular)", ok: true },
+          const stages = [
+            { stage: "Stage 1: Domain MX Record Resolution", res: "PASSED: Google Enterprise MX" },
+            { stage: "Stage 2: Real-Time SMTP Handshake (No Spam Ping)", res: "CONFIRMED: Individual Mailbox Exists" },
+            { stage: "Stage 3: Spam-Trap & Catch-All Filtering", res: "CLEAN: 0-Decay Deliverable Status" },
+            { stage: "Stage 4: Telecom Mobile Line Validation", res: "ACTIVE: Direct Dial Confirmed Valid" },
           ];
 
-          steps.forEach((step, idx) => {
-            const sy = 280 + idx * 85;
+          stages.forEach((s, idx) => {
+            const sy = 275 + idx * 88;
             ctx.fillStyle = "#0F172A";
             ctx.beginPath();
-            ctx.roundRect(620, sy, 560, 65, 8);
+            ctx.roundRect(620, sy, 560, 68, 8);
             ctx.fill();
 
             ctx.fillStyle = "#E2E8F0";
             ctx.font = "bold 14px sans-serif";
-            ctx.fillText(step.stage, 645, sy + 28);
+            ctx.fillText(s.stage, 645, sy + 28);
 
             ctx.fillStyle = "#10B981";
             ctx.font = "13px sans-serif";
-            ctx.fillText(step.result, 645, sy + 50);
+            ctx.fillText(s.res, 645, sy + 52);
           });
         }
       },
       {
         id: 3,
-        name: "4-Touch AI Outreach Studio & Revenue Conversion",
-        subtitle: "1-Click Personalized Cadences & Deal Pipeline Management",
+        name: "4-Touch AI Outreach Studio & Personalization",
         duration: 8,
-        badge: "REVENUE CONVERSION",
-        color: "#8B5CF6",
-        draw: (progress, t) => {
+        draw: (progress) => {
           ctx.fillStyle = "#0B132B";
           ctx.fillRect(0, 0, 1280, 720);
 
-          // Header
           ctx.fillStyle = "#8B5CF6";
           ctx.font = "bold 14px sans-serif";
-          ctx.fillText("LEADINTELLECT WORKSPACE DEMO // SCENE 4", 60, 60);
+          ctx.fillText("LEADINTELLECT WALKTHROUGH // CHAPTER 4", 60, 60);
 
           ctx.fillStyle = "#FFFFFF";
           ctx.font = "bold 32px sans-serif";
-          ctx.fillText("AI Outreach Studio & Deal Pipeline", 60, 105);
+          ctx.fillText("AI Outreach Studio: 1:1 Tailored Cadences", 60, 105);
 
           ctx.fillStyle = "#94A3B8";
           ctx.font = "16px sans-serif";
-          ctx.fillText("Automatically craft context-aware cold emails referencing lead intent and push qualified deals to CRM.", 60, 138);
+          ctx.fillText("Generate cold outreach sequences based on the prospect's company size, tech stack, and pain points.", 60, 138);
 
-          // Outreach Draft Preview Card
+          // Email Generator Mockup
           ctx.fillStyle = "#1C2541";
           ctx.strokeStyle = "#8B5CF6";
-          ctx.lineWidth = 1.5;
+          ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.roundRect(60, 180, 680, 480, 16);
           ctx.fill();
           ctx.stroke();
 
-          ctx.fillStyle = "#A78BFA";
-          ctx.font = "bold 14px sans-serif";
-          ctx.fillText("AI PERSONALIZED OUTREACH DRAFT // 1-CLICK GENERATION", 90, 220);
+          ctx.fillStyle = "#C084FC";
+          ctx.font = "bold 13px sans-serif";
+          ctx.fillText("AI PERSONALIZED COLD EMAIL // 1-CLICK DISPATCH", 90, 220);
 
           ctx.fillStyle = "#FFFFFF";
-          ctx.font = "bold 18px sans-serif";
-          ctx.fillText("Subject: Scaling IT Infrastructure at Nexus Industrial — Quick Question", 90, 260);
+          ctx.font = "bold 17px sans-serif";
+          ctx.fillText("Subject: Operations streamlining at Nexus Industrial — Quick question", 90, 255);
 
-          const emailBody = [
+          const email = [
             "Hi Sarah,",
             "",
-            "Saw your recent notes regarding enterprise system migration at Nexus Industrial.",
-            "Given that you're overseeing infrastructure across 1,200 employees, most Directors",
-            "we speak with are concerned about unexpected downtime and data silos.",
+            "Saw that Nexus Industrial recently expanded infrastructure across 1,200 team members.",
+            "Given your focus on operations, most Directors we speak with want to prevent data decay",
+            "and eliminate fragmented vendor tools.",
             "",
-            "We helped similar manufacturing leaders reduce integration lead times by 68%",
-            "without manual data scraping. Would you be open to a 10-minute chat this Thursday?",
+            "We helped similar industrial leaders accelerate qualified pipeline by 40% without lock-in.",
+            "Would you be open to a 10-minute discovery chat this Thursday?",
             "",
             "Best,",
-            "Raghu // LeadIntellect Outbound Team",
+            "Raghu // LeadIntellect Outbound Desk",
           ];
-          emailBody.forEach((line, idx) => {
+          email.forEach((line, idx) => {
             ctx.fillStyle = "#E2E8F0";
             ctx.font = "14px sans-serif";
-            ctx.fillText(line, 90, 305 + idx * 24);
+            ctx.fillText(line, 90, 295 + idx * 24);
           });
 
-          // Right Box: Deal Stage Progression
+          // Multi-touch Steps
           ctx.fillStyle = "#1C2541";
           ctx.strokeStyle = "#334155";
           ctx.lineWidth = 1;
@@ -662,30 +651,98 @@
 
           ctx.fillStyle = "#FFFFFF";
           ctx.font = "bold 20px sans-serif";
-          ctx.fillText("Stage 6 Deal Pipeline", 815, 230);
+          ctx.fillText("4-Touch Cadence Blueprint", 815, 230);
 
-          const stages = [
-            { stage: "Stage 1: Intent Identified", val: "18 Leads", color: "#64748B" },
-            { stage: "Stage 2: Verified & Qualified", val: "12 Leads", color: "#38BDF8" },
-            { stage: "Stage 3: Outbound Cadence Sent", val: "8 Leads", color: "#8B5CF6" },
-            { stage: "Stage 4: Demo Call Booked", val: "$35,000 Deal", color: "#10B981" },
-            { stage: "Stage 5: Won & Provisioned", val: "$50,000 Deal", color: "#14B8A6" },
+          const touches = [
+            { num: "Step 1", title: "1:1 AI Cold Email", timing: "Day 1 (Direct inbox send)" },
+            { num: "Step 2", title: "LinkedIn Soft Connection", timing: "Day 3 (Contextual note)" },
+            { num: "Step 3", title: "ROI Value Case Study", timing: "Day 7 (Benchmark stats)" },
+            { num: "Step 4", title: "Phone Battlecard Call", timing: "Day 10 (Objection handling)" },
           ];
 
-          stages.forEach((s, idx) => {
-            const dy = 270 + idx * 75;
+          touches.forEach((t, idx) => {
+            const ty = 275 + idx * 90;
             ctx.fillStyle = "#0F172A";
             ctx.beginPath();
-            ctx.roundRect(815, dy, 370, 58, 8);
+            ctx.roundRect(815, ty, 370, 70, 8);
             ctx.fill();
 
-            ctx.fillStyle = s.color;
-            ctx.font = "bold 13px sans-serif";
-            ctx.fillText(s.stage, 835, dy + 26);
+            ctx.fillStyle = "#8B5CF6";
+            ctx.font = "bold 12px sans-serif";
+            ctx.fillText(t.num + ": " + t.title, 835, ty + 30);
+
+            ctx.fillStyle = "#94A3B8";
+            ctx.font = "13px sans-serif";
+            ctx.fillText(t.timing, 835, ty + 52);
+          });
+        }
+      },
+      {
+        id: 4,
+        name: "Views & Deal Stages to Revenue",
+        duration: 8,
+        draw: (progress) => {
+          ctx.fillStyle = "#0B132B";
+          ctx.fillRect(0, 0, 1280, 720);
+
+          ctx.fillStyle = "#38BDF8";
+          ctx.font = "bold 14px sans-serif";
+          ctx.fillText("LEADINTELLECT WALKTHROUGH // CHAPTER 5", 60, 60);
+
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "bold 32px sans-serif";
+          ctx.fillText("People View, Company View & Deal Stages", 60, 105);
+
+          ctx.fillStyle = "#94A3B8";
+          ctx.font = "16px sans-serif";
+          ctx.fillText("Track prospect progression from initial identification to booked demo calls and closed deals.", 60, 138);
+
+          // Pipeline Stages
+          const pipeline = [
+            { stage: "Stage 1: Identified", count: "48 Leads", color: "#64748B" },
+            { stage: "Stage 2: Qualified", count: "28 Leads", color: "#38BDF8" },
+            { stage: "Stage 3: Outbound Sent", count: "19 Leads", color: "#8B5CF6" },
+            { stage: "Stage 4: Demo Booked", count: "8 Deals ($35,000+)", color: "#10B981" },
+          ];
+
+          pipeline.forEach((p, idx) => {
+            const px = 60 + idx * 295;
+            ctx.fillStyle = "#1C2541";
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.roundRect(px, 180, 275, 480, 16);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = p.color;
+            ctx.font = "bold 14px sans-serif";
+            ctx.fillText(p.stage, px + 20, 220);
 
             ctx.fillStyle = "#FFFFFF";
-            ctx.font = "bold 15px sans-serif";
-            ctx.fillText(s.val, 835, dy + 46);
+            ctx.font = "bold 20px sans-serif";
+            ctx.fillText(p.count, px + 20, 260);
+
+            // Dummy cards
+            for (let i = 0; i < 3; i++) {
+              const cy = 300 + i * 110;
+              ctx.fillStyle = "#0F172A";
+              ctx.beginPath();
+              ctx.roundRect(px + 15, cy, 245, 90, 8);
+              ctx.fill();
+
+              ctx.fillStyle = "#CBD5E1";
+              ctx.font = "bold 13px sans-serif";
+              ctx.fillText(["Nexus Industrial", "Alpha Healthcare", "FinTech Cloud"][i], px + 28, cy + 30);
+
+              ctx.fillStyle = "#64748B";
+              ctx.font = "11px sans-serif";
+              ctx.fillText(["VP Operations", "CIO", "CTO"][i], px + 28, cy + 52);
+
+              ctx.fillStyle = "#10B981";
+              ctx.font = "bold 11px sans-serif";
+              ctx.fillText("1-Click CRM Sync", px + 28, cy + 74);
+            }
           });
         }
       }
@@ -707,16 +764,13 @@
           jumpToScene(currentSceneIdx + 1);
           return;
         } else {
-          // Loop back or stop
           jumpToScene(0);
           return;
         }
       }
 
-      // Draw active scene
-      currentScene.draw(progress, elapsedSec);
+      currentScene.draw(progress);
 
-      // Update timeline
       for (let i = 0; i < scenes.length; i++) {
         const fillElem = document.getElementById("fill-" + i);
         if (i < currentSceneIdx) {
@@ -749,7 +803,7 @@
       }
 
       if (!isPlaying) {
-        scenes[currentSceneIdx].draw(0.01, 0);
+        scenes[currentSceneIdx].draw(0.01);
       } else {
         cancelAnimationFrame(animFrame);
         animFrame = requestAnimationFrame(render);
@@ -773,9 +827,8 @@
       jumpToScene(0);
     }
 
-    // Direct Browser Recording capability to generate client video file
     function downloadRecordedVideo() {
-      alert("Generating video recording from demo animation... Please wait 5 seconds.");
+      alert("Recording 6-second video sample from presentation canvas... Your download will begin shortly.");
       const stream = canvas.captureStream(30);
       const mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
       const chunks = [];
@@ -789,7 +842,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "LeadIntellect_Client_Product_Demo.webm";
+        a.download = "LeadIntellect_Product_Walkthrough.webm";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -798,10 +851,9 @@
       mediaRecorder.start();
       setTimeout(() => {
         mediaRecorder.stop();
-      }, 5000);
+      }, 6000);
     }
 
-    // Start playback
     jumpToScene(0);
   </script>
 </body>
