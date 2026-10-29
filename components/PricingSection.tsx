@@ -24,6 +24,7 @@ import { launchRazorpayCheckout } from "@/lib/razorpay-client";
 
 interface PlanFeature {
   text: string;
+  checkColor?: "blue" | "green";
   highlight?: boolean;
 }
 
@@ -48,22 +49,22 @@ const plans: Plan[] = [
     name: "Basic (Pilot)",
     tagline: "Get started with the essentials",
     subtext: "Resume access — same features as your trial",
-    priceUSD: 10,
-    priceINR: 849,
-    priceFormattedUSD: "$10",
-    priceFormattedINR: "₹849",
+    priceUSD: 5,
+    priceINR: 449,
+    priceFormattedUSD: "$5",
+    priceFormattedINR: "₹449",
     credits: 50,
     ctaText: "Choose Basic (Pilot)",
     features: [
-      { text: "50 credits (one-time)" },
-      { text: "250K Dottie AI tokens / month" },
-      { text: "2,000 contacts" },
-      { text: "Unlimited Company upload" },
-      { text: "1 MyConvo mailboxes (1,500 sends)" },
-      { text: "1 NextGen domains (1,000 sends (Shared IP))" },
-      { text: "Basic analytics" },
-      { text: "Community support" },
-      { text: "30 min support / month" },
+      { text: "50 credits (one-time)", checkColor: "blue" },
+      { text: "250K Dottie AI tokens / month", checkColor: "blue" },
+      { text: "2,000 contacts", checkColor: "green" },
+      { text: "Unlimited Company upload", checkColor: "green" },
+      { text: "1 MyConvo mailboxes (1,500 sends)", checkColor: "green" },
+      { text: "1 NextGen domains (1,000 sends (Shared IP))", checkColor: "green" },
+      { text: "Basic analytics", checkColor: "green" },
+      { text: "Community support", checkColor: "green" },
+      { text: "30 min support / month", checkColor: "green" },
     ],
   },
   {
@@ -77,38 +78,38 @@ const plans: Plan[] = [
     credits: 100,
     ctaText: "Choose Starter",
     features: [
-      { text: "100 credits / month" },
-      { text: "500K Dottie AI tokens / month" },
-      { text: "5,000 contacts" },
-      { text: "Unlimited Company upload" },
-      { text: "2 MyConvo mailboxes (3,000 sends)" },
-      { text: "2 NextGen domains (25,000 sends (Shared IP))" },
-      { text: "Basic analytics" },
-      { text: "Standard support" },
-      { text: "1 hour support / month" },
+      { text: "100 credits / month", checkColor: "blue" },
+      { text: "500K Dottie AI tokens / month", checkColor: "blue" },
+      { text: "5,000 contacts", checkColor: "green" },
+      { text: "Unlimited Company upload", checkColor: "green" },
+      { text: "2 MyConvo mailboxes (3,000 sends)", checkColor: "green" },
+      { text: "2 NextGen domains (25,000 sends (Shared IP))", checkColor: "green" },
+      { text: "Basic analytics", checkColor: "green" },
+      { text: "Standard support", checkColor: "green" },
+      { text: "1 hour support / month", checkColor: "green" },
     ],
   },
   {
     id: "growth",
     name: "Growth",
     tagline: "For growing go-to-market teams",
-    priceUSD: 85,
-    priceINR: 7199,
-    priceFormattedUSD: "$85",
-    priceFormattedINR: "₹7,199",
+    priceUSD: 79,
+    priceINR: 6799,
+    priceFormattedUSD: "$79",
+    priceFormattedINR: "₹6,799",
     credits: 200,
     popular: true,
     ctaText: "Choose Growth",
     features: [
-      { text: "200 credits / month" },
-      { text: "1.0M Dottie AI tokens / month" },
-      { text: "20,000 contacts" },
-      { text: "Unlimited Company upload" },
-      { text: "5 MyConvo mailboxes (7,500 sends)" },
-      { text: "5 NextGen domains (50,000 sends (Shared IP))" },
-      { text: "Standard analytics" },
-      { text: "Standard support" },
-      { text: "2 hours support / month" },
+      { text: "200 credits / month", checkColor: "blue" },
+      { text: "1.0M Dottie AI tokens / month", checkColor: "blue" },
+      { text: "20,000 contacts", checkColor: "green" },
+      { text: "Unlimited Company upload", checkColor: "green" },
+      { text: "5 MyConvo mailboxes (7,500 sends)", checkColor: "green" },
+      { text: "5 NextGen domains (50,000 sends (Shared IP))", checkColor: "green" },
+      { text: "Standard analytics", checkColor: "green" },
+      { text: "Standard support", checkColor: "green" },
+      { text: "2 hours support / month", checkColor: "green" },
     ],
   },
   {
@@ -123,13 +124,13 @@ const plans: Plan[] = [
     credits: 10000,
     ctaText: "Contact Sales",
     features: [
-      { text: "High Volume Credit" },
-      { text: "High Contact Limits" },
-      { text: "Custom Sending Volume" },
-      { text: "Multiple Mailboxes & Domains" },
-      { text: "Dedicated IP" },
-      { text: "Dedicated Support" },
-      { text: "Expert Audit and strategy for Email marketing" },
+      { text: "High Volume Credit", checkColor: "blue" },
+      { text: "High Contact Limits", checkColor: "green" },
+      { text: "Custom Sending Volume", checkColor: "green" },
+      { text: "Multiple Mailboxes & Domains", checkColor: "green" },
+      { text: "Dedicated IP", checkColor: "green" },
+      { text: "Dedicated Support", checkColor: "green" },
+      { text: "Expert Audit and strategy for Email marketing", checkColor: "green" },
     ],
   },
 ];
@@ -314,13 +315,13 @@ export default function PricingSection() {
               <div
                 key={plan.id}
                 className={`rounded-2xl p-6 sm:p-7 flex flex-col justify-between transition-all relative ${isPopular
-                  ? "bg-[#161F30] border-2 border-blue-500 shadow-2xl shadow-blue-500/10 ring-1 ring-blue-400/30"
-                  : "bg-[#161B26] border border-slate-800/90 hover:border-slate-700 shadow-xl"
+                  ? "bg-[#131926] border-2 border-blue-500 shadow-2xl shadow-blue-500/10 ring-1 ring-blue-500/30"
+                  : "bg-[#131926] border border-slate-800/90 hover:border-slate-700 shadow-xl"
                   }`}
               >
                 {/* Popular Pill at Top */}
                 {isPopular && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#3B82F6] text-white text-[11px] font-extrabold tracking-wider uppercase px-3 py-1 rounded-full shadow-lg flex items-center gap-1.5">
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#3B82F6] text-white text-[11px] font-bold tracking-wider px-3.5 py-1 rounded-full shadow-lg flex items-center gap-1.5 whitespace-nowrap">
                     <Crown className="w-3.5 h-3.5 fill-current" />
                     <span>Most Popular</span>
                   </div>
@@ -328,7 +329,14 @@ export default function PricingSection() {
 
                 <div>
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-bold text-white">{plan.name}</h3>
+                    <div className="flex items-center gap-2">
+                      {plan.id === "enterprise" && (
+                        <svg className="w-4 h-4 text-blue-400 shrink-0 inline-block" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
+                        </svg>
+                      )}
+                      <h3 className="text-xl font-bold text-white tracking-tight">{plan.name}</h3>
+                    </div>
                     {isUserCurrentPlan && (
                       <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
                         Active Plan
@@ -336,24 +344,37 @@ export default function PricingSection() {
                     )}
                   </div>
 
-                  <p className="text-xs text-slate-400 mt-1 min-h-[36px] leading-relaxed">
+                  <p className="text-xs text-slate-400 mt-1 min-h-[32px] leading-relaxed">
                     {plan.tagline}
                   </p>
 
                   {/* Price Section */}
-                  <div className="mt-5 pb-5 border-b border-slate-800/80">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl sm:text-4xl font-extrabold text-white">
-                        {priceLabel}
-                      </span>
-                      {plan.priceUSD !== "Custom" && (
-                        <span className="text-xs text-slate-400 font-medium">/mo</span>
-                      )}
-                    </div>
-                    {plan.subtext && (
-                      <p className="mt-1 text-[11px] text-amber-400/90 font-medium">
-                        {plan.subtext}
-                      </p>
+                  <div className="mt-4 pb-2">
+                    {plan.priceUSD === "Custom" ? (
+                      <div>
+                        <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                          Custom
+                        </span>
+                        {plan.subtext && (
+                          <p className="mt-1 text-xs text-slate-400 font-normal">
+                            {plan.subtext}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                            {priceLabel}
+                          </span>
+                          <span className="text-xs text-slate-400 font-normal">/mo</span>
+                        </div>
+                        {plan.subtext && (
+                          <p className="mt-1 text-xs text-[#EAB308] font-semibold leading-relaxed">
+                            {plan.subtext}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
 
@@ -361,7 +382,10 @@ export default function PricingSection() {
                   <ul className="mt-5 space-y-2.5">
                     {plan.features.map((f, i) => (
                       <li key={i} className="flex items-start gap-2.5 text-xs text-slate-300">
-                        <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <Check
+                          className={`w-4 h-4 shrink-0 mt-0.5 ${f.checkColor === "blue" ? "text-[#3B82F6]" : "text-[#10B981]"
+                            }`}
+                        />
                         <span className="leading-snug">{f.text}</span>
                       </li>
                     ))}
@@ -374,12 +398,7 @@ export default function PricingSection() {
                     type="button"
                     disabled={checkoutLoading}
                     onClick={() => handleSelectPlan(plan)}
-                    className={`w-full py-3 px-4 rounded-xl text-xs font-bold transition-all text-center flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 ${isPopular
-                      ? "bg-[#3B82F6] hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                      : plan.id === "enterprise"
-                        ? "bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"
-                        : "bg-slate-800/80 hover:bg-slate-700 text-white border border-slate-700/80"
-                      }`}
+                    className="w-full py-3 px-4 rounded-xl text-xs font-semibold transition-all text-center flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 bg-[#1A2232] hover:bg-[#232D42] text-slate-200 hover:text-white border border-slate-700/70 shadow-sm"
                   >
                     {plan.id === "enterprise" ? (
                       <>
@@ -388,8 +407,7 @@ export default function PricingSection() {
                       </>
                     ) : (
                       <>
-                        <span>{checkoutLoading ? "Connecting to Gateway..." : plan.ctaText}</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <span>{checkoutLoading ? "Connecting..." : `${plan.ctaText} \u2192`}</span>
                       </>
                     )}
                   </button>

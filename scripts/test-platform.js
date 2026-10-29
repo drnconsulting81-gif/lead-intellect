@@ -198,9 +198,9 @@ async function runTests() {
 
   assert(isUserOnPaidPlanMock(null) === false, "Unauthenticated / guest user is blocked from database download");
   assert(isUserOnPaidPlanMock({ email: "guest@example.com", plan: "free", planStatus: "inactive" }) === false, "Free trial user without active subscription cannot export data");
-  assert(isUserOnPaidPlanMock({ email: "user@corp.com", plan: "basic", planStatus: "active" }) === true, "Basic ($10) paid subscriber is permitted to export");
+  assert(isUserOnPaidPlanMock({ email: "user@corp.com", plan: "basic", planStatus: "active" }) === true, "Basic ($5) paid subscriber is permitted to export");
   assert(isUserOnPaidPlanMock({ email: "founder@tech.com", plan: "starter", planStatus: "active" }) === true, "Starter ($29) paid subscriber is permitted to export");
-  assert(isUserOnPaidPlanMock({ email: "sales@agency.com", plan: "growth", planStatus: "active" }) === true, "Growth ($85) paid subscriber is permitted to export");
+  assert(isUserOnPaidPlanMock({ email: "sales@agency.com", plan: "growth", planStatus: "active" }) === true, "Growth ($79) paid subscriber is permitted to export");
   assert(isUserOnPaidPlanMock({ email: "drnconsulting81@gmail.com", role: "admin" }) === true, "Platform CEO/Administrator is permitted executive access");
 
   // ----------------------------------------------------

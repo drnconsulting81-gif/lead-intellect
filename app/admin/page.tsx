@@ -1318,9 +1318,9 @@ interface EmailLog {
                               className="text-[11px] font-bold bg-surface border border-border rounded-lg px-2 py-1 text-navy cursor-pointer focus:outline-none focus:border-teal"
                             >
                               <option value="free">Free Trial (Locked DB)</option>
-                              <option value="basic">Upgrade to Basic ($10)</option>
+                              <option value="basic">Upgrade to Basic ($5)</option>
                               <option value="starter">Upgrade to Starter ($29)</option>
-                              <option value="growth">Upgrade to Growth ($85)</option>
+                              <option value="growth">Upgrade to Growth ($79)</option>
                               <option value="enterprise">Upgrade to Enterprise</option>
                             </select>
                           </td>

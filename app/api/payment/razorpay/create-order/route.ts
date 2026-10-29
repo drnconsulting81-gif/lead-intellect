@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { findUserByEmail } from "@/lib/db";
 
 // Plan pricing definitions matching founder specification:
-// Basic: $10; Starter: $29; Growth: $85; Enterprise: Custom
+// Basic: $5; Starter: $29; Growth: $79; Enterprise: Custom
 export const PLAN_PRICING: Record<
   string,
   {
@@ -16,8 +16,8 @@ export const PLAN_PRICING: Record<
   basic: {
     id: "basic",
     name: "Basic (Pilot)",
-    priceUSD: 10,
-    priceINR: 849,
+    priceUSD: 5,
+    priceINR: 449,
     credits: 50,
   },
   starter: {
@@ -30,8 +30,8 @@ export const PLAN_PRICING: Record<
   growth: {
     id: "growth",
     name: "Growth",
-    priceUSD: 85,
-    priceINR: 7199,
+    priceUSD: 79,
+    priceINR: 6799,
     credits: 200,
   },
 };
