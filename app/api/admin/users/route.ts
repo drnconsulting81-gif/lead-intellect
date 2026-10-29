@@ -21,7 +21,7 @@ export async function GET() {
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
-    const { email, plan, planStatus, credits, role } = body;
+    const { email, plan, planStatus, credits, addCredits, reason, role } = body;
 
     if (!email) {
       return NextResponse.json({ error: "User email is required." }, { status: 400 });
@@ -39,9 +39,23 @@ export async function PATCH(req: Request) {
       );
     }
 
-    if (credits !== undefined) {
+    if (addCredits !== undefined && Number(addCredits) !== 0) {
+      const delta = Number(addCredits);
+      await addOrAdjustUserCredit(
+        cleanEmail,
+        delta,
+        delta > 0 ? "bonus" : "deduction",
+        reason || "Admin manual credit top-up"
+      );
+      user = await findUserByEmail(cleanEmail);
+    } else if (credits !== undefined) {
       const delta = Number(credits) - (user?.credits || 0);
-      await addOrAdjustUserCredit(cleanEmail, delta, "bonus", "Admin manual credit adjustment");
+      await addOrAdjustUserCredit(
+        cleanEmail,
+        delta,
+        "bonus",
+        reason || "Admin manual credit adjustment"
+      );
       if (user) user.credits = Number(credits);
     }
 

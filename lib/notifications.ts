@@ -24,7 +24,7 @@ export async function sendLeadNotification(payload: NotificationPayload): Promis
   if (webhookUrl && webhookUrl.startsWith("http")) {
     try {
       const slackStylePayload = {
-        text: `🚀 *New ${payload.type === "demo" ? "VIP Demo Request" : payload.type === "trial" ? "14-Day Free Trial Signup" : "Contact Inquiry"}* received on LeadIntellect!`,
+        text: `🚀 *New ${payload.type === "demo" ? "VIP Demo Request" : payload.type === "trial" ? "7-Day Free Trial (99 Credits) Signup" : "Contact Inquiry"}* received on LeadIntellect!`,
         lead: {
           ...payload,
           timestamp: payload.timestamp || new Date().toISOString(),

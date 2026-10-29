@@ -34,6 +34,7 @@ export interface CheckoutOptions {
   userEmail: string;
   userName?: string;
   userPhone?: string;
+  preferredMethod?: "card" | "netbanking" | "upi" | "wallet";
   onSuccess: (verifiedUser: any, transactionId: string) => void;
   onError: (errorMsg: string) => void;
   onDismiss?: () => void;
@@ -66,8 +67,8 @@ export async function launchRazorpayCheckout(opts: CheckoutOptions) {
       return;
     }
 
-    // 2. Configure Razorpay modal
-    const razorpayOptions = {
+    // 2. Configure Razorpay modal prioritizing global card payment and searchable alternatives
+    const razorpayOptions: any = {
       key: data.keyId,
       amount: data.amount,
       currency: data.currency,
@@ -79,11 +80,45 @@ export async function launchRazorpayCheckout(opts: CheckoutOptions) {
         name: opts.userName || "",
         email: opts.userEmail,
         contact: opts.userPhone || "",
+        method: opts.preferredMethod || (data.currency === "USD" ? "card" : undefined),
+      },
+      config: {
+        display: {
+          blocks: {
+            card_block: {
+              name: "Cards (Global Visa, MasterCard, Amex, Discover)",
+              instruments: [
+                {
+                  method: "card",
+                },
+              ],
+            },
+            other_block: {
+              name: "Other Payment Options (Search & Select)",
+              instruments: [
+                {
+                  method: "netbanking",
+                },
+                {
+                  method: "wallet",
+                },
+                {
+                  method: "upi",
+                },
+              ],
+            },
+          },
+          sequence: ["block.card_block", "block.other_block"],
+          preferences: {
+            show_default_blocks: true,
+          },
+        },
       },
       theme: {
         color: "#0B132B", // LeadIntellect Navy
       },
       modal: {
+        confirm_close: true,
         ondismiss: () => {
           if (opts.onDismiss) opts.onDismiss();
         },

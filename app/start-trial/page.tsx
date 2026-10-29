@@ -76,13 +76,13 @@ export default function StartTrialPage() {
             <div>
               <div className="inline-flex items-center gap-2 text-xs font-semibold text-teal-dark bg-teal/10 border border-teal/20 px-3.5 py-1.5 rounded-full mb-4">
                 <Sparkles className="w-3.5 h-3.5" />
-                14-DAY FULL ACCESS TRIAL &middot; NO CREDIT CARD REQUIRED
+                7-DAY FULL ACCESS TRIAL &middot; 99 CREDITS &middot; NO CREDIT CARD REQUIRED
               </div>
               <h1 className="text-3xl sm:text-4xl font-extrabold text-navy tracking-tight leading-tight">
                 Start Finding &amp; Qualifying Verified B2B Buyers in Minutes
               </h1>
               <p className="mt-4 text-base text-text-muted leading-relaxed">
-                Experience the power of AI sales intelligence. Activate your 14-day trial to search
+                Experience the power of AI sales intelligence. Activate your 7-day trial with 99 free prospecting credits to search
                 custom accounts, score ICP fit from 0 to 100, and unlock verified decision-maker emails.
               </p>
 
@@ -116,7 +116,7 @@ export default function StartTrialPage() {
                     <Database className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-navy">50 Free Verified Contact Credits</h2>
+                    <h2 className="text-sm font-bold text-navy">99 Free Verified Contact Credits</h2>
                     <p className="text-xs text-text-muted mt-0.5">
                       Enrich verified business emails and direct dials powered by compliant data partners.
                     </p>
@@ -157,11 +157,11 @@ export default function StartTrialPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-text-muted">Trial Duration:</span>
-                      <span className="font-semibold text-teal-dark">14 Days Unlimited</span>
+                      <span className="font-semibold text-teal-dark">7 Days Access</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-text-muted">Credits:</span>
-                      <span className="font-semibold text-navy">50 Free Verified Leads</span>
+                      <span className="font-semibold text-navy">99 Free Verified Leads</span>
                     </div>
                   </div>
 
@@ -180,7 +180,7 @@ export default function StartTrialPage() {
                   <div className="mb-6">
                     <h2 className="text-xl font-bold text-navy">Create Your Free Trial Account</h2>
                     <p className="text-xs text-text-muted mt-1">
-                      Start your 14-day trial. Instant access, zero risk.
+                      Start your 7-day trial. Instant access, zero risk.
                     </p>
                   </div>
 
@@ -296,7 +296,7 @@ export default function StartTrialPage() {
                           name="comments"
                           value={formData.comments}
                           onChange={handleChange}
-                          placeholder="What accounts or geography are you looking to test during your 14-day trial?"
+                          placeholder="What accounts or geography are you looking to test during your 7-day trial?"
                           className="w-full bg-surface border border-border rounded-xl pl-10 pr-3 py-2.5 text-xs sm:text-sm text-navy placeholder:text-text-muted focus:outline-none focus:border-teal focus:ring-1 focus:ring-teal resize-none"
                         />
                       </div>
@@ -311,7 +311,7 @@ export default function StartTrialPage() {
                         <span>Activating Account...</span>
                       ) : (
                         <>
-                          <span>Activate My 14-Day Free Trial</span>
+                          <span>Activate My 7-Day Free Trial (99 Credits)</span>
                           <ArrowRight className="w-4 h-4" />
                         </>
                       )}

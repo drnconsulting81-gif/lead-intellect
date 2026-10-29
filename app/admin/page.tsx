@@ -297,6 +297,46 @@ interface EmailLog {
       console.error("Failed to update user plan:", err);
     }
   };
+
+  // Credit top-up modal state
+  const [creditModalUser, setCreditModalUser] = useState<any | null>(null);
+  const [creditsToAdd, setCreditsToAdd] = useState<number>(100);
+  const [creditReason, setCreditReason] = useState<string>("Admin manual credit top-up");
+  const [savingCredits, setSavingCredits] = useState<boolean>(false);
+  const [creditActionSuccess, setCreditActionSuccess] = useState<string | null>(null);
+
+  const handleAddCreditsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!creditModalUser || !creditsToAdd) return;
+    setSavingCredits(true);
+    setCreditActionSuccess(null);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: creditModalUser.email,
+          addCredits: Number(creditsToAdd),
+          reason: creditReason,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCreditActionSuccess(`✓ Successfully added ${Number(creditsToAdd).toLocaleString()} credits to ${creditModalUser.email}!`);
+        setTimeout(() => {
+          setCreditModalUser(null);
+          setCreditActionSuccess(null);
+          fetchData();
+        }, 1100);
+      } else {
+        alert(data.error || "Failed to add credits");
+      }
+    } catch {
+      alert("Error connecting to server to add credits.");
+    } finally {
+      setSavingCredits(false);
+    }
+  };
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Order modal state
@@ -1127,7 +1167,7 @@ interface EmailLog {
               }`}
             >
               <Zap className="w-3.5 h-3.5" />
-              <span>14-Day Free Trials</span>
+              <span>7-Day Free Trials</span>
               <span className="bg-white/10 px-1.5 py-0.2 rounded text-[10px]">{trialCount}</span>
             </button>
 
@@ -1263,9 +1303,23 @@ interface EmailLog {
                             </span>
                           </td>
                           <td className="p-4">
-                            <div className="font-bold text-navy flex items-center gap-1">
-                              <Zap className="w-3.5 h-3.5 text-teal-dark" />
-                              <span>{typeof u.credits === "number" ? u.credits.toLocaleString() : "99"}</span>
+                            <div className="flex items-center gap-2">
+                              <div className="font-bold text-navy flex items-center gap-1">
+                                <Zap className="w-3.5 h-3.5 text-teal-dark" />
+                                <span>{typeof u.credits === "number" ? u.credits.toLocaleString() : "99"}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCreditModalUser(u);
+                                  setCreditsToAdd(100);
+                                  setCreditActionSuccess(null);
+                                }}
+                                className="px-2 py-0.5 text-[10px] font-bold text-teal-dark bg-teal/10 hover:bg-teal hover:text-navy rounded-md border border-teal/20 transition-all cursor-pointer flex items-center gap-0.5"
+                                title="Add credits to this user"
+                              >
+                                <span>+ Add</span>
+                              </button>
                             </div>
                           </td>
                           <td className="p-4">
@@ -1888,6 +1942,116 @@ interface EmailLog {
           </div>
         )}
       </main>
+
+      {/* ================= ADD CREDITS TO USER MODAL ================= */}
+      {creditModalUser && (
+        <div className="fixed inset-0 z-50 bg-navy/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-border shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-teal/15 text-teal-dark flex items-center justify-center">
+                  <Zap className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-navy">Add Prospecting Credits</h3>
+                  <p className="text-xs text-text-muted">Target: <strong className="text-navy">{creditModalUser.email}</strong></p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCreditModalUser(null)}
+                className="p-1.5 rounded-xl text-text-muted hover:bg-surface hover:text-navy cursor-pointer transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {creditActionSuccess ? (
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold text-center">
+                {creditActionSuccess}
+              </div>
+            ) : (
+              <form onSubmit={handleAddCreditsSubmit} className="space-y-4">
+                <div className="p-3.5 rounded-2xl bg-surface border border-border flex items-center justify-between">
+                  <span className="text-xs text-text-muted">Current Balance:</span>
+                  <div className="font-extrabold text-navy text-sm flex items-center gap-1">
+                    <Zap className="w-3.5 h-3.5 text-teal-dark" />
+                    <span>{(creditModalUser.credits || 99).toLocaleString()} Credits</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-navy mb-2">
+                    Quick Preset Increments
+                  </label>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {[50, 100, 250, 500, 1000].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setCreditsToAdd(preset)}
+                        className={`py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                          creditsToAdd === preset
+                            ? "bg-navy text-teal border-navy shadow-xs"
+                            : "bg-surface hover:bg-white text-navy border-border"
+                        }`}
+                      >
+                        +{preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-navy mb-1.5">
+                    Credits to Add
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100000}
+                    required
+                    value={creditsToAdd}
+                    onChange={(e) => setCreditsToAdd(Math.max(1, Number(e.target.value)))}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs text-navy font-bold focus:outline-none focus:border-teal"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-navy mb-1.5">
+                    Reason / Administrative Note
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={creditReason}
+                    onChange={(e) => setCreditReason(e.target.value)}
+                    placeholder="e.g. Executive Bonus, VIP Extension, Client Trial Top-up"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs text-navy focus:outline-none focus:border-teal"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreditModalUser(null)}
+                    className="flex-1 py-2.5 px-4 rounded-xl border border-border text-xs font-bold text-text-muted hover:bg-surface transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingCredits}
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-navy hover:bg-navy-light text-teal font-extrabold text-xs transition-colors cursor-pointer shadow-md disabled:opacity-50"
+                  >
+                    {savingCredits ? "Adding..." : `Add +${Number(creditsToAdd).toLocaleString()} Credits`}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ================= RECORD ORDER MODAL ================= */}
       {isRecordOrderOpen && (

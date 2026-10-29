@@ -19,6 +19,7 @@ import {
   Layers,
   Phone,
   Crown,
+  Search,
 } from "lucide-react";
 import { launchRazorpayCheckout } from "@/lib/razorpay-client";
 
@@ -142,10 +143,18 @@ export default function PricingSection() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successPlan, setSuccessPlan] = useState<Plan | null>(null);
 
-  // Email prompt modal for guests before initiating payment
-  const [guestEmailModalPlan, setGuestEmailModalPlan] = useState<Plan | null>(null);
-  const [guestEmail, setGuestEmail] = useState("");
-  const [guestName, setGuestName] = useState("");
+  // Plan Upgrade & Email Verification modal state
+  const [upgradeModalPlan, setUpgradeModalPlan] = useState<Plan | null>(null);
+  const [upgradeStep, setUpgradeStep] = useState<"details" | "verify">("details");
+  const [userEmail, setUserEmail] = useState("");
+  const [userName, setUserName] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [modalSuccessMsg, setModalSuccessMsg] = useState<string | null>(null);
+
+  // Preferred payment method & search for options
+  const [selectedMethod, setSelectedMethod] = useState<"card" | "netbanking" | "upi" | "wallet">("card");
+  const [paymentSearchQuery, setPaymentSearchQuery] = useState("");
 
   useEffect(() => {
     try {
@@ -170,8 +179,8 @@ export default function PricingSection() {
         const u = JSON.parse(stored);
         if (u && u.email) {
           setCurrentUser(u);
-          setGuestEmail(u.email);
-          setGuestName(u.name || "");
+          setUserEmail(u.email);
+          setUserName(u.name || "");
         }
       }
     } catch {
@@ -188,6 +197,8 @@ export default function PricingSection() {
 
   const handleSelectPlan = (plan: Plan) => {
     setErrorMessage(null);
+    setModalSuccessMsg(null);
+    setVerificationCode("");
 
     // Enterprise links to contact sales
     if (plan.id === "enterprise") {
@@ -195,52 +206,114 @@ export default function PricingSection() {
       return;
     }
 
-    // If user is authenticated, launch Razorpay directly
+    setUpgradeModalPlan(plan);
+    const emailToUse = (currentUser && currentUser.email) ? currentUser.email : userEmail;
+    const nameToUse = (currentUser && currentUser.name) ? currentUser.name : userName;
+    setUserEmail(emailToUse);
+    setUserName(nameToUse);
+
     if (currentUser && currentUser.email) {
-      triggerPaymentGateway(plan, currentUser.email, currentUser.name);
+      // User is logged in -> dispatch verification code right away
+      sendUpgradeVerificationCode(plan, currentUser.email, currentUser.name);
     } else {
-      // Prompt for email before launching Razorpay
-      setGuestEmailModalPlan(plan);
+      setUpgradeStep("details");
     }
   };
 
-  const triggerPaymentGateway = async (
-    plan: Plan,
-    emailToUse: string,
-    nameToUse?: string
-  ) => {
-    setCheckoutLoading(true);
+  const sendUpgradeVerificationCode = async (plan: Plan, email: string, name?: string) => {
+    setIsSendingCode(true);
     setErrorMessage(null);
-
-    await launchRazorpayCheckout({
-      planId: plan.id,
-      currency,
-      userEmail: emailToUse,
-      userName: nameToUse || emailToUse.split("@")[0],
-      onSuccess: (verifiedUser) => {
-        setCheckoutLoading(false);
-        setGuestEmailModalPlan(null);
-        setCurrentUser(verifiedUser);
-        setSuccessPlan(plan);
-      },
-      onError: (err) => {
-        setCheckoutLoading(false);
-        setErrorMessage(err);
-      },
-      onDismiss: () => {
-        setCheckoutLoading(false);
-      },
-    });
+    setModalSuccessMsg(null);
+    try {
+      const res = await fetch("/api/auth/send-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.toLowerCase().trim(),
+          name: name || email.split("@")[0],
+          purpose: "upgrade",
+          planName: plan.name,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setUpgradeStep("verify");
+        setModalSuccessMsg(`✓ 6-digit verification code dispatched to ${email}. Check your inbox.`);
+      } else {
+        setErrorMessage(data.error || "Failed to dispatch verification code.");
+      }
+    } catch {
+      setErrorMessage("Error contacting verification service.");
+    } finally {
+      setIsSendingCode(false);
+    }
   };
 
-  const handleGuestSubmit = (e: React.FormEvent) => {
+  const handleGuestDetailsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!guestEmailModalPlan) return;
-    if (!guestEmail || !guestEmail.includes("@")) {
+    if (!upgradeModalPlan) return;
+    if (!userEmail || !userEmail.includes("@")) {
       setErrorMessage("Please enter a valid business email address.");
       return;
     }
-    triggerPaymentGateway(guestEmailModalPlan, guestEmail, guestName);
+    sendUpgradeVerificationCode(upgradeModalPlan, userEmail, userName);
+  };
+
+  const handleVerifyAndProceedToPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!upgradeModalPlan) return;
+    if (!verificationCode || verificationCode.trim().length < 4) {
+      setErrorMessage("Please enter the 6-digit verification code from your email.");
+      return;
+    }
+
+    setCheckoutLoading(true);
+    setErrorMessage(null);
+
+    try {
+      // 1. Verify code
+      const verifyRes = await fetch("/api/auth/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: userEmail.toLowerCase().trim(),
+          code: verificationCode.trim(),
+          purpose: "upgrade",
+        }),
+      });
+      const verifyData = await verifyRes.json();
+
+      if (!verifyRes.ok || !verifyData.success) {
+        setErrorMessage(verifyData.error || "Invalid verification code.");
+        setCheckoutLoading(false);
+        return;
+      }
+
+      // 2. Launch Razorpay with chosen preferredMethod (card prioritized for global)
+      await launchRazorpayCheckout({
+        planId: upgradeModalPlan.id,
+        currency,
+        userEmail: userEmail.toLowerCase().trim(),
+        userName: userName || userEmail.split("@")[0],
+        preferredMethod: selectedMethod,
+        onSuccess: (verifiedUser) => {
+          setCheckoutLoading(false);
+          setUpgradeModalPlan(null);
+          setCurrentUser(verifiedUser);
+          setSuccessPlan(upgradeModalPlan);
+        },
+        onError: (err) => {
+          setCheckoutLoading(false);
+          setErrorMessage(err);
+        },
+        onDismiss: () => {
+          setCheckoutLoading(false);
+        },
+      });
+    } catch {
+      setErrorMessage("Connection error while communicating with gateway.");
+      setCheckoutLoading(false);
+    }
   };
 
   return (
@@ -440,88 +513,318 @@ export default function PricingSection() {
         </div>
       </div>
 
-      {/* Guest Email Modal Before Payment */}
-      {guestEmailModalPlan && (
+      {/* Plan Upgrade & Email Verification Modal */}
+      {upgradeModalPlan && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
         >
-          <div className="bg-[#161B26] border border-slate-700 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative animate-in zoom-in-95 duration-200">
+          <div className="bg-[#161B26] border border-slate-700 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative animate-in zoom-in-95 duration-200 my-8">
             <button
               type="button"
-              onClick={() => setGuestEmailModalPlan(null)}
-              className="absolute top-5 right-5 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+              onClick={() => {
+                setUpgradeModalPlan(null);
+                setErrorMessage(null);
+                setModalSuccessMsg(null);
+              }}
+              className="absolute top-5 right-5 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
+            {/* Modal Header */}
             <div className="text-center mb-6">
               <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto mb-3">
                 <CreditCard className="w-6 h-6" />
               </div>
               <h3 className="text-xl font-bold text-white">
-                Subscribe to {guestEmailModalPlan.name}
+                Upgrade to {upgradeModalPlan.name}
               </h3>
               <p className="text-xs text-slate-400 mt-1">
-                Enter your work details to proceed to the secure Razorpay payment terminal.
+                {currency === "INR" ? upgradeModalPlan.priceFormattedINR : upgradeModalPlan.priceFormattedUSD} / month &bull; Instant plan activation &amp; credit allocation
               </p>
             </div>
 
-            <form onSubmit={handleGuestSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Alex Morgan"
-                  value={guestName}
-                  onChange={(e) => setGuestName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+            {errorMessage && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs flex items-center justify-between">
+                <span>{errorMessage}</span>
+                <button onClick={() => setErrorMessage(null)} className="text-rose-400 hover:text-white cursor-pointer">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
+            )}
 
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  Work Email (Account ID)
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="alex@company.com"
-                  value={guestEmail}
-                  onChange={(e) => setGuestEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+            {modalSuccessMsg && (
+              <div className="mb-4 p-3 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-xs font-semibold text-center">
+                {modalSuccessMsg}
               </div>
+            )}
 
-              <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between text-xs">
-                <span className="text-slate-400">Total payable:</span>
-                <strong className="text-white text-sm">
-                  {currency === "INR"
-                    ? guestEmailModalPlan.priceFormattedINR
-                    : guestEmailModalPlan.priceFormattedUSD}
-                  <span className="text-[10px] text-slate-400 font-normal"> / mo</span>
-                </strong>
-              </div>
+            {upgradeStep === "details" ? (
+              /* Step 1: Work Details for guest */
+              <form onSubmit={handleGuestDetailsSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Alex Morgan"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
 
-              <button
-                type="submit"
-                disabled={checkoutLoading}
-                className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
-              >
-                {checkoutLoading ? (
-                  <span>Connecting to Razorpay...</span>
-                ) : (
-                  <>
-                    <Lock className="w-3.5 h-3.5" />
-                    <span>Proceed to Secure Payment &rarr;</span>
-                  </>
-                )}
-              </button>
-            </form>
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Work Email (Account to Upgrade)
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="alex@company.com"
+                    value={userEmail}
+                    onChange={(e) => setUserEmail(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Total payable:</span>
+                  <strong className="text-white text-sm">
+                    {currency === "INR"
+                      ? upgradeModalPlan.priceFormattedINR
+                      : upgradeModalPlan.priceFormattedUSD}
+                    <span className="text-[10px] text-slate-400 font-normal"> / mo</span>
+                  </strong>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSendingCode}
+                  className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
+                >
+                  {isSendingCode ? "Sending Security Code..." : "Send Verification Code to Email →"}
+                </button>
+              </form>
+            ) : (
+              /* Step 2: Verification Code & Payment Option Selector with Search */
+              <form onSubmit={handleVerifyAndProceedToPayment} className="space-y-4">
+                <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-center">
+                  <span className="text-xs text-slate-300 block mb-1">
+                    Enter the 6-digit verification code sent to <strong className="text-white">{userEmail}</strong>
+                  </span>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    required
+                    autoFocus
+                    placeholder="123456"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/[^0-9]/g, ""))}
+                    className="w-full py-3 text-center text-3xl font-mono tracking-[8px] font-extrabold rounded-xl bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-blue-500"
+                  />
+                  <div className="flex items-center justify-between mt-2 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => sendUpgradeVerificationCode(upgradeModalPlan, userEmail, userName)}
+                      disabled={isSendingCode}
+                      className="text-blue-400 hover:underline cursor-pointer"
+                    >
+                      {isSendingCode ? "Resending..." : "Resend 6-Digit Code"}
+                    </button>
+                    {!currentUser && (
+                      <button
+                        type="button"
+                        onClick={() => setUpgradeStep("details")}
+                        className="text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        Change Email
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Global Card Option & Payment Option Search */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold text-slate-200">
+                      Payment Options (Cards &amp; Alternative Methods)
+                    </label>
+                    <span className="text-[10px] text-emerald-400 font-semibold">100% Secure via Razorpay</span>
+                  </div>
+
+                  {/* Payment Method Search Bar */}
+                  <div className="relative mb-3">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search payment options (Cards, UPI, Netbanking, Wallets...)"
+                      value={paymentSearchQuery}
+                      onChange={(e) => setPaymentSearchQuery(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {/* Global Cards Option */}
+                    {(!paymentSearchQuery || "cards visa mastercard amex global credit debit".includes(paymentSearchQuery.toLowerCase())) && (
+                      <div
+                        onClick={() => setSelectedMethod("card")}
+                        className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                          selectedMethod === "card"
+                            ? "bg-blue-600/15 border-blue-500 text-white"
+                            : "bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <CreditCard className={`w-4 h-4 ${selectedMethod === "card" ? "text-blue-400" : "text-slate-400"}`} />
+                          <div>
+                            <div className="text-xs font-bold text-white flex items-center gap-2">
+                              <span>Cards (Global Visa, MasterCard, Amex)</span>
+                              <span className="text-[9px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-extrabold uppercase">
+                                Recommended for Global
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 block">
+                              Accepted worldwide from 130+ countries &bull; Instant activation
+                            </span>
+                          </div>
+                        </div>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          checked={selectedMethod === "card"}
+                          onChange={() => setSelectedMethod("card")}
+                          className="text-blue-600"
+                        />
+                      </div>
+                    )}
+
+                    {/* UPI Option */}
+                    {(!paymentSearchQuery || "upi gpay phonepe paytm bhim qr".includes(paymentSearchQuery.toLowerCase())) && (
+                      <div
+                        onClick={() => setSelectedMethod("upi")}
+                        className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                          selectedMethod === "upi"
+                            ? "bg-blue-600/15 border-blue-500 text-white"
+                            : "bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Zap className={`w-4 h-4 ${selectedMethod === "upi" ? "text-teal" : "text-slate-400"}`} />
+                          <div>
+                            <div className="text-xs font-bold text-white">
+                              UPI &amp; QR Code (Instant)
+                            </div>
+                            <span className="text-[10px] text-slate-400 block">
+                              Google Pay, PhonePe, Paytm, BHIM &amp; UPI ID
+                            </span>
+                          </div>
+                        </div>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          checked={selectedMethod === "upi"}
+                          onChange={() => setSelectedMethod("upi")}
+                          className="text-blue-600"
+                        />
+                      </div>
+                    )}
+
+                    {/* NetBanking Option */}
+                    {(!paymentSearchQuery || "netbanking bank hdfc icici sbi wire".includes(paymentSearchQuery.toLowerCase())) && (
+                      <div
+                        onClick={() => setSelectedMethod("netbanking")}
+                        className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                          selectedMethod === "netbanking"
+                            ? "bg-blue-600/15 border-blue-500 text-white"
+                            : "bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Building className={`w-4 h-4 ${selectedMethod === "netbanking" ? "text-blue-400" : "text-slate-400"}`} />
+                          <div>
+                            <div className="text-xs font-bold text-white">
+                              NetBanking (50+ Banks)
+                            </div>
+                            <span className="text-[10px] text-slate-400 block">
+                              HDFC, ICICI, SBI, Axis, Kotak, and international banking gateways
+                            </span>
+                          </div>
+                        </div>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          checked={selectedMethod === "netbanking"}
+                          onChange={() => setSelectedMethod("netbanking")}
+                          className="text-blue-600"
+                        />
+                      </div>
+                    )}
+
+                    {/* Wallets Option */}
+                    {(!paymentSearchQuery || "wallets mobikwik airtel paylater".includes(paymentSearchQuery.toLowerCase())) && (
+                      <div
+                        onClick={() => setSelectedMethod("wallet")}
+                        className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                          selectedMethod === "wallet"
+                            ? "bg-blue-600/15 border-blue-500 text-white"
+                            : "bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Layers className={`w-4 h-4 ${selectedMethod === "wallet" ? "text-purple-400" : "text-slate-400"}`} />
+                          <div>
+                            <div className="text-xs font-bold text-white">
+                              Wallets &amp; PayLater
+                            </div>
+                            <span className="text-[10px] text-slate-400 block">
+                              Mobikwik, Airtel Money, and partner wallets
+                            </span>
+                          </div>
+                        </div>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          checked={selectedMethod === "wallet"}
+                          onChange={() => setSelectedMethod("wallet")}
+                          className="text-blue-600"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Total payable:</span>
+                  <strong className="text-white text-sm">
+                    {currency === "INR"
+                      ? upgradeModalPlan.priceFormattedINR
+                      : upgradeModalPlan.priceFormattedUSD}
+                    <span className="text-[10px] text-slate-400 font-normal"> / mo</span>
+                  </strong>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={checkoutLoading || verificationCode.length < 4}
+                  className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
+                >
+                  {checkoutLoading ? (
+                    <span>Verifying Code &amp; Opening Razorpay...</span>
+                  ) : (
+                    <>
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Verify Code &amp; Launch Payment &rarr;</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}

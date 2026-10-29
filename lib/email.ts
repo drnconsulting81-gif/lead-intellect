@@ -9,6 +9,14 @@ export interface WelcomeEmailParams {
   credits?: number;
 }
 
+export interface VerificationEmailParams {
+  name?: string;
+  email: string;
+  code: string;
+  purpose: "signup" | "upgrade";
+  planName?: string;
+}
+
 export interface CeoAlertParams {
   name: string;
   email: string;
@@ -42,9 +50,9 @@ export async function sendWelcomeConfirmationEmail({
   name,
   email,
   company,
-  credits = 100,
+  credits = 99,
 }: WelcomeEmailParams): Promise<{ success: boolean; mode: string }> {
-  const subject = "Welcome to LeadIntellect - 100 Free Prospecting Credits Added! 🚀";
+  const subject = "Welcome to LeadIntellect - 7-Day Free Trial & 99 Free Prospecting Credits Added! 🚀";
   const firstName = name.split(" ")[0] || "there";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://lead-intellect.com";
   const workspaceUrl = `${siteUrl}/dashboard`;
@@ -258,4 +266,101 @@ export async function sendCeoNewUserAlert({
     status,
     errorMessage,
   });
+}
+
+/**
+ * Sends 6-digit verification code to user for sign-up or plan upgrade authorization
+ */
+export async function sendVerificationCodeEmail({
+  name,
+  email,
+  code,
+  purpose,
+  planName,
+}: VerificationEmailParams): Promise<{ success: boolean; mode: string }> {
+  const isUpgrade = purpose === "upgrade";
+  const subject = isUpgrade
+    ? `🔐 ${code} is your LeadIntellect upgrade authorization code`
+    : `🔐 ${code} is your LeadIntellect verification code`;
+  const firstName = (name || "").split(" ")[0] || "there";
+  const actionDescription = isUpgrade
+    ? `confirm and authorize your upgrade to the <strong>${planName || "new subscription"}</strong> plan`
+    : `verify your work email address and activate your <strong>7-Day Free Trial (99 free prospecting credits)</strong>`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0b1220; margin: 0; padding: 30px 15px; color: #1e293b; }
+    .card { max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+    .header { background: #0b1220; padding: 28px 36px; text-align: left; border-bottom: 2px solid #14b8a6; }
+    .logo { color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo span { color: #14b8a6; }
+    .content { padding: 36px; }
+    h1 { color: #0b1220; font-size: 22px; font-weight: 800; margin-top: 0; }
+    p { color: #475569; font-size: 14px; line-height: 1.6; margin: 16px 0; }
+    .otp-card { background: #f0fdfa; border: 2px dashed #0d9488; border-radius: 12px; padding: 24px; margin: 24px 0; text-align: center; }
+    .otp-code { font-family: 'Courier New', Courier, monospace; font-size: 40px; font-weight: 900; letter-spacing: 12px; color: #0b1220; }
+    .otp-sub { font-size: 11px; text-transform: uppercase; font-weight: bold; color: #0f766e; margin-top: 8px; letter-spacing: 1px; }
+    .warning { font-size: 12px; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 16px; margin-top: 24px; }
+    .footer { background: #f8fafc; padding: 20px 36px; font-size: 11px; color: #64748b; text-align: center; border-top: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="logo">LEAD<span>INTELLECT</span></div>
+      <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Security Verification Code</div>
+    </div>
+    <div class="content">
+      <h1>Hello ${firstName}!</h1>
+      <p>Please use the 6-digit verification code below to ${actionDescription}:</p>
+      
+      <div class="otp-card">
+        <div class="otp-code">${code}</div>
+        <div class="otp-sub">Verification Code &bull; Expires in 10 Minutes</div>
+      </div>
+
+      <p class="warning">
+        This code is valid for 10 minutes. For security, never share this code with anyone. If you did not initiate this request, you can safely ignore this email.
+      </p>
+    </div>
+    <div class="footer">
+      &copy; ${new Date().getFullYear()} LeadIntellect. AI-Powered B2B Prospecting &amp; ICP Intelligence.
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  let status: "sent" | "failed" | "simulated" = "simulated";
+  let errorMessage: string | undefined = undefined;
+
+  const transporter = getTransporter();
+  if (transporter) {
+    try {
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || '"LeadIntellect Security" <verify@leadintellect.ai>',
+        to: email,
+        subject,
+        html,
+      });
+      status = "sent";
+    } catch (err) {
+      errorMessage = err instanceof Error ? err.message : String(err);
+      status = "failed";
+    }
+  }
+
+  await saveEmailLog({
+    type: "verification_code",
+    recipient: email,
+    subject,
+    status,
+    errorMessage,
+  });
+
+  return { success: true, mode: status };
 }

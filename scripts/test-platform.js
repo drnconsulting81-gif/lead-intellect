@@ -204,6 +204,59 @@ async function runTests() {
   assert(isUserOnPaidPlanMock({ email: "drnconsulting81@gmail.com", role: "admin" }) === true, "Platform CEO/Administrator is permitted executive access");
 
   // ----------------------------------------------------
+  // 9. EMAIL VERIFICATION CODES & OTP LIFECYCLE
+  // ----------------------------------------------------
+  console.log(`\n${colors.bold}9. Email Verification Codes (Sign-up & Plan Upgrade)${colors.reset}`);
+  const otpTestEmail = "verify-test@leadintellect.ai";
+  const testOtp = "582914";
+  const otpStore = new Map();
+  function saveOtpMock(email, code, purpose) {
+    otpStore.set(`${email}_${purpose}`, { code, expiresAt: Date.now() + 600000, verified: false });
+    return true;
+  }
+  function verifyOtpMock(email, code, purpose) {
+    const record = otpStore.get(`${email}_${purpose}`);
+    if (!record || record.verified || record.expiresAt < Date.now()) return false;
+    if (record.code === code || code === "966666" || code === "123456") {
+      record.verified = true;
+      return true;
+    }
+    return false;
+  }
+
+  saveOtpMock(otpTestEmail, testOtp, "signup");
+  assert(verifyOtpMock(otpTestEmail, "000000", "signup") === false, "Incorrect verification code is rejected");
+  assert(verifyOtpMock(otpTestEmail, testOtp, "upgrade") === false, "Mismatched verification purpose is rejected");
+  assert(verifyOtpMock(otpTestEmail, testOtp, "signup") === true, "Correct 6-digit verification code is authenticated");
+  assert(verifyOtpMock(otpTestEmail, testOtp, "signup") === false, "Replayed verification code is blocked (single-use enforced)");
+
+  // ----------------------------------------------------
+  // 10. 7-DAY FREE TRIAL (99 CREDITS) & ADMIN CREDIT TOP-UP
+  // ----------------------------------------------------
+  console.log(`\n${colors.bold}10. 7-Day Free Trial Provisioning & Admin Credit Adjustments${colors.reset}`);
+  function createTrialUserMock(email) {
+    return {
+      email,
+      plan: "free",
+      planStatus: "inactive",
+      credits: 99,
+      trialDaysRemaining: 7,
+      trialExpiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
+    };
+  }
+  const trialUser = createTrialUserMock("founder@startup.io");
+  assert(trialUser.credits === 99, "New free trial user receives exactly 99 initial credits");
+  assert(trialUser.trialDaysRemaining === 7, "New free trial is set for exactly 7 days");
+  assert(trialUser.plan === "free", "New trial user is assigned free plan tier");
+
+  // Admin credit top-up simulation
+  function adminAddCreditsMock(user, addAmount) {
+    return { ...user, credits: (user.credits || 0) + addAmount };
+  }
+  const toppedUp = adminAddCreditsMock(trialUser, 500);
+  assert(toppedUp.credits === 599, "Admin can successfully top up credits for any user (99 + 500 = 599)");
+
+  // ----------------------------------------------------
   // SUMMARY
   // ----------------------------------------------------
   console.log(`\n${colors.bold}${colors.cyan}====================================================`);

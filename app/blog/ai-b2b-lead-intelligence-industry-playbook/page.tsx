@@ -384,7 +384,7 @@ export default function IndustryBlogArticlePage() {
                   Test With Zero Risk
                 </span>
                 <h3 className="text-lg font-bold text-white mt-1">
-                  Start Your 14-Day Free Trial Today
+                  Start Your 7-Day Free Trial (99 Credits) Today
                 </h3>
                 <p className="text-xs text-white/70 mt-1 max-w-sm">
                   Full access to verified B2B intelligence, algorithmic ICP scoring, and export tools.

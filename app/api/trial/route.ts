@@ -38,7 +38,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "14-day free trial activated! Check your email for login access.",
+      message: "7-day free trial activated with 99 credits! Check your email for login access.",
       lead: saved,
     });
   } catch (error) {

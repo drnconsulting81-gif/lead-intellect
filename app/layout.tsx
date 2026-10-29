@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "LeadIntellect | AI-Powered B2B Lead Intelligence",
     description:
-      "Discover, enrich, and prioritize verified B2B decision-makers with AI. 14-day free trial available.",
+      "Discover, enrich, and prioritize verified B2B decision-makers with AI. 7-day free trial providing 99 credits available.",
     images: ["https://lead-intellect.com/logo.png"],
   },
 };
@@ -109,7 +109,7 @@ const structuredData = {
         "@type": "Offer",
         price: "0",
         priceCurrency: "USD",
-        description: "14-Day Free Trial Available",
+        description: "7-Day Free Trial Providing 99 Credits",
       },
     },
     {
