@@ -197,27 +197,27 @@ export default function ResourcesPage() {
             </div>
           </div>
 
-          {/* Section 3: Master Database Collation & Integration */}
-          <div className="p-8 rounded-3xl bg-slate-50 border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
+          {/* Section 3: XMagnet 1-Million Global Partner Intelligence & Security */}
+          <div className="p-8 rounded-3xl bg-slate-900 text-white border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-1 text-xs font-bold text-teal-dark uppercase tracking-wider">
-                <Database className="w-3.5 h-3.5" />
-                Enterprise Database Architecture
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-teal uppercase tracking-wider">
+                <Database className="w-3.5 h-3.5 text-teal" />
+                <span>1,000,000+ Record Partner Intelligence Network</span>
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-navy">
-                Looking for the Unified Master Database Sheet?
+              <h3 className="text-lg sm:text-xl font-bold text-white">
+                Powered by XMagnet Global Data Partnership
               </h3>
-              <p className="text-xs text-text-muted max-w-xl leading-relaxed">
-                We have collated all 22 segregated spreadsheets and 299,880 rows into a clean, de-duplicated 51,578 record master dataset preserving all 37 metadata columns. Accessible via our CSV import and export modules.
+              <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+                LeadIntellect is integrated with XMagnet&apos;s 1-million record global B2B database. Sourced with real-time SMTP handshakes, multi-tier deliverability checking, and anti-scraping safeguards. Access is securely gated to verified subscribers.
               </p>
             </div>
             <div className="flex items-center gap-3 shrink-0">
               <Link
-                href="/dashboard"
-                className="px-5 py-2.5 rounded-xl bg-navy text-white hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+                href="/pricing"
+                className="px-5 py-2.5 rounded-xl bg-teal text-navy hover:bg-teal-dark hover:text-white text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md"
               >
-                <FileSpreadsheet className="w-3.5 h-3.5" />
-                <span>Open in Workspace</span>
+                <span>View Plans &amp; Activate Access</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           </div>

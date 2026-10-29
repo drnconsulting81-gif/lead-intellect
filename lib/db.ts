@@ -35,10 +35,14 @@ export interface UserRecord {
   title?: string;
   company?: string;
   password?: string;
-  provider: "email" | "google" | "github" | "microsoft";
+  provider: "email" | "google" | "github" | "microsoft" | "executive";
   role?: "admin" | "user";
+  plan?: "basic" | "starter" | "growth" | "enterprise" | "free";
+  planStatus?: "active" | "inactive" | "cancelled";
   credits?: number;
   emailVerified?: boolean;
+  razorpayCustomerId?: string;
+  subscriptionExpiresAt?: string;
   createdAt: string;
 }
 
@@ -132,8 +136,19 @@ export interface OrderRecord {
   paymentStatus: PaymentStatus;
   paymentMethod: string;
   transactionId?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
   notes?: string;
   createdAt: string;
+}
+
+export function isUserOnPaidPlan(user?: Partial<UserRecord> | null): boolean {
+  if (!user) return false;
+  const email = (user.email || "").toLowerCase().trim();
+  if (user.role === "admin" || isCeoEmail(email)) return true;
+  if (!user.planStatus || user.planStatus !== "active") return false;
+  return user.plan === "basic" || user.plan === "starter" || user.plan === "growth" || user.plan === "enterprise";
 }
 
 interface DatabaseSchema {
@@ -391,6 +406,8 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
         if (u) {
           const role = isCeoEmail(u.email) ? "admin" : (u.role || "user");
           const credits = typeof u.credits === "number" ? u.credits : 99;
+          const plan = isCeoEmail(u.email) ? "enterprise" : (u.plan || "free");
+          const planStatus = isCeoEmail(u.email) ? "active" : (u.planStatus || "inactive");
           return {
             id: u.id,
             name: u.name,
@@ -400,6 +417,8 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
             password: u.password,
             provider: u.provider,
             role,
+            plan,
+            planStatus,
             credits,
             emailVerified: u.emailVerified ?? false,
             createdAt: u.createdAt,
@@ -417,6 +436,8 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
   if (found) {
     found.role = isCeoEmail(found.email) ? "admin" : (found.role || "user");
     found.credits = typeof found.credits === "number" ? found.credits : 99;
+    found.plan = isCeoEmail(found.email) ? "enterprise" : (found.plan || "free");
+    found.planStatus = isCeoEmail(found.email) ? "active" : (found.planStatus || "inactive");
     return found;
   }
   return null;
@@ -427,11 +448,15 @@ export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Prom
   const role = isCeoEmail(cleanEmail) ? "admin" : (user.role || "user");
   const credits = typeof user.credits === "number" ? user.credits : 99;
   const emailVerified = user.emailVerified ?? false;
+  const plan = isCeoEmail(cleanEmail) ? "enterprise" : (user.plan || "free");
+  const planStatus = isCeoEmail(cleanEmail) ? "active" : (user.planStatus || "inactive");
 
   const record: UserRecord = {
     ...user,
     email: cleanEmail,
     role,
+    plan,
+    planStatus,
     credits,
     emailVerified,
     id: "user_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
@@ -452,6 +477,8 @@ export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Prom
           if (user.name) updateFields.name = user.name;
           if (user.company) updateFields.company = user.company;
           if (user.title) updateFields.title = user.title;
+          if (user.plan) updateFields.plan = user.plan;
+          if (user.planStatus) updateFields.planStatus = user.planStatus;
 
           await db.collection<UserRecord>("users").updateOne(
             { email: cleanEmail },
@@ -459,6 +486,8 @@ export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Prom
           );
           existing.role = role;
           existing.credits = existing.credits ?? credits;
+          existing.plan = existing.plan || plan;
+          existing.planStatus = existing.planStatus || planStatus;
         } else {
           await db.collection<UserRecord>("users").insertOne({ ...record });
         }
@@ -479,6 +508,8 @@ export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Prom
     if (user.name) local.users[existingIndex].name = user.name;
     if (user.company) local.users[existingIndex].company = user.company;
     if (user.title) local.users[existingIndex].title = user.title;
+    if (user.plan) local.users[existingIndex].plan = user.plan;
+    if (user.planStatus) local.users[existingIndex].planStatus = user.planStatus;
     writeLocalDb(local);
   } else {
     local.users.unshift(record);
@@ -548,6 +579,8 @@ export async function getUsers(): Promise<UserRecord[]> {
           password: u.password,
           provider: u.provider,
           role: isCeoEmail(u.email) ? "admin" : (u.role || "user"),
+          plan: isCeoEmail(u.email) ? "enterprise" : (u.plan || "free"),
+          planStatus: isCeoEmail(u.email) ? "active" : (u.planStatus || "inactive"),
           credits: typeof u.credits === "number" ? u.credits : 99,
           emailVerified: u.emailVerified ?? false,
           createdAt: u.createdAt,
@@ -562,8 +595,101 @@ export async function getUsers(): Promise<UserRecord[]> {
   return local.users.map((u) => ({
     ...u,
     role: isCeoEmail(u.email) ? "admin" : (u.role || "user"),
+    plan: isCeoEmail(u.email) ? "enterprise" : (u.plan || "free"),
+    planStatus: isCeoEmail(u.email) ? "active" : (u.planStatus || "inactive"),
     credits: typeof u.credits === "number" ? u.credits : 99,
   }));
+}
+
+export async function updateUserPlan(
+  email: string,
+  plan: "basic" | "starter" | "growth" | "enterprise" | "free",
+  planStatus: "active" | "inactive" | "cancelled" = "active",
+  additionalCredits = 0
+): Promise<UserRecord | null> {
+  const cleanEmail = email.toLowerCase().trim();
+  const isCeo = isCeoEmail(cleanEmail);
+
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        const usersCol = db.collection<any>("users");
+        let u: any = await usersCol.findOne({ email: cleanEmail });
+        if (!u) {
+          const newUser: UserRecord = {
+            id: isCeo ? "usr_ceo_master" : "usr_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+            name: isCeo ? "DRN Consulting (CEO)" : cleanEmail.split("@")[0],
+            email: cleanEmail,
+            provider: "email",
+            role: isCeo ? "admin" : "user",
+            plan,
+            planStatus,
+            credits: additionalCredits,
+            createdAt: new Date().toISOString(),
+          };
+          await usersCol.insertOne(newUser);
+          u = newUser;
+        } else {
+          const newCredits = (typeof u.credits === "number" ? u.credits : 0) + additionalCredits;
+          await usersCol.updateOne(
+            { email: cleanEmail },
+            {
+              $set: {
+                plan,
+                planStatus,
+                credits: newCredits,
+                role: isCeo ? "admin" : (u.role || "user"),
+              },
+            }
+          );
+          u.plan = plan;
+          u.planStatus = planStatus;
+          u.credits = newCredits;
+        }
+
+        // Mirror locally
+        const local = readLocalDb();
+        const idx = local.users.findIndex((x) => x.email.toLowerCase() === cleanEmail);
+        if (idx !== -1) {
+          local.users[idx].plan = plan;
+          local.users[idx].planStatus = planStatus;
+          local.users[idx].credits = (local.users[idx].credits || 0) + additionalCredits;
+        } else {
+          local.users.unshift(u as UserRecord);
+        }
+        writeLocalDb(local);
+
+        return u as UserRecord;
+      }
+    } catch (err) {
+      console.warn("MongoDB updateUserPlan failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  let idx = local.users.findIndex((x) => x.email.toLowerCase() === cleanEmail);
+  if (idx === -1) {
+    const newUser: UserRecord = {
+      id: isCeo ? "usr_ceo_master" : "usr_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+      name: isCeo ? "DRN Consulting (CEO)" : cleanEmail.split("@")[0],
+      email: cleanEmail,
+      provider: "email",
+      role: isCeo ? "admin" : "user",
+      plan,
+      planStatus,
+      credits: additionalCredits,
+      createdAt: new Date().toISOString(),
+    };
+    local.users.unshift(newUser);
+    idx = 0;
+  } else {
+    local.users[idx].plan = plan;
+    local.users[idx].planStatus = planStatus;
+    local.users[idx].credits = (local.users[idx].credits || 0) + additionalCredits;
+  }
+  writeLocalDb(local);
+  return local.users[idx];
 }
 
 /* ----------------- CREDIT SYSTEM & LEDGER ----------------- */

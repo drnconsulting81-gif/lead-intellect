@@ -168,14 +168,14 @@ export default function TutorialsPage() {
                     <ExternalLink className="w-3.5 h-3.5 ml-auto opacity-80" />
                   </a>
 
-                  <a
-                    href="/demo/index.html"
-                    target="_blank"
-                    className="w-full py-2.5 px-4 rounded-xl border border-border hover:border-navy text-navy font-semibold text-xs text-center flex items-center justify-center gap-1.5 transition-colors"
+                  <button
+                    type="button"
+                    onClick={() => setDemoModalOpen(true)}
+                    className="w-full py-2.5 px-4 rounded-xl border border-border hover:border-navy text-navy font-semibold text-xs text-center flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <Download className="w-3.5 h-3.5 text-teal-dark" />
-                    <span>Download / View Video File</span>
-                  </a>
+                    <Play className="w-3.5 h-3.5 text-teal-dark" />
+                    <span>Launch Interactive Tour</span>
+                  </button>
                 </div>
               </div>
 

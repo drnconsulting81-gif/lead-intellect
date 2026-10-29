@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { deductUserCredit, findUserByEmail, hasUserRevealedProspect, isCeoEmail, saveUser } from "@/lib/db";
+import { deductUserCredit, findUserByEmail, hasUserRevealedProspect, isCeoEmail, isUserOnPaidPlan, saveUser } from "@/lib/db";
 import fs from "fs";
 import path from "path";
 
@@ -58,22 +58,24 @@ export async function POST(req: Request) {
     }
 
     if (!user) {
-      if (cleanEmail === "guest@leadintellect.ai" || cleanEmail.includes("@")) {
-        user = {
-          id: "usr_" + Date.now(),
-          name: "Workspace User",
-          email: cleanEmail,
-          provider: "email",
-          role: "user",
-          credits: 50,
-          createdAt: new Date().toISOString(),
-        };
-      } else {
-        return NextResponse.json(
-          { error: "Authorized user account not found. Please log in or register." },
-          { status: 401 }
-        );
-      }
+      return NextResponse.json(
+        { error: "Authorized user account not found. Please log in or register." },
+        { status: 401 }
+      );
+    }
+
+    // Enforce paid plan requirement to unlock contact intelligence
+    const isPaid = isUserOnPaidPlan(user);
+    if (!isPaid && !isCeo) {
+      return NextResponse.json(
+        {
+          error: "Database access locked. Revealing direct corporate emails and mobile lines requires an active paid subscription (Basic, Starter, or Growth). Please upgrade your plan to unlock.",
+          paymentRequired: true,
+          insufficientCredits: true,
+          remainingCredits: user.credits || 0,
+        },
+        { status: 403 }
+      );
     }
 
     const targetId = String(prospectId);

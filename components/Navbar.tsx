@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { Menu, X, ChevronDown, BookOpen, Video, HelpCircle, Play, LayoutDashboard, Coins } from "lucide-react";
+import { Menu, X, ChevronDown, BookOpen, Video, HelpCircle, Play, LayoutDashboard, Coins, LogOut } from "lucide-react";
 import Logo from "./Logo";
 
 export default function Navbar() {
@@ -12,6 +12,15 @@ export default function Navbar() {
   const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleSignOut = () => {
+    try {
+      localStorage.removeItem("leadintellect_user");
+      window.dispatchEvent(new Event("storage"));
+    } catch {}
+    setCurrentUser(null);
+    window.location.href = "/login";
+  };
 
   useEffect(() => {
     try {
@@ -189,6 +198,15 @@ export default function Navbar() {
                 <LayoutDashboard className="w-3.5 h-3.5" />
                 <span>Open Workspace</span>
               </Link>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="text-xs font-semibold text-slate-500 hover:text-rose-600 px-3 py-2 rounded-xl hover:bg-rose-50 border border-slate-200 hover:border-rose-200 transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Sign out of current account"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
+              </button>
             </>
           ) : (
             <>
@@ -307,22 +325,38 @@ export default function Navbar() {
             >
               Contact
             </Link>
-            <Link
-              href="/login"
-              onClick={() => setOpen(false)}
-              className="py-2.5 text-sm font-medium text-navy border-b border-border/60"
-            >
-              Login
-            </Link>
+            {!currentUser && (
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="py-2.5 text-sm font-medium text-navy border-b border-border/60"
+              >
+                Login
+              </Link>
+            )}
 
             <div className="pt-4 flex flex-col gap-2.5">
-              <Link
-                href="/book-demo"
-                onClick={() => setOpen(false)}
-                className="text-center text-sm font-bold text-white bg-navy px-4 py-2.5 rounded-xl hover:bg-slate-800 transition-all shadow-xs"
-              >
-                Book a Demo
-              </Link>
+              {currentUser ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    handleSignOut();
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center justify-center gap-1.5 border border-rose-200 cursor-pointer transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out ({currentUser.name || currentUser.email})</span>
+                </button>
+              ) : (
+                <Link
+                  href="/book-demo"
+                  onClick={() => setOpen(false)}
+                  className="text-center text-sm font-bold text-white bg-navy px-4 py-2.5 rounded-xl hover:bg-slate-800 transition-all shadow-xs"
+                >
+                  Book a Demo
+                </Link>
+              )}
             </div>
           </div>
         </div>

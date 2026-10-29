@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { getProspectIntentSignal, type IntentSignal } from "@/lib/intent";
+import { findUserByEmail, isUserOnPaidPlan, isCeoEmail } from "@/lib/db";
 
 export interface Prospect {
   id: string;
@@ -335,24 +336,41 @@ export async function GET(req: Request) {
       return 0;
     });
 
+    // Check subscription status to enforce anti-scraping and database security
+    const userEmail = (searchParams.get("userEmail") || "").toLowerCase().trim();
+    const user = userEmail ? await findUserByEmail(userEmail) : null;
+    const isPaidUser = isUserOnPaidPlan(user) || isCeoEmail(userEmail);
+
     const total = filtered.length;
-    const totalPages = Math.ceil(total / limit) || 1;
-    const startIndex = (page - 1) * limit;
-    const paginated = filtered.slice(startIndex, startIndex + limit);
+    // For unpaid evaluation users, cap page results to 10 to prevent bulk scraping
+    const effectiveLimit = isPaidUser ? limit : Math.min(limit, 10);
+    const totalPages = Math.ceil(total / effectiveLimit) || 1;
+    const startIndex = (page - 1) * effectiveLimit;
+    const paginated = filtered.slice(startIndex, startIndex + effectiveLimit);
 
-    // Attach verified intent signal to each prospect
-    const prospectsWithIntent = paginated.map((p) => ({
-      ...p,
-      intentSignal: getProspectIntentSignal(p),
-    }));
-
-    // Mask direct email and phone numbers in list view to protect data and prevent unauthorized scraping
-    const maskedProspects = paginated.map((p) => ({
-      ...p,
-      email: maskEmail(p.email),
-      phone: maskPhone(p.phone),
-      isRevealed: false,
-    }));
+    // If paid subscriber or CEO, return unmasked contact intelligence with intent
+    // If unpaid, strictly mask emails and phones and flag database as locked
+    const returnedProspects = paginated.map((p) => {
+      const intent = getProspectIntentSignal(p);
+      if (isPaidUser) {
+        return {
+          ...p,
+          intentSignal: intent,
+          isRevealed: true,
+          isLocked: false,
+        };
+      }
+      return {
+        ...p,
+        email: maskEmail(p.email),
+        phone: maskPhone(p.phone),
+        directPhone: p.directPhone ? "+1 (•••) •••-••••" : undefined,
+        mobilePhone: p.mobilePhone ? "+1 (•••) •••-••••" : undefined,
+        intentSignal: intent,
+        isRevealed: false,
+        isLocked: true,
+      };
+    });
 
     // Aggregations
     const totalTier1 = filtered.filter((p) => p.icpScore >= 85).length;
@@ -399,12 +417,17 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       success: true,
-      prospects: prospectsWithIntent,
+      prospects: returnedProspects,
+      isPaidSubscriber: isPaidUser,
+      databaseLocked: !isPaidUser,
+      securityMessage: isPaidUser
+        ? "Active verified subscription: full database access granted."
+        : "Preview mode: emails & direct dials are masked. Upgrade plan to unlock verified contacts and exports.",
       interpretedCriteria,
       pagination: {
         total,
         page,
-        limit,
+        limit: effectiveLimit,
         totalPages,
       },
       stats: {

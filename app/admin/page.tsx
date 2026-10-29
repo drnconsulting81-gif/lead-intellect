@@ -68,6 +68,10 @@ interface RegisteredUser {
   title?: string;
   company?: string;
   provider: string;
+  role?: "admin" | "user";
+  plan?: "basic" | "starter" | "growth" | "enterprise" | "free";
+  planStatus?: "active" | "inactive" | "cancelled";
+  credits?: number;
   createdAt: string;
 }
 
@@ -84,6 +88,8 @@ interface Order {
   paymentStatus: "paid" | "pending" | "failed" | "refunded";
   paymentMethod: string;
   transactionId?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
   notes?: string;
   createdAt: string;
 }
@@ -272,6 +278,25 @@ interface EmailLog {
   const [diagnostics, setDiagnostics] = useState<DbDiagnostics | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const handleUpdateUserPlan = async (
+    email: string,
+    plan: "basic" | "starter" | "growth" | "enterprise" | "free",
+    credits?: number
+  ) => {
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, plan, planStatus: "active", credits }),
+      });
+      if (res.ok) {
+        fetchData();
+      }
+    } catch (err) {
+      console.error("Failed to update user plan:", err);
+    }
+  };
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Order modal state
@@ -1182,16 +1207,18 @@ interface EmailLog {
                     <tr>
                       <th className="p-4">User</th>
                       <th className="p-4">Work Email</th>
+                      <th className="p-4">Plan &amp; Status</th>
+                      <th className="p-4">Credits</th>
                       <th className="p-4">Company &amp; Title</th>
                       <th className="p-4">Auth Provider</th>
                       <th className="p-4">Joined Date</th>
-                      <th className="p-4 text-right">Actions</th>
+                      <th className="p-4 text-right">Quick Upgrade</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {filteredUsers.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="text-center py-12 text-text-muted">
+                        <td colSpan={8} className="text-center py-12 text-text-muted">
                           No registered users found. Users appear here when someone signs up or logs into your platform.
                         </td>
                       </tr>
@@ -1199,7 +1226,14 @@ interface EmailLog {
                       filteredUsers.map((u) => (
                         <tr key={u.id} className="hover:bg-surface/60 transition-colors">
                           <td className="p-4">
-                            <div className="font-bold text-navy">{u.name}</div>
+                            <div className="font-bold text-navy flex items-center gap-1.5">
+                              <span>{u.name}</span>
+                              {u.role === "admin" && (
+                                <span className="text-[9px] bg-navy text-teal px-1.5 py-0.5 rounded font-extrabold uppercase">
+                                  CEO
+                                </span>
+                              )}
+                            </div>
                             <div className="text-[10px] text-text-muted font-mono">{u.id}</div>
                           </td>
                           <td className="p-4">
@@ -1210,6 +1244,29 @@ interface EmailLog {
                               <Mail className="w-3.5 h-3.5" />
                               {u.email}
                             </a>
+                          </td>
+                          <td className="p-4">
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase ${
+                                u.plan === "growth"
+                                  ? "bg-blue-50 text-blue-700 border-blue-300"
+                                  : u.plan === "starter"
+                                  ? "bg-teal/15 text-teal-dark border-teal/30"
+                                  : u.plan === "basic"
+                                  ? "bg-amber-50 text-amber-700 border-amber-300"
+                                  : u.plan === "enterprise"
+                                  ? "bg-purple-50 text-purple-700 border-purple-300"
+                                  : "bg-slate-100 text-slate-600 border-slate-300"
+                              }`}
+                            >
+                              {u.plan ? `${u.plan.toUpperCase()} (${u.planStatus || "active"})` : "FREE TRIAL"}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <div className="font-bold text-navy flex items-center gap-1">
+                              <Zap className="w-3.5 h-3.5 text-teal-dark" />
+                              <span>{typeof u.credits === "number" ? u.credits.toLocaleString() : "99"}</span>
+                            </div>
                           </td>
                           <td className="p-4">
                             <div className="font-semibold text-navy flex items-center gap-1">
@@ -1249,13 +1306,23 @@ interface EmailLog {
                             </div>
                           </td>
                           <td className="p-4 text-right">
-                            <a
-                              href={`mailto:${u.email}?subject=Welcome%20to%20LeadIntellect`}
-                              className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border border-border hover:bg-surface text-navy hover:text-teal-dark transition-colors"
+                            <select
+                              value={u.plan || "free"}
+                              onChange={(e) =>
+                                handleUpdateUserPlan(
+                                  u.email,
+                                  e.target.value as "basic" | "starter" | "growth" | "enterprise" | "free",
+                                  e.target.value === "growth" ? 200 : e.target.value === "starter" ? 100 : e.target.value === "basic" ? 50 : 25
+                                )
+                              }
+                              className="text-[11px] font-bold bg-surface border border-border rounded-lg px-2 py-1 text-navy cursor-pointer focus:outline-none focus:border-teal"
                             >
-                              <Mail className="w-3.5 h-3.5" />
-                              Contact
-                            </a>
+                              <option value="free">Free Trial (Locked DB)</option>
+                              <option value="basic">Upgrade to Basic ($10)</option>
+                              <option value="starter">Upgrade to Starter ($29)</option>
+                              <option value="growth">Upgrade to Growth ($85)</option>
+                              <option value="enterprise">Upgrade to Enterprise</option>
+                            </select>
                           </td>
                         </tr>
                       ))
@@ -1354,9 +1421,13 @@ interface EmailLog {
                           </td>
                           <td className="p-4">
                             <div className="font-medium text-navy">{order.paymentMethod}</div>
-                            {order.transactionId && (
+                            {order.razorpayPaymentId ? (
+                              <div className="text-[10px] font-mono text-emerald-600 font-bold">
+                                RZP: {order.razorpayPaymentId}
+                              </div>
+                            ) : order.transactionId ? (
                               <div className="text-[10px] font-mono text-text-muted">{order.transactionId}</div>
-                            )}
+                            ) : null}
                           </td>
                           <td className="p-4">
                             <select

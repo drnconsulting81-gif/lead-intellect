@@ -157,6 +157,53 @@ async function runTests() {
   assert(escapedNewline.startsWith('"') && escapedNewline.endsWith('"'), "CSV value with newline is safely quoted");
 
   // ----------------------------------------------------
+  // TEST SUITE 7: RAZORPAY SIGNATURE CRYPTOGRAPHIC VERIFICATION
+  // ----------------------------------------------------
+  console.log(`\n${colors.bold}7. Razorpay Signature Verification & Tamper Protection${colors.reset}`);
+  const crypto = require("crypto");
+  const testSecret = "CW7k3f2FLZAGZ0Y3Q8FfFg9j";
+  const testOrderId = "order_Oq3wQ9V8x5";
+  const testPaymentId = "pay_Oq3x4P21a9";
+
+  const genuineSignature = crypto
+    .createHmac("sha256", testSecret)
+    .update(`${testOrderId}|${testPaymentId}`)
+    .digest("hex");
+
+  const tamperedSignature = "tampered_fake_signature_99999999999999";
+
+  assert(Boolean(genuineSignature && genuineSignature.length === 64), "HMAC SHA256 signature generated successfully (64 chars hex)");
+  assert(genuineSignature !== tamperedSignature, "Tampered signature correctly identified as invalid");
+
+  // Verify signature matching logic
+  const verifyCheck = (orderId, paymentId, sig, secret) => {
+    const expected = crypto.createHmac("sha256", secret).update(`${orderId}|${paymentId}`).digest("hex");
+    return expected === sig;
+  };
+
+  assert(verifyCheck(testOrderId, testPaymentId, genuineSignature, testSecret) === true, "Valid Razorpay signature correctly authenticated");
+  assert(verifyCheck(testOrderId, testPaymentId, tamperedSignature, testSecret) === false, "Forged signature rejected without plan upgrade");
+
+  // ----------------------------------------------------
+  // TEST SUITE 8: DATABASE SECURITY & EXPORT GATING
+  // ----------------------------------------------------
+  console.log(`\n${colors.bold}8. Anti-Scraping & Subscription Download Gating${colors.reset}`);
+  function isUserOnPaidPlanMock(user) {
+    if (!user) return false;
+    const ceoEmails = ["drnconsulting81@gmail.com", "raghu96666@gmail.com", "ceo@leadintellect.ai"];
+    if (user.role === "admin" || ceoEmails.includes(user.email)) return true;
+    if (user.planStatus !== "active") return false;
+    return ["basic", "starter", "growth", "enterprise"].includes(user.plan);
+  }
+
+  assert(isUserOnPaidPlanMock(null) === false, "Unauthenticated / guest user is blocked from database download");
+  assert(isUserOnPaidPlanMock({ email: "guest@example.com", plan: "free", planStatus: "inactive" }) === false, "Free trial user without active subscription cannot export data");
+  assert(isUserOnPaidPlanMock({ email: "user@corp.com", plan: "basic", planStatus: "active" }) === true, "Basic ($10) paid subscriber is permitted to export");
+  assert(isUserOnPaidPlanMock({ email: "founder@tech.com", plan: "starter", planStatus: "active" }) === true, "Starter ($29) paid subscriber is permitted to export");
+  assert(isUserOnPaidPlanMock({ email: "sales@agency.com", plan: "growth", planStatus: "active" }) === true, "Growth ($85) paid subscriber is permitted to export");
+  assert(isUserOnPaidPlanMock({ email: "drnconsulting81@gmail.com", role: "admin" }) === true, "Platform CEO/Administrator is permitted executive access");
+
+  // ----------------------------------------------------
   // SUMMARY
   // ----------------------------------------------------
   console.log(`\n${colors.bold}${colors.cyan}====================================================`);

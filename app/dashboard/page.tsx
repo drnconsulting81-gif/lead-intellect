@@ -712,6 +712,15 @@ export default function LeadIntellectWorkspace() {
     });
   }, []);
 
+  // Handle user sign out cleanly
+  const handleSignOut = () => {
+    try {
+      localStorage.removeItem("leadintellect_user");
+      window.dispatchEvent(new Event("storage"));
+    } catch {}
+    window.location.href = "/login";
+  };
+
   // Fetch Lists
   const fetchLists = useCallback(async () => {
     try {
@@ -735,6 +744,7 @@ export default function LeadIntellectWorkspace() {
       });
       if (discoverMode === "people") {
         const params = new URLSearchParams();
+        if (currentUser?.email) params.set("userEmail", currentUser.email);
         if (query) params.set("query", query);
         if (seniority.length > 0) params.set("seniority", seniority.join(","));
         if (titleFilter) params.set("title", titleFilter);
@@ -879,7 +889,12 @@ export default function LeadIntellectWorkspace() {
 
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.error || "Failed to reveal contact details.", "error");
+        if (data.paymentRequired) {
+          showToast("Reveal locked: Active subscription required. Redirecting to plans...", "error");
+          setTimeout(() => { window.location.href = "/pricing"; }, 1500);
+        } else {
+          showToast(data.error || "Failed to reveal contact details.", "error");
+        }
         return;
       }
 
@@ -1223,7 +1238,12 @@ export default function LeadIntellectWorkspace() {
         URL.revokeObjectURL(url);
         showToast(`Successfully exported ${idsToExport.length} prospects.`);
       } else {
-        showToast("Export failed: " + (data.error || "Server error"), "error");
+        if (data.paymentRequired) {
+          showToast("Export locked: Active subscription required. Redirecting to plans...", "error");
+          setTimeout(() => { window.location.href = "/pricing"; }, 1500);
+        } else {
+          showToast("Export failed: " + (data.error || "Server error"), "error");
+        }
       }
     } catch {
       showToast("Failed to export prospects.", "error");
@@ -1259,6 +1279,13 @@ export default function LeadIntellectWorkspace() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         showToast(`Successfully exported ${idsToExport.length} prospects.`);
+      } else {
+        if (data.paymentRequired) {
+          showToast("Export locked: Active subscription required. Redirecting to plans...", "error");
+          setTimeout(() => { window.location.href = "/pricing"; }, 1500);
+        } else {
+          showToast("Export failed: " + (data.error || "Server error"), "error");
+        }
       }
     } catch {
       showToast("Failed to export prospects.", "error");
@@ -2238,6 +2265,15 @@ export default function LeadIntellectWorkspace() {
           >
             {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : "U"}
           </div>
+
+          <button
+            type="button"
+            onClick={handleSignOut}
+            title="Sign Out of LeadIntellect"
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </aside>
 
@@ -2311,6 +2347,16 @@ export default function LeadIntellectWorkspace() {
             >
               Get More Credits
             </Link>
+
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="px-2.5 py-1 rounded-lg border border-slate-200 hover:border-rose-200 hover:bg-rose-50 text-slate-500 hover:text-rose-600 text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Sign out of LeadIntellect"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
           </div>
         </header>
 

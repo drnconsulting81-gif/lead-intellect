@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { logExport, deductUserCredit } from "@/lib/db";
+import { logExport, deductUserCredit, findUserByEmail, isUserOnPaidPlan, isCeoEmail } from "@/lib/db";
 import fs from "fs";
 import path from "path";
 
@@ -14,7 +14,32 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { userEmail, prospectIds, exportType = "people" } = body;
 
-    const email = userEmail || "guest@leadintellect.ai";
+    const cleanEmail = (userEmail || "").toLowerCase().trim();
+    if (!cleanEmail || cleanEmail === "guest@leadintellect.ai") {
+      return NextResponse.json(
+        {
+          error: "Authentication and an active subscription are required to download database records. Please sign in and upgrade your plan.",
+          paymentRequired: true,
+        },
+        { status: 401 }
+      );
+    }
+
+    // 1. Verify user's paid subscription status
+    const user = await findUserByEmail(cleanEmail);
+    const isPaid = isUserOnPaidPlan(user);
+    const isCeo = isCeoEmail(cleanEmail);
+
+    if (!isPaid && !isCeo) {
+      return NextResponse.json(
+        {
+          error: "Database download locked. Exporting contact records requires an active paid subscription (Basic, Starter, or Growth). Please upgrade your plan to unlock.",
+          paymentRequired: true,
+          currentPlan: user?.plan || "free",
+        },
+        { status: 403 }
+      );
+    }
 
     if (!Array.isArray(prospectIds) || prospectIds.length === 0) {
       return NextResponse.json(
@@ -25,14 +50,14 @@ export async function POST(req: Request) {
 
     // Server-side credit deduction (1 credit per export batch)
     const deduction = await deductUserCredit(
-      email,
+      cleanEmail,
       1,
       "export",
       `Exported ${prospectIds.length} records to CSV`,
       prospectIds.slice(0, 5).join(",")
     );
 
-    if (!deduction.success) {
+    if (!deduction.success && !isCeo) {
       return NextResponse.json(
         {
           error: "Insufficient credits to perform CSV export. Please upgrade your plan.",
@@ -128,7 +153,7 @@ export async function POST(req: Request) {
         escapeCsvValue(p.hqCountry || p.country),
         escapeCsvValue(p.ownership || "Private"),
         escapeCsvValue(p.companyLinkedin || p.linkedin || ""),
-        escapeCsvValue(email),
+        escapeCsvValue(cleanEmail),
         escapeCsvValue(p.facebookUrl || ""),
         escapeCsvValue(p.twitterUrl || ""),
       ];
@@ -139,7 +164,7 @@ export async function POST(req: Request) {
 
     // Log the export
     await logExport({
-      userEmail: email,
+      userEmail: cleanEmail,
       recordCount: selected.length,
       exportType,
       format: "csv",
