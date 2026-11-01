@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { getProspectIntentSignal, type IntentSignal } from "@/lib/intent";
+import { buildDeterministicSignalForProspect } from "@/lib/intent-store";
+import { interpretProspectingGoal } from "@/lib/orchestrator";
 import { findUserByEmail, isUserOnPaidPlan, isCeoEmail } from "@/lib/db";
 
 export interface Prospect {
@@ -164,9 +166,31 @@ export async function GET(req: Request) {
     const rawQuery = (searchParams.get("query") || "").trim();
     const isNaturalLang = searchParams.get("parseNatural") === "true";
     let interpretedCriteria: Record<string, string> | null = null;
+    let nlExplanation: string = "";
 
     if (isNaturalLang && rawQuery.length > 5) {
-      interpretedCriteria = parseNaturalLanguageQuery(rawQuery);
+      const parsed = interpretProspectingGoal(rawQuery);
+      nlExplanation = parsed.explanation;
+      interpretedCriteria = {};
+      if (parsed.targetSeniority) interpretedCriteria.seniority = parsed.targetSeniority;
+      if (parsed.targetIndustries && parsed.targetIndustries.length > 0) {
+        interpretedCriteria.industry = parsed.targetIndustries.join(",");
+      }
+      if (parsed.targetLocations && parsed.targetLocations.length > 0) {
+        interpretedCriteria.country = parsed.targetLocations[0];
+      }
+      if (parsed.employeeRanges && parsed.employeeRanges.length > 0) {
+        interpretedCriteria.employeeRange = parsed.employeeRanges.join(",");
+      }
+      if (parsed.intentCategories && parsed.intentCategories.length > 0) {
+        interpretedCriteria.intentCategory = parsed.intentCategories[0];
+      }
+      if (parsed.maxRecencyDays) {
+        interpretedCriteria.intentRecency = String(parsed.maxRecencyDays);
+      }
+      if (parsed.targetRoles && parsed.targetRoles.length > 0) {
+        interpretedCriteria.title = parsed.targetRoles[0];
+      }
     }
 
     const query = rawQuery.toLowerCase();
@@ -181,7 +205,7 @@ export async function GET(req: Request) {
     const location = (searchParams.get("location") || "").toLowerCase().trim();
     const minScore = Number(searchParams.get("minScore")) || 0;
 
-    const title = (searchParams.get("title") || "").toLowerCase().trim();
+    const title = (searchParams.get("title") || interpretedCriteria?.title || "").toLowerCase().trim();
     const firstName = (searchParams.get("firstName") || "").toLowerCase().trim();
     const lastName = (searchParams.get("lastName") || "").toLowerCase().trim();
     const city = (searchParams.get("city") || "").toLowerCase().trim();
@@ -196,8 +220,8 @@ export async function GET(req: Request) {
     const phoneType = searchParams.get("phoneType") || "";
     const dataset = searchParams.get("dataset") || "";
     const datasetCategory = searchParams.get("datasetCategory") || "";
-    const intentCategory = searchParams.get("intentCategory") || "";
-    const intentRecency = searchParams.get("intentRecency") || "";
+    const intentCategory = searchParams.get("intentCategory") || interpretedCriteria?.intentCategory || "";
+    const intentRecency = searchParams.get("intentRecency") || interpretedCriteria?.intentRecency || "";
     const webPlatform = searchParams.get("webPlatform") || "";
 
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
@@ -424,6 +448,7 @@ export async function GET(req: Request) {
         ? "Active verified subscription: full database access granted."
         : "Preview mode: emails & direct dials are masked. Upgrade plan to unlock verified contacts and exports.",
       interpretedCriteria,
+      nlExplanation,
       pagination: {
         total,
         page,

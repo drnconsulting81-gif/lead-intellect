@@ -34,6 +34,11 @@ import {
   EyeOff,
   ArrowRight,
   LogOut,
+  BookOpen,
+  Target,
+  Award,
+  Sparkles,
+  Globe,
 } from "lucide-react";
 import Logo from "@/components/Logo";
 
@@ -126,7 +131,7 @@ function checkIsCeo(user: { email?: string; role?: string } | null | undefined):
 
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<
-    "users" | "orders" | "demos" | "trials" | "contacts" | "emails" | "settings"
+    "users" | "orders" | "demos" | "trials" | "contacts" | "emails" | "settings" | "playbook"
   >("users");
 
   const [authorized, setAuthorized] = useState<boolean | null>(() => {
@@ -1208,9 +1213,22 @@ interface EmailLog {
               <Database className="w-3.5 h-3.5" />
               <span>Database &amp; CRM Sync</span>
             </button>
+
+            <button
+              onClick={() => setActiveTab("playbook")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                activeTab === "playbook"
+                  ? "bg-navy text-teal shadow-xs"
+                  : "bg-white text-text-muted hover:text-navy border border-border"
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5 text-teal" />
+              <span>Sales &amp; Marketing Playbook</span>
+              <span className="bg-teal/20 text-teal-dark px-1.5 py-0.2 rounded text-[10px] font-extrabold uppercase">Demo Ready</span>
+            </button>
           </div>
 
-          {activeTab !== "settings" && (
+          {activeTab !== "settings" && activeTab !== "playbook" && (
             <button
               onClick={() => exportCsv(activeTab)}
               className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border border-border bg-white text-navy hover:border-navy transition-colors shrink-0 cursor-pointer shadow-xs"
@@ -1937,6 +1955,325 @@ interface EmailLog {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= TAB: SALES & MARKETING PLAYBOOK ================= */}
+        {activeTab === "playbook" && (
+          <div className="space-y-8 animate-in fade-in duration-150">
+            {/* Header Hero */}
+            <div className="rounded-3xl border border-border bg-gradient-to-r from-navy via-slate-900 to-navy text-white p-8 shadow-xl relative overflow-hidden">
+              <div className="max-w-3xl space-y-3 relative z-10">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal/20 text-teal font-extrabold text-[11px] uppercase tracking-wider border border-teal/30">
+                  <BookOpen className="w-3.5 h-3.5 text-teal" />
+                  <span>Internal Sales &amp; Marketing Master Playbook</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                  LeadIntellect Client Demo &amp; Commercial Closing Guide
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Use this playbook to train team members, onboard sales reps, conduct high-converting client product walkthroughs, and handle competitive objections against legacy data providers.
+                </p>
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        "“The future of B2B prospecting isn't finding more leads. It's knowing why now. LeadIntellect replaces stale cold lists with autonomous 7-agent buying intent radar, real-time SMTP verification, and explainable opportunity briefs that show your sales team the exact reason to reach out today.”"
+                      );
+                      alert("Copied 30-Second Elevator Pitch to clipboard!");
+                    }}
+                    className="px-4 py-2 rounded-xl bg-teal text-navy hover:bg-teal-dark hover:text-white font-extrabold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy 30s Elevator Pitch</span>
+                  </button>
+                  <Link
+                    href="/dashboard"
+                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-colors border border-white/20 flex items-center gap-1.5"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Open Live Discover Leads Demo</span>
+                  </Link>
+                </div>
+              </div>
+              <div className="absolute right-6 -bottom-10 opacity-10 pointer-events-none hidden lg:block">
+                <Logo size="lg" />
+              </div>
+            </div>
+
+            {/* 1. Value Proposition & Market Differentiation */}
+            <div className="rounded-3xl border border-border bg-white p-6 shadow-xs space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-border">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-teal/15 text-teal-dark flex items-center justify-center font-black text-sm">
+                    1
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-navy">Core Value Proposition &amp; Market Positioning</h2>
+                    <p className="text-xs text-text-muted">Why legacy databases fail and how LeadIntellect wins commercial deals.</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-teal/10 text-teal-dark uppercase tracking-wider">
+                  The "Why Now" Thesis
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div className="p-4 rounded-2xl bg-red-50/50 border border-red-200 space-y-2">
+                  <span className="font-extrabold text-red-700 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>The Broken Status Quo (Apollo, ZoomInfo, Scraping)</span>
+                  </span>
+                  <ul className="space-y-1.5 text-slate-600 list-disc list-inside leading-relaxed">
+                    <li>Static contact lists decay at 2.5% to 3% every month (30%+ annually).</li>
+                    <li>SDRs spray generic cold emails with 15%+ bounce rates, burning domain sender reputation.</li>
+                    <li>Zero context: Sales reps don&apos;t know why they are reaching out or what triggered the need.</li>
+                    <li>Opaque, black-box scores that reps don&apos;t trust and can&apos;t explain to prospects.</li>
+                  </ul>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 space-y-2">
+                  <span className="font-extrabold text-emerald-800 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>The LeadIntellect Advantage</span>
+                  </span>
+                  <ul className="space-y-1.5 text-slate-700 list-disc list-inside leading-relaxed">
+                    <li><strong>Evidence-Backed Triggers:</strong> 7 intent feeds (G2, Reddit, PR, Hiring, DNS, Leadership changes).</li>
+                    <li><strong>Server-Verified Accuracy:</strong> Real-time SMTP handshake ensures 98%+ inbox deliverability.</li>
+                    <li><strong>Explainable Opportunity Briefs:</strong> Sourced evidence, event dates, and copyable icebreakers.</li>
+                    <li><strong>Independent Transparent Scores:</strong> Separate ICP Fit, Intent, Confidence, and Freshness.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. The 7 Specialist Agents Demo Walkthrough */}
+            <div className="rounded-3xl border border-border bg-white p-6 shadow-xs space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-border">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-teal/15 text-teal-dark flex items-center justify-center font-black text-sm">
+                    2
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-navy">7 Specialist Agents — Client Talk Track</h2>
+                    <p className="text-xs text-text-muted">How to walk prospects through the autonomous multi-agent architecture.</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-navy text-teal uppercase tracking-wider">
+                  Autonomous Pipeline
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 text-xs">
+                {[
+                  {
+                    name: "1. Discovery Agent",
+                    icon: Search,
+                    tag: "Deterministic Filter",
+                    pitch: "We query 85,500+ verified master records using deterministic database constraints, matching your exact seniority, role, vertical, and employee size with zero AI hallucinations.",
+                  },
+                  {
+                    name: "2. Intent Agent",
+                    icon: Zap,
+                    tag: "7 Buying Channels",
+                    pitch: "Tracks real buying inflection points across G2 software comparisons, Reddit technical pain points, hiring surges, funding capital, DNS stack shifts, and executive appointments.",
+                  },
+                  {
+                    name: "3. Research Agent",
+                    icon: Globe,
+                    tag: "Evidence Synthesis",
+                    pitch: "Extracts supporting evidence quotes, publication dates, and original source URLs so your sales reps never have to spend 15 minutes manually researching on Google.",
+                  },
+                  {
+                    name: "4. Enrichment Agent",
+                    icon: Database,
+                    tag: "Contact Coordinates",
+                    pitch: "Reveals verified work emails, direct corporate lines, mobile numbers, and LinkedIn profile coordinates ready for immediate CRM sync or sequence enrollment.",
+                  },
+                  {
+                    name: "5. Qualification Agent",
+                    icon: Target,
+                    tag: "Transparent ICP Score",
+                    pitch: "Evaluates the account against your exact ICP on a 0-100 scale, displaying transparent matched criteria and any missing criteria so reps know the exact fit tier.",
+                  },
+                  {
+                    name: "6. Verification Agent",
+                    icon: ShieldCheck,
+                    tag: "SMTP Handshake",
+                    pitch: "Executes real-time server SMTP checks and line-type verification to guarantee zero bounce waste and protect your domain reputation from spam blacklists.",
+                  },
+                  {
+                    name: "7. Ranking Agent",
+                    icon: Award,
+                    tag: "Multi-Dimension Priority",
+                    pitch: "Ranks prospects across 4 independent dimensions: ICP Fit, Intent Relevance, Contact Confidence, and Signal Freshness, ensuring reps always contact the hottest accounts first.",
+                  },
+                ].map((agent, i) => (
+                  <div key={i} className="p-3.5 rounded-2xl bg-surface border border-border space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <agent.icon className="w-4 h-4 text-teal-dark" />
+                        <span className="font-extrabold text-navy text-xs">{agent.name}</span>
+                      </div>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white text-slate-600 border border-border">
+                        {agent.tag}
+                      </span>
+                    </div>
+                    <p className="text-text-muted leading-relaxed text-[11px]">{agent.pitch}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. The 6-Point Opportunity Brief Walkthrough */}
+            <div className="rounded-3xl border border-border bg-white p-6 shadow-xs space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-border">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-teal/15 text-teal-dark flex items-center justify-center font-black text-sm">
+                    3
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-navy">The 6-Point Opportunity Brief (Demo Script)</h2>
+                    <p className="text-xs text-text-muted">The centerpiece of every sales demo: Click on any prospect row to show this brief.</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-teal/10 text-teal-dark uppercase tracking-wider">
+                  Key Demo Hook
+                </span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-teal/5 border border-teal/30 space-y-3 text-xs">
+                <h3 className="font-extrabold text-navy text-xs uppercase tracking-wider flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-teal-dark" />
+                  <span>Presenter Script for Live Client Screen Share:</span>
+                </h3>
+                <div className="space-y-2 text-slate-700 italic bg-white p-4 rounded-xl border border-border leading-relaxed">
+                  <p>&ldquo;Notice how every single prospect in LeadIntellect doesn&apos;t just give you a name and email. We generate an Explainable Opportunity Brief with 6 critical insights:</p>
+                  <ul className="list-disc list-inside space-y-1 not-italic pt-1 font-medium text-navy text-[11px]">
+                    <li><strong>WHO:</strong> We confirm their exact authority and budget oversight over the department.</li>
+                    <li><strong>WHY:</strong> We identify why this company needs our solution right now based on active commercial triggers.</li>
+                    <li><strong>SIGNAL:</strong> We show the exact verified event, publication timestamp, and source link.</li>
+                    <li><strong>PAIN:</strong> We articulate the high-probability operational bottleneck caused by this change.</li>
+                    <li><strong>FIT:</strong> We display the transparent 0-100 ICP fit score with matched vs. missing criteria.</li>
+                    <li><strong>NEXT:</strong> We provide an actionable next step and a ready-to-send AI icebreaker grounded in truth.&rdquo;</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Pricing & Plans Objection Handling Matrix */}
+            <div className="rounded-3xl border border-border bg-white p-6 shadow-xs space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-border">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-teal/15 text-teal-dark flex items-center justify-center font-black text-sm">
+                    4
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-navy">Pricing Strategy &amp; Objection Handling Matrix</h2>
+                    <p className="text-xs text-text-muted">Defensible responses to common buyer objections.</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-navy text-teal uppercase tracking-wider">
+                  Commercial Answers
+                </span>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                {[
+                  {
+                    q: "“We already have Apollo or ZoomInfo. Why would we switch or add LeadIntellect?”",
+                    a: "Apollo and ZoomInfo are excellent contact directories, but their data decays rapidly and sales reps spend hours manually researching LinkedIn and Google to find a reason to reach out. LeadIntellect monitors 7 live web intent channels (G2, Reddit, hiring surges, funding, DNS stack migrations) and hands your reps the exact evidence-backed reason to contact the right buyer today. Many of our customers use LeadIntellect as their intelligence engine to identify who to target first, increasing response rates by up to 3.8x.",
+                  },
+                  {
+                    q: "“How do you guarantee that emails won't bounce?”",
+                    a: "Unlike scrapers that guess email syntaxes, LeadIntellect executes real-time server SMTP handshakes and MX record verification. We classify emails into Verified, Deliverable, or Unavailable, ensuring your domain sender reputation is completely protected with 98%+ deliverability.",
+                  },
+                  {
+                    q: "“How does your free trial work?”",
+                    a: "Every new user receives a full 7-day free trial provisioned with 99 credits. They can explore the entire 85,500+ database, run AI Orchestrator queries, reveal verified contacts, and inspect opportunity briefs with zero credit card required.",
+                  },
+                  {
+                    q: "“What are the subscription tiers?”",
+                    a: "We offer 4 transparent tiers: Basic (Pilot) at $5/mo (50 credits), Starter at $29/mo (100 credits, 2 mailboxes, 2 NextGen domains), Growth at $79/mo (200 credits, 5 mailboxes, 5 NextGen domains), and custom Enterprise volume pricing with dedicated IPs and custom outbound volume.",
+                  },
+                ].map((obj, i) => (
+                  <div key={i} className="p-4 rounded-2xl bg-surface border border-border space-y-1.5">
+                    <div className="font-extrabold text-navy text-xs flex items-center gap-2">
+                      <span className="text-teal-dark font-black">Q{i + 1}:</span>
+                      <span>{obj.q}</span>
+                    </div>
+                    <p className="text-text-muted text-[11px] leading-relaxed pl-5">{obj.a}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 5. 1-Click Copy Outbound Cold Scripts */}
+            <div className="rounded-3xl border border-border bg-white p-6 shadow-xs space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-border">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-teal/15 text-teal-dark flex items-center justify-center font-black text-sm">
+                    5
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-navy">Ready-to-Use Outbound Sales Scripts (1-Click Copy)</h2>
+                    <p className="text-xs text-text-muted">High-converting cold email and phone scripts tailored to each buying trigger.</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-teal/10 text-teal-dark uppercase tracking-wider">
+                  Outreach Templates
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                {[
+                  {
+                    title: "Trigger: Executive New-in-Role (<90 Days)",
+                    subject: "Quick question regarding {{company}}'s technology roadmap",
+                    body: "Hi {{firstName}},\n\nCongratulations on your recent transition to {{title}} at {{company}}! As you establish your team's top priorities for this quarter, I wanted to connect regarding how similar {{industry}} leaders accelerate pipeline without manual data decay.\n\nWe provide server-verified B2B sales intelligence that identifies high-intent accounts with 98%+ deliverability.\n\nWould you have 10 minutes next Tuesday for a brief intro call?\n\nBest regards,\n[Your Name]",
+                  },
+                  {
+                    title: "Trigger: Departmental Hiring & Headcount Growth",
+                    subject: "Scaling {{company}}'s {{industry}} outbound team",
+                    body: "Hi {{firstName}},\n\nNoticed {{company}} has been actively expanding headcount across {{industry}}. As you bring on new reps, ensuring they have immediate access to verified decision-maker contacts with buying intent is critical to hitting ramp targets.\n\nWe help fast-growing teams ramp new sales hires 50% faster with real-time intent triggers.\n\nWould you be open to seeing a 3-minute walkthrough for your target accounts?\n\nBest regards,\n[Your Name]",
+                  },
+                  {
+                    title: "Trigger: G2 In-Market Buyer Evaluation",
+                    subject: "Benchmarking {{industry}} software capabilities",
+                    body: "Hi {{firstName}},\n\nNoticed teams in your vertical have been actively evaluating and benchmarking modern {{industry}} platforms on G2 recently. What key capability benchmarks or data accuracy standards are you prioritizing for your stack this quarter?\n\nWe built LeadIntellect specifically to eliminate high email bounce rates and provide explainable opportunity briefs before your reps reach out.\n\nDo you have 5 minutes this week for a brief conversation?\n\nBest regards,\n[Your Name]",
+                  },
+                  {
+                    title: "Trigger: Technographic DNS & Stack Shift",
+                    subject: "Quick question regarding {{company}}'s recent infrastructure updates",
+                    body: "Hi {{firstName}},\n\nSaw {{company}} recently modernized its core technology infrastructure. We specifically built our integration to sync verified prospect intelligence directly into modern CRM and marketing automation stacks without duplicate manual entry.\n\nWould you have 10 minutes next week to explore how we streamline verified contact workflows for teams like yours?\n\nBest regards,\n[Your Name]",
+                  },
+                ].map((script, i) => (
+                  <div key={i} className="p-4 rounded-2xl bg-surface border border-border space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-navy text-xs">{script.title}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`Subject: ${script.subject}\n\n${script.body}`);
+                          alert("Copied sales template to clipboard!");
+                        }}
+                        className="text-[10px] font-bold text-teal-dark hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>Copy Script</span>
+                      </button>
+                    </div>
+                    <div className="text-[11px] font-semibold text-slate-700 bg-white p-2 rounded-lg border border-border">
+                      <span className="text-text-muted">Subject: </span>{script.subject}
+                    </div>
+                    <pre className="text-[10px] text-slate-600 bg-white p-3 rounded-lg border border-border whitespace-pre-wrap font-sans leading-relaxed">
+                      {script.body}
+                    </pre>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

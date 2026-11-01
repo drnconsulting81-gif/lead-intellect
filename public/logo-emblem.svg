@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="purpleGradient" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#6D28D9"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Purple Rounded Squircle Emblem Base -->
+  <rect x="4" y="8" width="48" height="48" rx="16" fill="url(#purpleGradient)" filter="url(#glow)"/>
+
+  <!-- Database Stack (3 White Cylinders) -->
+  <g stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Top Cylinder Top Ellipse -->
+    <ellipse cx="28" cy="22" rx="12" ry="4"/>
+    
+    <!-- Middle Cylinder Curve -->
+    <path d="M16 27 C16 31, 40 31, 40 27"/>
+    
+    <!-- Bottom Cylinder Base -->
+    <path d="M16 32 C16 36, 40 36, 40 32"/>
+    <path d="M16 37 C16 41, 40 41, 40 37"/>
+    <path d="M16 22 L16 37"/>
+    <path d="M40 22 L40 37"/>
+  </g>
+
+  <!-- Cyan/Teal Live Intelligence Notification Dot at Top Right -->
+  <circle cx="50" cy="14" r="5.5" fill="#2DD4BF" stroke="#FFFFFF" stroke-width="2"/>
+</svg>

@@ -6,12 +6,12 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { email, password, provider, name } = body;
 
-    // 1. Social Provider Authentication (Google, Microsoft, GitHub)
-    if (provider === "google" || provider === "github" || provider === "microsoft") {
+    // 1. Social Provider Authentication (Google, Microsoft, GitHub, Apple, Organization SSO)
+    if (provider === "google" || provider === "github" || provider === "microsoft" || provider === "apple" || provider === "organization") {
       const cleanEmail = (email || "").toLowerCase().trim();
       if (!cleanEmail || !cleanEmail.includes("@")) {
         return NextResponse.json(
-          { error: "A valid Google / work email address is required." },
+          { error: "A valid corporate or work email address is required." },
           { status: 400 }
         );
       }

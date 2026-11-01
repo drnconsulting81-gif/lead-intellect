@@ -10,6 +10,9 @@ import {
   RotateCcw,
   User,
   ArrowRight,
+  HelpCircle,
+  MessageSquare,
+  Zap,
 } from "lucide-react";
 
 interface Message {
@@ -17,7 +20,7 @@ interface Message {
   sender: "bot" | "user";
   text: string;
   action?: {
-    type: "trial" | "demo";
+    type: "trial" | "demo" | "pricing" | "contact" | "article";
     label: string;
     href: string;
   };
@@ -33,118 +36,112 @@ const initialMessages: Message[] = [
   {
     id: "welcome",
     sender: "bot",
-    text: "👋 Hi there! I'm the **LeadIntellect AI Assistant**. I can help you discover how our platform finds the right accounts, scores ICP fit, enriches verified contacts, or help you get started with a free trial.",
+    text: "👋 Hi! I'm your **LeadIntellect Assistant**. Ask me anything about how we discover decision-makers, track intent signals, or verify deliverability. You can also pick a common question below!",
   },
 ];
 
-const quickSuggestions = [
-  "🎯 How does ICP scoring work?",
-  "🔍 How do you find decision-makers?",
-  "⚡ Which data providers do you use?",
-  "🛡️ Do you scrape LinkedIn?",
-  "🚀 How do I start a free trial?",
+const commonQuestions = [
+  { q: "💡 What is LeadIntellect?", topic: "overview" },
+  { q: "🚀 How does the 7-day free trial work?", topic: "trial" },
+  { q: "💳 What are your pricing plans?", topic: "pricing" },
+  { q: "⚡ What are intent signals?", topic: "intent" },
+  { q: "🛡️ How is contact data verified?", topic: "verification" },
+  { q: "📅 How do I schedule a demo?", topic: "demo" },
 ];
 
 function getBotResponse(input: string): { text: string; action?: Message["action"] } {
   const query = input.toLowerCase();
 
-  if (query.includes("icp") || query.includes("score") || query.includes("fit") || query.includes("tier")) {
+  // Overview / What is LeadIntellect
+  if (query.includes("what is") || query.includes("how does it work") || query.includes("overview") || query.includes("about")) {
     return {
-      text: "Our **ICP Scoring Framework** evaluates accounts from 0 to 100 based on your custom criteria:\n\n• **Company Fit**: Industry, employee headcount, annual revenue, and geography.\n• **Role Fit**: Seniority, functional ownership (e.g. CRO, VP BD).\n• **Context & Signals**: Tech stack, funding events, and growth triggers.\n\nAccounts are automatically grouped into **Tier 1 (High Priority)**, **Tier 2 (Moderate)**, and **Tier 3 (Nurture)** so your sales team always focuses on the highest-value opportunities first.",
+      text: "**LeadIntellect** is an AI-powered B2B sales intelligence and buyer intent platform.\n\nUnlike traditional static contact lists, LeadIntellect connects **who to contact** with **why to reach out now**—using real-time business signals (promotions, job changes, funding, tech stack shifts, and G2 buyer research) with verified emails and direct dials.",
       action: {
         type: "trial",
-        label: "Test ICP Scoring with Free Trial",
+        label: "Start 7-Day Free Trial (99 Credits)",
         href: "/start-trial",
       },
     };
   }
 
-  if (
-    query.includes("decision maker") ||
-    query.includes("decision-maker") ||
-    query.includes("contact") ||
-    query.includes("people") ||
-    query.includes("buyer") ||
-    query.includes("lead")
-  ) {
+  // Free Trial
+  if (query.includes("trial") || query.includes("free credits") || query.includes("99")) {
     return {
-      text: "LeadIntellect uses an intelligent AI Prospecting Agent. You can describe your target buyers in plain English (e.g., *'Find VPs of Growth in Series B healthcare SaaS in Europe'*).\n\nThe agent translates your prompt into structured searches, identifies exact decision-makers, and provides verified emails and direct dials.",
-      action: {
-        type: "demo",
-        label: "Book a Demo to See Prospecting",
-        href: "/book-demo",
-      },
-    };
-  }
-
-  if (
-    query.includes("provider") ||
-    query.includes("data") ||
-    query.includes("source") ||
-    query.includes("enrich")
-  ) {
-    return {
-      text: "LeadIntellect features a **provider-neutral data architecture**.\n\nOur system indexes verified B2B decision-maker records and transparently reports provenance, mailbox deliverability status, and MX check validity without locked-in proprietary vendor dependencies.",
-    };
-  }
-
-  if (query.includes("linkedin") || query.includes("scraping") || query.includes("compliance") || query.includes("ban")) {
-    return {
-      text: "🛡️ **LeadIntellect does NOT perform unauthorized LinkedIn scraping**.\n\nWe prioritize compliance and data safety. All discovery and enrichment rely strictly on authorized, reputable data providers and compliant APIs, protecting your company's domain and sender reputation.",
-    };
-  }
-
-  if (
-    query.includes("trial") ||
-    query.includes("free") ||
-    query.includes("pricing") ||
-    query.includes("cost") ||
-    query.includes("sign up") ||
-    query.includes("start")
-  ) {
-    return {
-      text: "You can **Start a Free Trial** immediately with full access to our AI search agent, ICP scoring sandbox, and enriched contact samples. No credit card is required to begin.",
+      text: "You can start a **7-Day Free Trial** instantly with **99 free prospecting credits** allocated to your workspace.\n\n• No credit card required to begin.\n• Search verified C-Suite, VP, and Director contacts.\n• Filter by industry, headcount, revenue, and buyer intent signals.\n• Unlock and export decision-maker emails & phone coordinates.",
       action: {
         type: "trial",
-        label: "Start Free Trial Now",
+        label: "Activate 7-Day Trial (99 Credits) →",
         href: "/start-trial",
       },
     };
   }
 
-  if (query.includes("demo") || query.includes("call") || query.includes("meeting")) {
+  // Pricing
+  if (query.includes("price") || query.includes("pricing") || query.includes("cost") || query.includes("plans") || query.includes("subscription")) {
     return {
-      text: "We'd love to give you a tailored walkthrough! Our product specialists will show you live search results for your exact Ideal Customer Profile (ICP).",
+      text: "Our subscription plans are transparent and predictable:\n\n• **Basic (Pilot)**: **$5/mo** (₹449) — 50 credits, 2,000 contacts, 1 mailbox.\n• **Starter**: **$29/mo** (₹2,499) — 100 credits/mo, 5,000 contacts, 2 mailboxes.\n• **Growth (Most Popular)**: **$79/mo** (₹6,799) — 200 credits/mo, 20,000 contacts, 5 mailboxes.\n• **Enterprise**: Custom high-volume credits & dedicated IPs.\n\nAll payments are securely processed via Razorpay with global card and multi-currency support.",
+      action: {
+        type: "pricing",
+        label: "View Pricing Plans →",
+        href: "/pricing",
+      },
+    };
+  }
+
+  // Intent Signals
+  if (query.includes("intent") || query.includes("signal") || query.includes("buying signal") || query.includes("recency") || query.includes("trigger")) {
+    return {
+      text: "**Intent Signals** help your sales team answer *'Why should I contact this prospect right now?'*\n\nLeadIntellect monitors 7 live signal categories:\n1. ⚡ **Job Changes & Leadership Appointments** (<90 days in role)\n2. 💼 **Recent Promotions**\n3. 👥 **Department Headcount & Hiring Surges**\n4. 🚀 **Funding & Capital Expansion**\n5. 🔧 **Technographic Stack & DNS Shifts**\n6. 📊 **G2.com In-Market Buyer Research**\n7. 💬 **Reddit & Quora Public Solution Inquiries**",
+      action: {
+        type: "article",
+        label: "Read: The Future of Prospecting Article",
+        href: "/blog/future-b2b-prospecting-isnt-finding-more-leads-its-why",
+      },
+    };
+  }
+
+  // Verification & Deliverability
+  if (query.includes("verify") || query.includes("verification") || query.includes("deliver") || query.includes("bounce") || query.includes("phone")) {
+    return {
+      text: "🛡️ **Zero-Decay Multi-Step Verification**:\n\n• Every email undergoes active MX record validation, SMTP handshake checks, and catch-all detection.\n• We strictly deliver **98%+ deliverability confidence** on verified records.\n• Phone numbers identify direct dials vs. corporate switchboards.\n• Unverified coordinates never consume paid reveal credits.",
+      action: {
+        type: "trial",
+        label: "Test Verification in Free Trial",
+        href: "/start-trial",
+      },
+    };
+  }
+
+  // Demo
+  if (query.includes("demo") || query.includes("walkthrough") || query.includes("meeting") || query.includes("call")) {
+    return {
+      text: "We'd love to give you a customized 1-on-1 walkthrough! Our product specialists will demonstrate real searches for your exact target accounts and ICP criteria.",
       action: {
         type: "demo",
-        label: "Book a Live Demo",
+        label: "Book a 15-Minute Live Demo →",
         href: "/book-demo",
       },
     };
   }
 
-  if (
-    query.includes("outreach") ||
-    query.includes("email") ||
-    query.includes("automate") ||
-    query.includes("sequence")
-  ) {
+  // Contact / Support
+  if (query.includes("contact") || query.includes("support") || query.includes("help") || query.includes("human") || query.includes("sales")) {
     return {
-      text: "LeadIntellect keeps humans in control! We generate contextual icebreakers, pain point summaries, and recommend the **Next Best Action**.\n\nYour sales reps review and approve outreach before sending, preventing robotic or generic spam.",
+      text: "You can reach our team anytime:\n\n• **Direct Email**: contact@leadintellect.ai\n• **Customer Support**: We respond within 2 business hours.\n• **Office Hours**: Monday–Friday, 9 AM – 6 PM EST.",
+      action: {
+        type: "contact",
+        label: "Open Contact Form",
+        href: "/contact",
+      },
     };
   }
 
-  if (query.includes("hello") || query.includes("hi") || query.includes("hey")) {
-    return {
-      text: "Hello! Welcome to LeadIntellect. What type of accounts or decision-makers are you looking to target this quarter?",
-    };
-  }
-
+  // Default Fallback
   return {
-    text: "LeadIntellect combines AI agent discovery, verified multi-source enrichment, and algorithmic ICP scoring (0-100) to help sales teams focus on buyers who actually convert.\n\nWould you like to explore how ICP scoring works, or test the platform with a free trial?",
+    text: "LeadIntellect combines AI agent discovery, verified multi-source enrichment, and algorithmic ICP scoring (0–100) to help sales teams focus on buyers who actually convert.\n\nWould you like to explore how ICP scoring works, or test the platform with a free trial?",
     action: {
       type: "trial",
-      label: "Start Free Trial",
+      label: "Start 7-Day Free Trial",
       href: "/start-trial",
     },
   };
@@ -182,233 +179,197 @@ export default function Chatbot() {
     };
 
     setMessages((prev) => [...prev, userMsg]);
-    if (!textToSend) setInputValue("");
+    setInputValue("");
     setIsTyping(true);
 
     setTimeout(() => {
-      const response = getBotResponse(text);
+      const resp = getBotResponse(text);
       const botMsg: Message = {
         id: nextMessageId("bot"),
         sender: "bot",
-        text: response.text,
-        action: response.action,
+        text: resp.text,
+        action: resp.action,
       };
       setMessages((prev) => [...prev, botMsg]);
       setIsTyping(false);
-    }, 600);
+    }, 450);
   };
 
   const handleReset = () => {
     setMessages(initialMessages);
-    setIsTyping(false);
-  };
-
-  const handleToggleOpen = () => {
-    setIsOpen((prev) => {
-      const next = !prev;
-      if (next) setHasUnread(false);
-      return next;
-    });
+    setInputValue("");
   };
 
   return (
-    <>
-      {/* Floating Launcher Button */}
-      <div className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end">
+    <div className="fixed bottom-6 right-6 z-50 font-sans">
+      {/* Floating Trigger Button */}
+      {!isOpen && (
         <button
-          onClick={handleToggleOpen}
-          aria-label={isOpen ? "Close AI Chatbot" : "Open AI Chatbot"}
-          className="relative group flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-navy text-teal shadow-[0_6px_20px_rgb(11,18,32,0.3)] border-2 border-teal/40 hover:border-teal hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal/20 cursor-pointer"
+          onClick={() => {
+            setIsOpen(true);
+            setHasUnread(false);
+          }}
+          className="relative group p-4 rounded-full bg-navy text-teal hover:bg-slate-900 shadow-2xl border border-teal/40 transition-all duration-300 hover:scale-105 cursor-pointer flex items-center justify-center"
+          aria-label="Open AI Assistant"
         >
-          {isOpen ? (
-            <X className="w-5 h-5 text-white" />
-          ) : (
-            <>
-              <Bot className="w-5 h-5 text-teal group-hover:rotate-6 transition-transform" />
-              {hasUnread && (
-                <span className="absolute top-0 right-0 flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal opacity-75" />
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-teal border-2 border-navy" />
-                </span>
-              )}
-            </>
-          )}
-        </button>
-      </div>
+          <Bot className="w-6 h-6 text-teal group-hover:rotate-6 transition-transform" />
+          <span className="sr-only">Open Chat Assistant</span>
 
-      {/* Chat Window Dialog (Compact Size) */}
+          {hasUnread && (
+            <span className="absolute -top-1 -right-1 flex h-4 w-4">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal opacity-75" />
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-teal-dark border-2 border-white" />
+            </span>
+          )}
+
+          <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-navy text-white text-xs px-3 py-1.5 rounded-xl whitespace-nowrap shadow-xl border border-teal/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none hidden sm:block">
+            Ask LeadIntellect AI &bull; Instant Answers
+          </div>
+        </button>
+      )}
+
+      {/* Chat Window */}
       {isOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="LeadIntellect AI Chatbot"
-          className="fixed bottom-20 right-3 sm:right-6 z-50 w-[calc(100vw-1.5rem)] sm:w-[350px] max-h-[72vh] h-[470px] bg-white rounded-2xl shadow-[0_20px_50px_-10px_rgba(11,18,32,0.35)] border border-border flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200 text-xs"
-        >
+        <div className="w-[360px] sm:w-[410px] h-[560px] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
           {/* Header */}
-          <div className="bg-navy px-3.5 py-2.5 text-white flex items-center justify-between border-b border-white/10 shrink-0">
+          <div className="bg-navy p-4 text-white flex items-center justify-between border-b border-teal/20">
             <div className="flex items-center gap-2.5">
-              <div className="relative w-7 h-7 rounded-lg bg-gradient-to-tr from-teal to-violet flex items-center justify-center text-navy shadow-inner">
-                <Bot className="w-4 h-4 text-navy" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-teal border border-navy" />
+              <div className="w-9 h-9 rounded-xl bg-teal/15 border border-teal/30 flex items-center justify-center text-teal">
+                <Bot className="w-5 h-5" />
               </div>
               <div>
-                <div className="flex items-center gap-1.5">
-                  <h3 className="text-xs font-bold text-white leading-tight">
-                    LeadIntellect AI
-                  </h3>
-                  <span className="text-[10px] bg-teal/20 text-teal px-1.5 py-0.5 rounded font-medium">
-                    Agent
-                  </span>
+                <div className="text-sm font-bold flex items-center gap-1.5 text-white">
+                  <span>LeadIntellect Assistant</span>
+                  <span className="w-2 h-2 rounded-full bg-teal animate-pulse" />
                 </div>
-                <p className="text-[11px] text-white/60 leading-tight">
-                  Always active &middot; B2B Intelligence
-                </p>
+                <div className="text-[10px] text-slate-300">
+                  Online &bull; Instant Product &amp; Sales Answers
+                </div>
               </div>
             </div>
 
             <div className="flex items-center gap-1">
               <button
                 onClick={handleReset}
-                title="Reset conversation"
-                aria-label="Reset conversation"
-                className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title="Restart conversation"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                title="Close chat"
-                aria-label="Close chat"
-                className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
           </div>
 
-          {/* Messages Container */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#fbfcfd]">
+          {/* Quick Common Question Pills */}
+          <div className="bg-slate-50 border-b border-slate-200 px-3 py-2 overflow-x-auto whitespace-nowrap scrollbar-none flex gap-1.5">
+            {commonQuestions.map((item, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleSend(item.q)}
+                className="inline-block text-[11px] font-medium px-2.5 py-1 rounded-full bg-white hover:bg-teal/10 hover:text-teal-dark border border-slate-200 text-slate-700 transition-colors cursor-pointer shrink-0 shadow-2xs"
+              >
+                {item.q}
+              </button>
+            ))}
+          </div>
+
+          {/* Messages Stream */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-slate-50/60 text-xs">
             {messages.map((m) => (
               <div
                 key={m.id}
-                className={`flex gap-2.5 ${m.sender === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex gap-2 ${
+                  m.sender === "user" ? "justify-end" : "justify-start"
+                }`}
               >
                 {m.sender === "bot" && (
-                  <div className="w-7 h-7 rounded-lg bg-navy flex items-center justify-center shrink-0 mt-1">
-                    <Sparkles className="w-3.5 h-3.5 text-teal" />
+                  <div className="w-7 h-7 rounded-lg bg-navy text-teal flex items-center justify-center shrink-0 mt-0.5">
+                    <Bot className="w-4 h-4" />
                   </div>
                 )}
 
-                <div className={`max-w-[85%] flex flex-col gap-2`}>
+                <div className="max-w-[85%] space-y-2">
                   <div
-                    className={`rounded-2xl px-4 py-3 text-xs sm:text-[13px] leading-relaxed whitespace-pre-line shadow-xs ${
+                    className={`p-3.5 rounded-2xl shadow-2xs leading-relaxed whitespace-pre-wrap ${
                       m.sender === "user"
-                        ? "bg-navy text-white rounded-br-xs ml-auto"
-                        : "bg-white text-navy border border-border/80 rounded-tl-xs shadow-[0_2px_8px_rgba(15,23,42,0.04)]"
+                        ? "bg-navy text-white rounded-br-xs"
+                        : "bg-white text-slate-800 border border-slate-200/80 rounded-bl-xs"
                     }`}
                   >
-                    {m.text.split("\n").map((line, lineIdx) => {
-                      const parts = line.split(/(\*\*.*?\*\*)/g);
-                      return (
-                        <span key={lineIdx} className="block">
-                          {parts.map((part, pIdx) => {
-                            if (part.startsWith("**") && part.endsWith("**")) {
-                              return (
-                                <strong key={pIdx} className="font-semibold text-navy">
-                                  {part.slice(2, -2)}
-                                </strong>
-                              );
-                            }
-                            return part;
-                          })}
-                        </span>
-                      );
-                    })}
+                    {m.text}
                   </div>
 
                   {m.action && (
-                    <Link
-                      href={m.action.href}
-                      onClick={() => setIsOpen(false)}
-                      className="inline-flex items-center gap-2 self-start text-xs font-semibold px-3 py-2 rounded-lg bg-teal text-navy hover:bg-teal-dark hover:text-white transition-colors shadow-xs"
-                    >
-                      {m.action.label}
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                    <div className="pt-1">
+                      <Link
+                        href={m.action.href}
+                        onClick={() => setIsOpen(false)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal text-navy hover:bg-teal-dark hover:text-white text-[11px] font-bold shadow-xs transition-colors"
+                      >
+                        <span>{m.action.label}</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
                   )}
                 </div>
 
                 {m.sender === "user" && (
-                  <div className="w-7 h-7 rounded-lg bg-surface border border-border flex items-center justify-center shrink-0 mt-1">
-                    <User className="w-3.5 h-3.5 text-text-muted" />
+                  <div className="w-7 h-7 rounded-lg bg-teal text-navy flex items-center justify-center shrink-0 mt-0.5 font-bold">
+                    <User className="w-4 h-4" />
                   </div>
                 )}
               </div>
             ))}
 
             {isTyping && (
-              <div className="flex gap-2.5 items-start">
-                <div className="w-7 h-7 rounded-lg bg-navy flex items-center justify-center shrink-0">
-                  <Sparkles className="w-3.5 h-3.5 text-teal" />
+              <div className="flex items-center gap-2 text-text-muted text-[11px]">
+                <div className="w-6 h-6 rounded-lg bg-navy text-teal flex items-center justify-center shrink-0">
+                  <Bot className="w-3.5 h-3.5" />
                 </div>
-                <div className="rounded-2xl rounded-tl-xs bg-white border border-border/80 px-4 py-3 shadow-xs flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse [animation-delay:200ms]" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse [animation-delay:400ms]" />
+                <div className="flex items-center gap-1 bg-white border border-slate-200 px-3 py-2 rounded-xl shadow-2xs">
+                  <span className="w-1.5 h-1.5 bg-teal rounded-full animate-bounce" />
+                  <span className="w-1.5 h-1.5 bg-teal rounded-full animate-bounce [animation-delay:0.2s]" />
+                  <span className="w-1.5 h-1.5 bg-teal rounded-full animate-bounce [animation-delay:0.4s]" />
                 </div>
               </div>
             )}
-
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick suggestions pills */}
-          <div className="px-3 pt-2 pb-1 bg-surface border-t border-border flex gap-1.5 overflow-x-auto no-scrollbar shrink-0">
-            {quickSuggestions.map((prompt) => (
-              <button
-                key={prompt}
-                onClick={() => handleSend(prompt)}
-                disabled={isTyping}
-                className="whitespace-nowrap text-[11px] font-medium bg-white hover:bg-white/80 hover:border-teal/40 text-text-muted hover:text-navy border border-border px-2.5 py-1 rounded-full transition-colors cursor-pointer shrink-0 disabled:opacity-50"
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
-
           {/* Input Footer */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSend();
-            }}
-            className="p-3 bg-white border-t border-border flex items-center gap-2 shrink-0"
-          >
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Ask about prospecting, ICP, trial..."
-              disabled={isTyping}
-              className="flex-1 bg-surface border border-border rounded-xl px-3.5 py-2 text-xs sm:text-sm text-navy placeholder:text-text-muted focus:outline-none focus:border-teal focus:ring-1 focus:ring-teal"
-            />
-            <button
-              type="submit"
-              disabled={!inputValue.trim() || isTyping}
-              aria-label="Send message"
-              className="w-9 h-9 rounded-xl bg-navy text-teal hover:bg-teal hover:text-navy disabled:opacity-40 disabled:hover:bg-navy disabled:hover:text-teal flex items-center justify-center transition-colors shrink-0 cursor-pointer"
+          <div className="p-3 bg-white border-t border-slate-200">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSend();
+              }}
+              className="flex items-center gap-2"
             >
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
-
-          <div className="bg-surface px-3 py-1.5 border-t border-border/50 text-[10px] text-text-muted text-center flex items-center justify-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-teal" />
-            LeadIntellect AI Intelligence Assistant &middot; Ready to help
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="Ask about pricing, free trial, or signals..."
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-navy placeholder:text-slate-400 focus:outline-none focus:border-teal"
+              />
+              <button
+                type="submit"
+                disabled={!inputValue.trim() || isTyping}
+                className="p-2.5 rounded-xl bg-navy text-teal hover:bg-teal hover:text-navy transition-colors disabled:opacity-40 cursor-pointer shrink-0"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

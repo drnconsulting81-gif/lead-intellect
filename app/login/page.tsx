@@ -4,131 +4,95 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
-  CheckCircle2,
-  Lock,
-  Mail,
-  Building,
-  User,
-  Briefcase,
-  ArrowRight,
-  ShieldCheck,
-  LogOut,
-  Sparkles,
-  Zap,
-  ExternalLink,
   Eye,
   EyeOff,
+  Key,
+  ExternalLink,
+  Check,
   AlertCircle,
   X,
+  Lock,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Logo from "@/components/Logo";
 
-interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  company?: string;
-  title?: string;
-  provider: string;
-  role?: "admin" | "user";
-  credits?: number;
-}
-
 export default function LoginPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<"login" | "signup">("login");
   const [loading, setLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  // Active user session detection
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      const stored = localStorage.getItem("leadintellect_user");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed && parsed.email) return parsed;
-      }
-    } catch {}
-    return null;
-  });
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Form states
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [name, setName] = useState("");
-  const [company, setCompany] = useState("");
-  const [title, setTitle] = useState("");
-  const [rememberMe, setRememberMe] = useState(true);
+  const [keepSignedIn, setKeepSignedIn] = useState(true);
 
-  // Google Modal State
-  const [googleModalOpen, setGoogleModalOpen] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState("");
-  const [googleName, setGoogleName] = useState("");
-  const [googleLoading, setGoogleLoading] = useState(false);
+  // Social Auth Modal (for email capture if not already typed)
+  const [socialModalProvider, setSocialModalProvider] = useState<
+    "google" | "microsoft" | "apple" | "organization" | null
+  >(null);
+  const [socialEmail, setSocialEmail] = useState("");
 
-  // Forgot password modal
+  // Forgot Password Modal
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSuccess, setForgotSuccess] = useState(false);
 
-  const handleLogout = () => {
-    localStorage.removeItem("leadintellect_user");
-    setCurrentUser(null);
-    setSuccessMsg("Signed out successfully. You can now log in with another account.");
-    setErrorMsg(null);
-    setPassword("");
-  };
+  // Check if already authenticated
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("leadintellect_user");
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u && u.email) {
+          router.push(u.role === "admin" ? "/admin" : "/dashboard");
+        }
+      }
+    } catch {}
+  }, [router]);
 
-  // Google Auth Trigger
-  const handleGoogleAuthClick = () => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
-    // Pre-fill if email already entered in form
-    if (email && email.includes("@")) {
-      setGoogleEmail(email);
-    }
-    setGoogleModalOpen(true);
-  };
 
-  // Execute Google Authentication with genuine email
-  const executeGoogleAuth = async (selectedEmail: string, selectedName?: string) => {
-    const cleanEmail = (selectedEmail || googleEmail).toLowerCase().trim();
+    const cleanEmail = email.toLowerCase().trim();
     if (!cleanEmail || !cleanEmail.includes("@")) {
-      setErrorMsg("Please enter a valid Google / work email address.");
+      setErrorMsg("Please enter a valid work email address.");
       return;
     }
 
-    setGoogleLoading(true);
+    if (!password) {
+      setErrorMsg("Please enter your password.");
+      return;
+    }
+
     setLoading(true);
-    setErrorMsg(null);
-    setSuccessMsg(null);
-
-    const displayName = selectedName || googleName || cleanEmail.split("@")[0].replace(/[._-]/g, " ");
-
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          provider: "google",
           email: cleanEmail,
-          name: displayName,
+          password,
+          provider: "email",
         }),
       });
 
       const data = await res.json();
       if (res.ok && data.user) {
-        localStorage.setItem("leadintellect_user", JSON.stringify(data.user));
-        setCurrentUser(data.user);
-        setGoogleModalOpen(false);
-        setSuccessMsg(`Welcome, ${data.user.name}! Authenticated via Google. Redirecting to your workspace...`);
-        
+        try {
+          if (keepSignedIn) {
+            localStorage.setItem("leadintellect_user", JSON.stringify(data.user));
+          } else {
+            sessionStorage.setItem("leadintellect_user", JSON.stringify(data.user));
+            localStorage.setItem("leadintellect_user", JSON.stringify(data.user));
+          }
+        } catch {}
+
+        setSuccessMsg("✓ Logged in successfully. Taking you to your workspace...");
         setTimeout(() => {
           if (data.user.role === "admin") {
             window.location.href = "/admin";
@@ -137,609 +101,386 @@ export default function LoginPage() {
           }
         }, 800);
       } else {
-        setErrorMsg(data.error || "Google authentication failed. Please try again.");
+        setErrorMsg(data.error || "Invalid email or password. Please try again.");
       }
     } catch {
-      setErrorMsg("Failed to connect to authentication server. Please retry.");
+      setErrorMsg("Connection error. Please try again.");
     } finally {
-      setGoogleLoading(false);
       setLoading(false);
     }
   };
 
-  // Email & Password Submit
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSocialClick = (
+    provider: "google" | "microsoft" | "apple" | "organization"
+  ) => {
+    setErrorMsg(null);
+    if (email && email.includes("@")) {
+      executeSocialAuth(provider, email);
+    } else {
+      setSocialEmail("");
+      setSocialModalProvider(provider);
+    }
+  };
+
+  const executeSocialAuth = async (
+    provider: "google" | "microsoft" | "apple" | "organization",
+    targetEmail: string
+  ) => {
+    const cleanEmail = targetEmail.toLowerCase().trim();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      setErrorMsg("Please provide a valid corporate email address.");
+      return;
+    }
+
     setLoading(true);
     setErrorMsg(null);
-    setSuccessMsg(null);
-
-    const cleanEmail = email.toLowerCase().trim();
-    const endpoint = tab === "login" ? "/api/auth/login" : "/api/auth/signup";
-    const payload =
-      tab === "login"
-        ? { email: cleanEmail, password, provider: "email" }
-        : {
-            name: name.trim() || cleanEmail.split("@")[0],
-            email: cleanEmail,
-            title: title.trim(),
-            company: company.trim(),
-            password,
-            provider: "email",
-          };
-
     try {
-      const res = await fetch(endpoint, {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          provider,
+          email: cleanEmail,
+          name: cleanEmail.split("@")[0].replace(/[._-]/g, " "),
+        }),
       });
-      const data = await res.json();
 
+      const data = await res.json();
       if (res.ok && data.user) {
         localStorage.setItem("leadintellect_user", JSON.stringify(data.user));
-        setCurrentUser(data.user);
-        setSuccessMsg(
-          tab === "login"
-            ? `Welcome back, ${data.user.name}! Redirecting to workspace...`
-            : `✓ Account created successfully! 99 free prospecting credits added. Redirecting to workspace...`
-        );
+        setSocialModalProvider(null);
+        setSuccessMsg(`✓ Authenticated with ${provider.toUpperCase()}. Opening workspace...`);
         setTimeout(() => {
-          if (data.user.role === "admin") {
-            window.location.href = "/admin";
-          } else {
-            window.location.href = "/dashboard";
-          }
-        }, 900);
+          window.location.href = data.user.role === "admin" ? "/admin" : "/dashboard";
+        }, 700);
       } else {
-        setErrorMsg(data.error || "Authentication failed. Please check your credentials.");
+        setErrorMsg(data.error || "Social authentication failed.");
       }
     } catch {
-      setErrorMsg("Failed to connect to authentication server. Please check your network.");
+      setErrorMsg("Connection error during social authentication.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotPasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail || !forgotEmail.includes("@")) return;
+    setForgotSuccess(true);
+    setTimeout(() => {
+      setForgotPasswordOpen(false);
+      setForgotSuccess(false);
+      setForgotEmail("");
+      setSuccessMsg(`✓ Password reset instructions dispatched to ${forgotEmail}.`);
+    }, 1800);
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-surface">
+    <div className="min-h-screen flex flex-col bg-[#F9FAFB] text-[#0F172A]">
       <Navbar />
 
       <main className="flex-1 pt-28 pb-16 flex items-center justify-center px-4">
-        <div className="w-full max-w-md">
-          {/* Header */}
-          <div className="text-center mb-6">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-muted hover:text-navy mb-3 transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
-            </Link>
-            <div className="flex justify-center mb-2">
-              <Logo size="lg" showText={false} />
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-navy">
-              {tab === "login" ? "Welcome back to LeadIntellect" : "Create your free account"}
-            </h1>
-            <p className="mt-1.5 text-xs sm:text-sm text-text-muted">
-              {tab === "login"
-                ? "Sign in with your Google account or work email"
-                : "Get 99 free prospecting credits & verified B2B intelligence"}
-            </p>
-          </div>
-
-          {/* Active Session Notice Banner (if already logged in) */}
-          {currentUser && (
-            <div className="mb-5 p-4 rounded-2xl bg-teal/10 border border-teal/30 shadow-xs flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-teal text-navy font-extrabold flex items-center justify-center shrink-0 text-xs">
-                  {currentUser.name ? currentUser.name[0].toUpperCase() : "U"}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-bold text-navy truncate">{currentUser.name}</p>
-                    <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-teal text-navy uppercase">
-                      {currentUser.role === "admin" ? "CEO Admin" : "Active"}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-teal-dark truncate">{currentUser.email}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <Link
-                  href={currentUser.role === "admin" ? "/admin" : "/dashboard"}
-                  className="px-3 py-1.5 rounded-lg bg-navy text-white text-xs font-bold hover:bg-slate-800 transition-colors shadow-xs"
-                >
-                  Workspace &rarr;
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  title="Sign out of current account"
-                  className="p-1.5 text-text-muted hover:text-red-600 rounded-lg hover:bg-white transition-colors cursor-pointer"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-
+        <div className="w-full max-w-[420px]">
           {/* Main Card */}
-          <div className="bg-white rounded-2xl border border-border p-6 sm:p-8 shadow-[0_20px_50px_-20px_rgba(11,18,32,0.12)]">
-            {/* Toggle Tabs */}
-            <div className="grid grid-cols-2 p-1 bg-surface rounded-xl border border-border mb-6">
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_10px_30px_rgba(0,0,0,0.04)] p-7 sm:p-8">
+            {/* Top Toggle Tabs (Matching user screenshot) */}
+            <div className="grid grid-cols-2 gap-2 mb-6">
               <button
                 type="button"
-                onClick={() => {
-                  setTab("login");
-                  setErrorMsg(null);
-                  setSuccessMsg(null);
-                }}
-                className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  tab === "login" ? "bg-white text-navy shadow-xs" : "text-text-muted hover:text-navy"
-                }`}
+                className="py-2.5 px-4 rounded-xl text-xs font-bold text-center bg-[#22252A] text-white shadow-xs cursor-default"
               >
-                Sign In
+                Log In
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setTab("signup");
-                  setErrorMsg(null);
-                  setSuccessMsg(null);
-                }}
-                className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  tab === "signup" ? "bg-white text-navy shadow-xs" : "text-text-muted hover:text-navy"
-                }`}
+              <Link
+                href="/signup"
+                className="py-2.5 px-4 rounded-xl text-xs font-semibold text-center bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                Sign Up (99 Free Credits)
-              </button>
+                <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                <span>Sign Up</span>
+              </Link>
             </div>
 
-            {/* Google Authentication Button */}
-            <div className="mb-5">
+            {/* Social Logins */}
+            <div className="space-y-2.5">
+              {/* Google */}
               <button
                 type="button"
-                onClick={handleGoogleAuthClick}
+                onClick={() => handleSocialClick("google")}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-slate-300 rounded-xl text-xs sm:text-sm font-bold text-navy hover:bg-slate-50 hover:border-slate-400 transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/80 text-xs font-semibold text-slate-800 transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
               >
-                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.05h3.9c2.28-2.1 3.645-5.2 3.645-9.14z"
                   />
                   <path
                     fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.9-3.05c-1.08.72-2.45 1.16-4.03 1.16-3.1 0-5.74-2.1-6.68-4.92H1.21v3.15C3.25 21.43 7.33 24 12 24z"
                   />
                   <path
                     fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                    d="M5.32 14.28c-.24-.72-.38-1.49-.38-2.28s.14-1.56.38-2.28V6.57H1.21C.44 8.11 0 9.99 0 12s.44 3.89 1.21 5.43l4.11-3.15z"
                   />
                   <path
                     fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                    d="M12 4.77c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.25 2.57 1.21 6.57l4.11 3.15c.94-2.82 3.58-4.95 6.68-4.95z"
                   />
                 </svg>
-                <span>Continue with Google</span>
+                <span>Log In with Google</span>
+              </button>
+
+              {/* Microsoft */}
+              <button
+                type="button"
+                onClick={() => handleSocialClick("microsoft")}
+                disabled={loading}
+                className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/80 text-xs font-semibold text-slate-800 transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
+              >
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 21 21">
+                  <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+                  <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+                  <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+                  <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+                </svg>
+                <span>Log In with Microsoft</span>
+              </button>
+
+              {/* Apple */}
+              <button
+                type="button"
+                onClick={() => handleSocialClick("apple")}
+                disabled={loading}
+                className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/80 text-xs font-semibold text-slate-800 transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
+              >
+                <svg className="w-4 h-4 shrink-0 fill-current text-slate-900" viewBox="0 0 170 170">
+                  <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.67-7.81-11.96-14.34-6.41-9.79-11.48-20.74-15.2-32.84-3.72-12.1-5.58-23.77-5.58-35.01 0-14.75 3.69-27.18 11.08-37.28 7.38-10.1 16.71-15.28 27.97-15.54 4.58 0 9.77 1.17 15.58 3.51 5.8 2.34 9.77 3.56 11.9 3.67 1.83 0 5.8-1.29 11.9-3.86 6.1-2.58 11.29-3.76 15.58-3.55 12.33.64 22.42 5.09 30.28 13.36-10.79 6.53-16.08 15.58-15.86 27.14.22 9.04 3.73 16.71 10.53 23 6.8 6.29 14.88 9.78 24.24 10.49-1.94 6.24-4.33 12.63-7.18 19.16zM119.22 31.84c0-7.39 2.67-14.29 8.01-20.7 5.34-6.42 11.96-10.49 19.86-12.21.22 1.09.33 2.18.33 3.26 0 7.39-2.73 14.37-8.19 20.94-5.45 6.57-12.13 10.59-20.01 12.06 0-1.12 0-2.23 0-3.35z" />
+                </svg>
+                <span>Sign in with Apple</span>
+              </button>
+
+              {/* Organization SSO */}
+              <button
+                type="button"
+                onClick={() => handleSocialClick("organization")}
+                disabled={loading}
+                className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/80 text-xs font-semibold text-slate-800 transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
+              >
+                <Key className="w-3.5 h-3.5 text-slate-600" />
+                <span>Log In with your Organization</span>
               </button>
             </div>
 
-            <div className="relative flex items-center justify-center mb-5">
-              <div className="border-t border-border w-full" />
-              <span className="bg-white px-3 text-[11px] font-bold text-text-muted uppercase tracking-wider absolute">
-                Or with work email
+            {/* "Or" Divider */}
+            <div className="relative flex py-5 items-center">
+              <div className="flex-grow border-t border-slate-200"></div>
+              <span className="flex-shrink mx-3 text-[11px] text-slate-400 font-medium">
+                Or
               </span>
+              <div className="flex-grow border-t border-slate-200"></div>
             </div>
 
-            {/* Feedback Alerts */}
+            {/* Error & Success Messages */}
             {errorMsg && (
-              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex flex-col gap-1.5">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
-                  <p className="font-semibold">{errorMsg}</p>
-                </div>
-                {errorMsg.toLowerCase().includes("no account found") && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTab("signup");
-                      setErrorMsg(null);
-                    }}
-                    className="text-left font-bold text-teal-dark hover:underline cursor-pointer pl-6"
-                  >
-                    &rarr; Click here to create your free account (99 credits)
-                  </button>
-                )}
-                {errorMsg.toLowerCase().includes("already exists") && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTab("login");
-                      setErrorMsg(null);
-                    }}
-                    className="text-left font-bold text-teal-dark hover:underline cursor-pointer pl-6"
-                  >
-                    &rarr; Switch to Sign In tab
-                  </button>
-                )}
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMsg}</span>
               </div>
             )}
-
             {successMsg && (
-              <div className="mb-4 p-3 rounded-xl bg-teal/15 border border-teal/30 text-xs font-semibold text-teal-dark flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0 text-teal-dark" />
-                  <span>{successMsg}</span>
-                </div>
+              <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{successMsg}</span>
               </div>
             )}
 
-            {/* Email Form */}
-            <form onSubmit={handleSubmit} className="space-y-3.5">
-              {tab === "signup" && (
-                <>
-                  <div>
-                    <label className="block text-xs font-bold text-navy mb-1">
-                      Full Name <span className="text-teal">*</span>
-                    </label>
-                    <div className="relative">
-                      <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
-                      <input
-                        type="text"
-                        required
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Sarah Jenkins"
-                        className="w-full bg-surface border border-border rounded-xl pl-10 pr-3 py-2.5 text-xs sm:text-sm text-navy placeholder:text-text-muted focus:outline-none focus:border-teal focus:ring-1 focus:ring-teal"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-navy mb-1">Company</label>
-                      <div className="relative">
-                        <Building className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-                        <input
-                          type="text"
-                          value={company}
-                          onChange={(e) => setCompany(e.target.value)}
-                          placeholder="Acme Corp"
-                          className="w-full bg-surface border border-border rounded-xl pl-9 pr-3 py-2.5 text-xs text-navy placeholder:text-text-muted focus:outline-none focus:border-teal"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-navy mb-1">Title</label>
-                      <div className="relative">
-                        <Briefcase className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-                        <input
-                          type="text"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          placeholder="VP Sales"
-                          className="w-full bg-surface border border-border rounded-xl pl-9 pr-3 py-2.5 text-xs text-navy placeholder:text-text-muted focus:outline-none focus:border-teal"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
+            {/* Credentials Form */}
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="Work Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-300 transition-all"
+                />
+              </div>
 
               <div>
-                <label className="block text-xs font-bold text-navy mb-1">
-                  Work Email <span className="text-teal">*</span>
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
+                  Password
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@company.com"
-                    className="w-full bg-surface border border-border rounded-xl pl-10 pr-3 py-2.5 text-xs sm:text-sm text-navy placeholder:text-text-muted focus:outline-none focus:border-teal focus:ring-1 focus:ring-teal"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-navy">
-                    Password <span className="text-teal">*</span>
-                  </label>
-                  {tab === "login" && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setForgotEmail(email);
-                        setForgotPasswordOpen(true);
-                      }}
-                      className="text-[11px] font-semibold text-teal-dark hover:underline cursor-pointer"
-                    >
-                      Forgot password?
-                    </button>
-                  )}
-                </div>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
                   <input
                     type={showPassword ? "text" : "password"}
                     required
+                    placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-surface border border-border rounded-xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-navy placeholder:text-text-muted focus:outline-none focus:border-teal focus:ring-1 focus:ring-teal"
+                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-300 transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-navy cursor-pointer p-0.5"
-                    title={showPassword ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>
 
-              {/* Keep me signed in */}
-              <div className="flex items-center justify-between pt-1">
-                <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-600">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded text-teal-dark focus:ring-teal w-4 h-4 cursor-pointer"
-                  />
-                  <span>Remember this device</span>
-                </label>
-              </div>
-
+              {/* High-Contrast "Log In" Primary CTA Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-2 bg-gradient-to-r from-teal-dark to-teal hover:from-teal hover:to-teal-dark text-white py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full py-3 rounded-xl bg-[#E6FF00] hover:bg-[#D4ED00] text-black font-extrabold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
-                {loading ? (
-                  <span>Authenticating...</span>
-                ) : (
-                  <>
-                    <span>{tab === "login" ? "Sign In to LeadIntellect" : "Create Free Account (99 Credits)"}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
+                <span>{loading ? "Authenticating..." : "Log In"}</span>
               </button>
+
+              {/* Aux Controls: Keep me signed in & Forgot Password */}
+              <div className="flex items-center justify-between text-xs pt-1">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={keepSignedIn}
+                    onChange={(e) => setKeepSignedIn(e.target.checked)}
+                    className="w-4 h-4 rounded text-slate-900 border-slate-300 focus:ring-0 cursor-pointer accent-black"
+                  />
+                  <span className="text-slate-700 text-[11px] font-medium">Keep me signed in</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotEmail(email);
+                    setForgotPasswordOpen(true);
+                  }}
+                  className="text-[11px] font-medium text-blue-600 hover:underline cursor-pointer"
+                >
+                  Forgot password?
+                </button>
+              </div>
             </form>
-
-            <div className="mt-5 pt-4 border-t border-border text-center text-xs text-text-muted">
-              {tab === "login" ? (
-                <>
-                  Don&apos;t have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTab("signup");
-                      setErrorMsg(null);
-                    }}
-                    className="font-bold text-teal-dark hover:underline cursor-pointer"
-                  >
-                    Sign up free &rarr;
-                  </button>
-                </>
-              ) : (
-                <>
-                  Already registered?{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTab("login");
-                      setErrorMsg(null);
-                    }}
-                    className="font-bold text-teal-dark hover:underline cursor-pointer"
-                  >
-                    Sign in here &rarr;
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Admin Portal Gateway Callout */}
-            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-text-muted">
-              <span>Platform Executive / CEO?</span>
-              <Link href="/admin" className="font-bold text-navy hover:text-teal-dark hover:underline">
-                Admin Sign-In &rarr;
-              </Link>
-            </div>
           </div>
 
-          <div className="mt-5 flex items-center justify-center gap-2 text-xs text-text-muted">
-            <ShieldCheck className="w-4 h-4 text-teal-dark" />
-            <span>256-Bit SSL Encrypted &middot; Enterprise Protected Authentication</span>
+          {/* Footer (Matching user screenshot) */}
+          <div className="mt-8 text-center text-xs text-slate-500 space-y-1">
+            <p className="text-[11px]">2026 All Rights Reserved.</p>
+            <div className="flex items-center justify-center gap-3 text-[11px]">
+              <Link href="/privacy" className="hover:text-slate-800 hover:underline">
+                Privacy
+              </Link>
+              <span>and</span>
+              <Link href="/terms" className="hover:text-slate-800 hover:underline">
+                Terms
+              </Link>
+            </div>
           </div>
         </div>
       </main>
 
-      {/* ================= GOOGLE AUTHENTICATION MODAL ================= */}
-      {googleModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl border border-slate-200 max-w-md w-full p-6 sm:p-7 shadow-2xl relative">
-            <button
-              onClick={() => setGoogleModalOpen(false)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      <Footer />
 
-            {/* Google Header */}
-            <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center mx-auto mb-3 shadow-xs">
-                <svg className="w-6 h-6" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-xl font-extrabold text-navy">Sign in with Google</h3>
-              <p className="text-xs text-text-muted mt-1">
-                Choose your Google Account or enter your Gmail / Google Workspace address
-              </p>
-            </div>
-
-            {/* Quick-choice CEO / Executive Account */}
-            <div className="space-y-2 mb-4">
-              <p className="text-[11px] font-bold text-navy uppercase tracking-wider">Fast Account Select</p>
-              
+      {/* Social Provider Modal (Enter work email for SSO) */}
+      {socialModalProvider && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-slate-900 capitalize">
+                Authenticate with {socialModalProvider}
+              </h3>
               <button
                 type="button"
-                onClick={() => executeGoogleAuth("drnconsulting81@gmail.com", "DRN Consulting (CEO)")}
-                disabled={googleLoading}
-                className="w-full p-3 rounded-xl border border-slate-200 hover:border-teal hover:bg-teal/5 flex items-center justify-between text-left transition-all cursor-pointer group"
+                onClick={() => setSocialModalProvider(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-teal text-navy font-extrabold text-xs flex items-center justify-center shrink-0">
-                    D
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-navy">DRN Consulting</span>
-                      <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-full bg-teal/20 text-teal-dark uppercase">
-                        CEO
-                      </span>
-                    </div>
-                    <span className="text-[11px] text-text-muted">drnconsulting81@gmail.com</span>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-text-muted group-hover:text-teal-dark transition-colors" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="relative flex items-center justify-center my-4">
-              <div className="border-t border-slate-200 w-full" />
-              <span className="bg-white px-3 text-[10px] font-bold text-text-muted uppercase tracking-wider absolute">
-                Or enter your Google email
-              </span>
-            </div>
+            <p className="text-xs text-slate-500 mb-4">
+              Enter your corporate email address to authenticate with {socialModalProvider}.
+            </p>
 
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                executeGoogleAuth(googleEmail, googleName);
+                executeSocialAuth(socialModalProvider, socialEmail);
               }}
               className="space-y-3"
             >
-              <div>
-                <label className="block text-xs font-bold text-navy mb-1">Google Email / Workspace</label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="email"
-                    required
-                    value={googleEmail}
-                    onChange={(e) => setGoogleEmail(e.target.value)}
-                    placeholder="you@gmail.com or you@company.com"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs text-navy focus:outline-none focus:border-teal"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-navy mb-1">Display Name (Optional)</label>
-                <div className="relative">
-                  <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    value={googleName}
-                    onChange={(e) => setGoogleName(e.target.value)}
-                    placeholder="Alex Morgan"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs text-navy focus:outline-none focus:border-teal"
-                  />
-                </div>
-              </div>
-
+              <input
+                type="email"
+                required
+                autoFocus
+                placeholder="name@company.com"
+                value={socialEmail}
+                onChange={(e) => setSocialEmail(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-slate-400"
+              />
               <button
                 type="submit"
-                disabled={googleLoading}
-                className="w-full mt-2 py-2.5 rounded-xl bg-navy hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                disabled={loading}
+                className="w-full py-2.5 rounded-xl bg-[#22252A] hover:bg-black text-white text-xs font-bold transition-colors cursor-pointer"
               >
-                {googleLoading ? "Connecting with Google..." : "Continue to LeadIntellect →"}
+                Continue &rarr;
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* ================= FORGOT PASSWORD MODAL ================= */}
+      {/* Forgot Password Modal */}
       {forgotPasswordOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-sm w-full p-6 shadow-2xl relative">
-            <button
-              onClick={() => {
-                setForgotPasswordOpen(false);
-                setForgotSuccess(false);
-              }}
-              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <h3 className="text-base font-extrabold text-navy mb-1">Reset Your Password</h3>
-            <p className="text-xs text-text-muted mb-4">
-              Enter your work email address and we will dispatch a secure credential reset link.
-            </p>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-slate-900">Reset Your Password</h3>
+              <button
+                type="button"
+                onClick={() => setForgotPasswordOpen(false)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
             {forgotSuccess ? (
-              <div className="p-3 rounded-xl bg-teal/15 border border-teal/30 text-teal-dark text-xs font-bold flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-teal-dark" />
-                <span>Password reset link dispatched to {forgotEmail}! Check your inbox.</span>
+              <div className="p-4 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-semibold text-center">
+                ✓ Password reset email dispatched! Please check your inbox.
               </div>
             ) : (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setForgotSuccess(true);
-                }}
-                className="space-y-3"
-              >
-                <div>
-                  <label className="block text-xs font-bold text-navy mb-1">Work Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    placeholder="name@company.com"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-navy focus:outline-none focus:border-teal"
-                  />
-                </div>
+              <form onSubmit={handleForgotPasswordSubmit} className="space-y-3">
+                <p className="text-xs text-slate-500">
+                  Enter your registered work email and we&apos;ll send you a secure link to reset your password.
+                </p>
+                <input
+                  type="email"
+                  required
+                  placeholder="name@company.com"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-slate-400"
+                />
                 <button
                   type="submit"
-                  className="w-full py-2.5 rounded-xl bg-teal text-navy hover:bg-teal-dark hover:text-white font-extrabold text-xs transition-colors"
+                  className="w-full py-2.5 rounded-xl bg-[#E6FF00] hover:bg-[#D4ED00] text-black text-xs font-bold transition-colors cursor-pointer"
                 >
-                  Send Reset Instructions
+                  Send Reset Link
                 </button>
               </form>
             )}
           </div>
         </div>
       )}
-
-      <Footer />
     </div>
   );
 }
