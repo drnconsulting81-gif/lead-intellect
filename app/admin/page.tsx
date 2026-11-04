@@ -142,7 +142,7 @@ export default function AdminDashboardPage() {
         const parsed = JSON.parse(stored);
         if (checkIsCeo(parsed)) return true;
       }
-    } catch {}
+    } catch { }
     return false;
   });
   const [checkingAuth, setCheckingAuth] = useState(false);
@@ -266,14 +266,14 @@ export default function AdminDashboardPage() {
     }
   };
 
-interface EmailLog {
-  id: string;
-  recipient: string;
-  subject: string;
-  type: string;
-  status: string;
-  createdAt: string;
-}
+  interface EmailLog {
+    id: string;
+    recipient: string;
+    subject: string;
+    type: string;
+    status: string;
+    createdAt: string;
+  }
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -557,33 +557,33 @@ interface EmailLog {
       const isSub = itemType === "subscription";
       const sample = isSub
         ? {
-            customerName: "Alex Vance",
-            customerEmail: "alex.vance@blackmesa.io",
-            companyName: "Black Mesa Systems",
-            phone: "+1 (415) 555-0192",
-            itemType: "subscription",
-            planName: "Pro Tier ($899/mo - Unlimited Enriched Leads)",
-            amount: 899,
-            currency: "USD",
-            paymentStatus: "paid",
-            paymentMethod: "Stripe",
-            transactionId: `STRIPE_CH_${Date.now().toString().slice(-6)}`,
-            notes: "Annual recurring agreement signed.",
-          }
+          customerName: "Alex Vance",
+          customerEmail: "alex.vance@blackmesa.io",
+          companyName: "Black Mesa Systems",
+          phone: "+1 (415) 555-0192",
+          itemType: "subscription",
+          planName: "Pro Tier ($899/mo - Unlimited Enriched Leads)",
+          amount: 899,
+          currency: "USD",
+          paymentStatus: "paid",
+          paymentMethod: "Stripe",
+          transactionId: `STRIPE_CH_${Date.now().toString().slice(-6)}`,
+          notes: "Annual recurring agreement signed.",
+        }
         : {
-            customerName: "Siddharth Mehta",
-            customerEmail: "siddharth@apexfin.in",
-            companyName: "Apex Financial Solutions",
-            phone: "+91 98201 45890",
-            itemType: "database_purchase",
-            planName: "50,000 Verified B2B Decision-Maker Records (Fintech & Healthcare)",
-            amount: 1500,
-            currency: "USD",
-            paymentStatus: "paid",
-            paymentMethod: "Bank Wire Transfer",
-            transactionId: `WIRE-IN-${Date.now().toString().slice(-6)}`,
-            notes: "Direct database delivery via encrypted CSV.",
-          };
+          customerName: "Siddharth Mehta",
+          customerEmail: "siddharth@apexfin.in",
+          companyName: "Apex Financial Solutions",
+          phone: "+91 98201 45890",
+          itemType: "database_purchase",
+          planName: "50,000 Verified B2B Decision-Maker Records (Fintech & Healthcare)",
+          amount: 1500,
+          currency: "USD",
+          paymentStatus: "paid",
+          paymentMethod: "Bank Wire Transfer",
+          transactionId: `WIRE-IN-${Date.now().toString().slice(-6)}`,
+          notes: "Direct database delivery via encrypted CSV.",
+        };
 
       const res = await fetch("/api/admin/orders", {
         method: "POST",
@@ -972,18 +972,16 @@ interface EmailLog {
 
             {/* Database status pill */}
             <div
-              className={`hidden sm:flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${
-                diagnostics?.mode === "mongodb" && diagnostics?.connected
+              className={`hidden sm:flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${diagnostics?.mode === "mongodb" && diagnostics?.connected
                   ? "bg-teal/10 border-teal/30 text-teal"
                   : "bg-amber-500/10 border-amber-500/30 text-amber-300"
-              }`}
+                }`}
             >
               <span
-                className={`w-2 h-2 rounded-full ${
-                  diagnostics?.mode === "mongodb" && diagnostics?.connected
+                className={`w-2 h-2 rounded-full ${diagnostics?.mode === "mongodb" && diagnostics?.connected
                     ? "bg-teal animate-pulse"
                     : "bg-amber-400"
-                }`}
+                  }`}
               />
               <span>
                 {diagnostics?.mode === "mongodb" && diagnostics?.connected
@@ -1126,11 +1124,10 @@ interface EmailLog {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setActiveTab("users")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === "users"
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${activeTab === "users"
                   ? "bg-navy text-teal shadow-xs"
                   : "bg-white text-text-muted hover:text-navy border border-border"
-              }`}
+                }`}
             >
               <UserCheck className="w-3.5 h-3.5" />
               <span>Platform Sign-ups</span>
@@ -1139,11 +1136,10 @@ interface EmailLog {
 
             <button
               onClick={() => setActiveTab("orders")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === "orders"
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${activeTab === "orders"
                   ? "bg-navy text-teal shadow-xs"
                   : "bg-white text-text-muted hover:text-navy border border-border"
-              }`}
+                }`}
             >
               <CreditCard className="w-3.5 h-3.5" />
               <span>Subscriptions &amp; Purchases</span>
@@ -1152,11 +1148,10 @@ interface EmailLog {
 
             <button
               onClick={() => setActiveTab("demos")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === "demos"
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${activeTab === "demos"
                   ? "bg-navy text-teal shadow-xs"
                   : "bg-white text-text-muted hover:text-navy border border-border"
-              }`}
+                }`}
             >
               <Calendar className="w-3.5 h-3.5" />
               <span>Demo Requests</span>
@@ -1165,11 +1160,10 @@ interface EmailLog {
 
             <button
               onClick={() => setActiveTab("trials")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === "trials"
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${activeTab === "trials"
                   ? "bg-navy text-teal shadow-xs"
                   : "bg-white text-text-muted hover:text-navy border border-border"
-              }`}
+                }`}
             >
               <Zap className="w-3.5 h-3.5" />
               <span>7-Day Free Trials</span>
@@ -1178,11 +1172,10 @@ interface EmailLog {
 
             <button
               onClick={() => setActiveTab("contacts")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === "contacts"
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${activeTab === "contacts"
                   ? "bg-navy text-teal shadow-xs"
                   : "bg-white text-text-muted hover:text-navy border border-border"
-              }`}
+                }`}
             >
               <Mail className="w-3.5 h-3.5" />
               <span>Contact Messages</span>
@@ -1191,11 +1184,10 @@ interface EmailLog {
 
             <button
               onClick={() => setActiveTab("emails")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === "emails"
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${activeTab === "emails"
                   ? "bg-navy text-teal shadow-xs"
                   : "bg-white text-text-muted hover:text-navy border border-border"
-              }`}
+                }`}
             >
               <Send className="w-3.5 h-3.5" />
               <span>Email Deliverability</span>
@@ -1204,11 +1196,10 @@ interface EmailLog {
 
             <button
               onClick={() => setActiveTab("settings")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === "settings"
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${activeTab === "settings"
                   ? "bg-navy text-teal shadow-xs"
                   : "bg-white text-text-muted hover:text-navy border border-border"
-              }`}
+                }`}
             >
               <Database className="w-3.5 h-3.5" />
               <span>Database &amp; CRM Sync</span>
@@ -1216,11 +1207,10 @@ interface EmailLog {
 
             <button
               onClick={() => setActiveTab("playbook")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === "playbook"
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${activeTab === "playbook"
                   ? "bg-navy text-teal shadow-xs"
                   : "bg-white text-text-muted hover:text-navy border border-border"
-              }`}
+                }`}
             >
               <BookOpen className="w-3.5 h-3.5 text-teal" />
               <span>Sales &amp; Marketing Playbook</span>
@@ -1305,17 +1295,16 @@ interface EmailLog {
                           </td>
                           <td className="p-4">
                             <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase ${
-                                u.plan === "growth"
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase ${u.plan === "growth"
                                   ? "bg-blue-50 text-blue-700 border-blue-300"
                                   : u.plan === "starter"
-                                  ? "bg-teal/15 text-teal-dark border-teal/30"
-                                  : u.plan === "basic"
-                                  ? "bg-amber-50 text-amber-700 border-amber-300"
-                                  : u.plan === "enterprise"
-                                  ? "bg-purple-50 text-purple-700 border-purple-300"
-                                  : "bg-slate-100 text-slate-600 border-slate-300"
-                              }`}
+                                    ? "bg-teal/15 text-teal-dark border-teal/30"
+                                    : u.plan === "basic"
+                                      ? "bg-amber-50 text-amber-700 border-amber-300"
+                                      : u.plan === "enterprise"
+                                        ? "bg-purple-50 text-purple-700 border-purple-300"
+                                        : "bg-slate-100 text-slate-600 border-slate-300"
+                                }`}
                             >
                               {u.plan ? `${u.plan.toUpperCase()} (${u.planStatus || "active"})` : "FREE TRIAL"}
                             </span>
@@ -1352,15 +1341,14 @@ interface EmailLog {
                           </td>
                           <td className="p-4">
                             <span
-                              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border uppercase ${
-                                u.provider === "google"
+                              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border uppercase ${u.provider === "google"
                                   ? "bg-red-50 text-red-700 border-red-200"
                                   : u.provider === "microsoft"
-                                  ? "bg-blue-50 text-blue-700 border-blue-200"
-                                  : u.provider === "github"
-                                  ? "bg-slate-100 text-slate-800 border-slate-300"
-                                  : "bg-teal/15 text-teal-dark border-teal/30"
-                              }`}
+                                    ? "bg-blue-50 text-blue-700 border-blue-200"
+                                    : u.provider === "github"
+                                      ? "bg-slate-100 text-slate-800 border-slate-300"
+                                      : "bg-teal/15 text-teal-dark border-teal/30"
+                                }`}
                             >
                               {u.provider}
                             </span>
@@ -1476,11 +1464,10 @@ interface EmailLog {
                           </td>
                           <td className="p-4">
                             <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase ${
-                                order.itemType === "database_purchase"
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase ${order.itemType === "database_purchase"
                                   ? "bg-purple-50 text-purple-700 border-purple-200"
                                   : "bg-blue-50 text-blue-700 border-blue-200"
-                              }`}
+                                }`}
                             >
                               {order.itemType === "database_purchase" ? "Database Pack" : "Subscription"}
                             </span>
@@ -1505,13 +1492,12 @@ interface EmailLog {
                             <select
                               value={order.paymentStatus}
                               onChange={(e) => handleOrderStatusChange(order.id, e.target.value)}
-                              className={`text-[11px] font-bold rounded-lg px-2 py-1 border focus:outline-none cursor-pointer ${
-                                order.paymentStatus === "paid"
+                              className={`text-[11px] font-bold rounded-lg px-2 py-1 border focus:outline-none cursor-pointer ${order.paymentStatus === "paid"
                                   ? "bg-teal/15 text-teal-dark border-teal/30"
                                   : order.paymentStatus === "pending"
-                                  ? "bg-amber-50 text-amber-700 border-amber-200"
-                                  : "bg-red-50 text-red-700 border-red-200"
-                              }`}
+                                    ? "bg-amber-50 text-amber-700 border-amber-200"
+                                    : "bg-red-50 text-red-700 border-red-200"
+                                }`}
                             >
                               <option value="paid">🟢 Paid</option>
                               <option value="pending">🟡 Pending</option>
@@ -1648,15 +1634,14 @@ interface EmailLog {
                             <select
                               value={lead.status}
                               onChange={(e) => handleStatusChange(lead.id, e.target.value)}
-                              className={`text-[11px] font-bold rounded-lg px-2.5 py-1 border focus:outline-none cursor-pointer ${
-                                lead.status === "new"
+                              className={`text-[11px] font-bold rounded-lg px-2.5 py-1 border focus:outline-none cursor-pointer ${lead.status === "new"
                                   ? "bg-blue-50 text-blue-700 border-blue-200"
                                   : lead.status === "contacted"
-                                  ? "bg-amber-50 text-amber-700 border-amber-200"
-                                  : lead.status === "qualified"
-                                  ? "bg-teal/15 text-teal-dark border-teal/30"
-                                  : "bg-slate-100 text-slate-700 border-slate-200"
-                              }`}
+                                    ? "bg-amber-50 text-amber-700 border-amber-200"
+                                    : lead.status === "qualified"
+                                      ? "bg-teal/15 text-teal-dark border-teal/30"
+                                      : "bg-slate-100 text-slate-700 border-slate-200"
+                                }`}
                             >
                               <option value="new">🔵 New</option>
                               <option value="contacted">🟡 Contacted</option>
@@ -1789,11 +1774,10 @@ interface EmailLog {
                 </div>
 
                 <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    diagnostics?.mode === "mongodb" && diagnostics?.connected
+                  className={`px-3 py-1 rounded-full text-xs font-bold ${diagnostics?.mode === "mongodb" && diagnostics?.connected
                       ? "bg-teal/15 text-teal-dark border border-teal/30"
                       : "bg-amber-50 text-amber-700 border border-amber-200"
-                  }`}
+                    }`}
                 >
                   {diagnostics?.mode === "mongodb" && diagnostics?.connected ? "Connected" : "Local Fallback Active"}
                 </span>
@@ -1859,11 +1843,10 @@ interface EmailLog {
 
                 {webhookResult && (
                   <div
-                    className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
-                      webhookResult.success
+                    className={`p-3 rounded-xl text-xs flex items-center gap-2 ${webhookResult.success
                         ? "bg-teal/10 text-teal-dark border border-teal/20"
                         : "bg-red-50 text-red-700 border border-red-200"
-                    }`}
+                      }`}
                   >
                     {webhookResult.success ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
                     <span>{webhookResult.message}</span>
@@ -1936,13 +1919,12 @@ interface EmailLog {
                           </td>
                           <td className="p-3.5">
                             <span
-                              className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase ${
-                                log.status === "sent"
+                              className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase ${log.status === "sent"
                                   ? "bg-emerald-100 text-emerald-800"
                                   : log.status === "simulated"
-                                  ? "bg-teal/15 text-teal-dark"
-                                  : "bg-red-100 text-red-700"
-                              }`}
+                                    ? "bg-teal/15 text-teal-dark"
+                                    : "bg-red-100 text-red-700"
+                                }`}
                             >
                               {log.status === "sent" ? "✓ Sent (SMTP)" : log.status === "simulated" ? "Logged & Queued" : "Failed"}
                             </span>
@@ -2327,11 +2309,10 @@ interface EmailLog {
                         key={preset}
                         type="button"
                         onClick={() => setCreditsToAdd(preset)}
-                        className={`py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
-                          creditsToAdd === preset
+                        className={`py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${creditsToAdd === preset
                             ? "bg-navy text-teal border-navy shadow-xs"
                             : "bg-surface hover:bg-white text-navy border-border"
-                        }`}
+                          }`}
                       >
                         +{preset}
                       </button>

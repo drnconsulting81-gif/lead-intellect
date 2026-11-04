@@ -532,6 +532,13 @@ export default function LeadIntellectWorkspace() {
 
   // Intelligence State
   const [intelligenceTab, setIntelligenceTab] = useState<"intent" | "icp" | "signals" | "recommendations">("intent");
+  const [intelligenceCategory, setIntelligenceCategory] = useState<string>("all");
+  const [intelligenceRecency, setIntelligenceRecency] = useState<number>(90);
+  const [intelligenceQuery, setIntelligenceQuery] = useState<string>("");
+  const [intelligenceAccounts, setIntelligenceAccounts] = useState<any[]>([]);
+  const [intelligenceSignals, setIntelligenceSignals] = useState<any[]>([]);
+  const [intelligenceSummary, setIntelligenceSummary] = useState<any>(null);
+  const [intelligenceLoading, setIntelligenceLoading] = useState<boolean>(false);
 
   // Collapsible AI Search Suggestions Banner (Maximizes prospect list view)
   const [aiBannerOpen, setAiBannerOpen] = useState(false);
@@ -868,10 +875,32 @@ export default function LeadIntellectWorkspace() {
         })
         .catch(() => {});
     }
+    if (activeNav === "intelligence") {
+      setIntelligenceLoading(true);
+      const params = new URLSearchParams();
+      if (intelligenceCategory && intelligenceCategory !== "all") params.set("category", intelligenceCategory);
+      if (intelligenceRecency) params.set("recency", intelligenceRecency.toString());
+      if (intelligenceQuery) params.set("query", intelligenceQuery);
+
+      fetch(`/api/intelligence?${params.toString()}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (!ignore && data.success) {
+            setIntelligenceAccounts(data.accounts || []);
+            setIntelligenceSignals(data.signals || []);
+            setIntelligenceSummary(data);
+          }
+          if (!ignore) setIntelligenceLoading(false);
+        })
+        .catch((err) => {
+          console.error("Failed to load intelligence data:", err);
+          if (!ignore) setIntelligenceLoading(false);
+        });
+    }
     return () => {
       ignore = true;
     };
-  }, [activeNav, fetchLists]);
+  }, [activeNav, fetchLists, intelligenceCategory, intelligenceRecency, intelligenceQuery]);
 
   // Contact Reveal Action (Server-Authoritative, Idempotent & Transaction-Safe)
   const handleRevealContact = async (p: Prospect) => {
@@ -1672,67 +1701,6 @@ export default function LeadIntellectWorkspace() {
         >
           Reset All
         </button>
-      </div>
-
-      {/* Accordion: Database Collections & Segregated Datasets */}
-      <div className="border border-indigo-200 rounded-xl overflow-hidden bg-gradient-to-b from-indigo-50/50 to-white shadow-2xs">
-        <button
-          type="button"
-          onClick={() => setFilterSections((s) => ({ ...s, datasets: !s.datasets }))}
-          className="w-full px-3.5 py-2.5 flex items-center justify-between font-bold text-navy hover:bg-indigo-50/80 text-left transition-colors"
-        >
-          <span className="flex items-center gap-2">
-            <Database className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Database Collections</span>
-            {datasetFilter !== "all" && (
-              <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
-            )}
-          </span>
-          {filterSections.datasets ? (
-            <ChevronUp className="w-3.5 h-3.5 text-indigo-600" />
-          ) : (
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-          )}
-        </button>
-        {filterSections.datasets && (
-          <div className="p-3.5 pt-1 space-y-2 border-t border-indigo-100">
-            <label className="block text-[11px] font-bold text-navy uppercase tracking-wider mb-1">
-              Select Dataset / Industry
-            </label>
-            <select
-              value={datasetFilter}
-              onChange={(e) => {
-                setDatasetFilter(e.target.value);
-                setPage(1);
-              }}
-              className="w-full text-xs p-2 rounded-lg bg-white border border-indigo-200 font-semibold text-navy focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
-            >
-              <option value="all">🌐 All Collections &amp; Datasets (84,326 leads)</option>
-              {availableDatasets.map((ds) => (
-                <option key={ds.name} value={ds.name}>
-                  {ds.name} ({ds.count.toLocaleString()})
-                </option>
-              ))}
-            </select>
-            {datasetFilter !== "all" && (
-              <div className="flex items-center justify-between pt-1 text-[10px]">
-                <span className="text-indigo-700 font-medium truncate max-w-[180px]">
-                  Active: {datasetFilter}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDatasetFilter("all");
-                    setPage(1);
-                  }}
-                  className="text-rose-500 hover:underline font-bold cursor-pointer"
-                >
-                  Clear
-                </button>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Accordion 0: Intent & Buying Signals */}
@@ -3491,57 +3459,43 @@ export default function LeadIntellectWorkspace() {
                     </div>
                   )}
 
-                  {/* Database Collections Quick-Switcher Bar */}
+                  {/* Whole-Web Buyer Intent Quick-Switcher Bar */}
                   <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar px-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0 flex items-center gap-1">
-                      <Database className="w-3.5 h-3.5 text-indigo-500" />
-                      Datasets:
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-teal-dark shrink-0 flex items-center gap-1">
+                      <Zap className="w-3.5 h-3.5 text-teal-dark" />
+                      Buyer Intent:
                     </span>
                     <button
                       type="button"
                       onClick={() => {
-                        setDatasetFilter("all");
+                        setIntentCategory("all");
                         setPage(1);
                       }}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
-                        datasetFilter === "all"
-                          ? "bg-navy text-white shadow-xs"
-                          : "bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-600"
+                        intentCategory === "all"
+                          ? "bg-teal text-navy shadow-xs"
+                          : "bg-white border border-slate-200 text-slate-700 hover:border-teal/50 hover:text-teal-dark"
                       }`}
                     >
-                      <span>🌐 All Collections</span>
-                      <span
-                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
-                          datasetFilter === "all" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
-                        }`}
-                      >
-                        84.3k
-                      </span>
+                      <span>🌐 All Signals</span>
                     </button>
-                    {availableDatasets.map((ds) => {
-                      const isActive = datasetFilter === ds.name;
+                    {INTENT_CATEGORIES.filter((c) => c.id !== "all").map((cat) => {
+                      const isActive = intentCategory === cat.id;
                       return (
                         <button
-                          key={ds.name}
+                          key={cat.id}
                           type="button"
                           onClick={() => {
-                            setDatasetFilter(isActive ? "all" : ds.name);
+                            setIntentCategory(isActive ? "all" : cat.id);
                             setPage(1);
                           }}
                           className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
                             isActive
-                              ? "bg-indigo-600 text-white shadow-xs"
-                              : "bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
+                              ? "bg-navy text-teal shadow-xs font-bold ring-1 ring-teal/40"
+                              : "bg-white border border-slate-200 text-slate-700 hover:border-teal/40 hover:text-navy"
                           }`}
                         >
-                          <span className="truncate max-w-[220px]">{ds.name}</span>
-                          <span
-                            className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                              isActive ? "bg-white/20 text-white" : "bg-indigo-50 text-indigo-700 font-bold"
-                            }`}
-                          >
-                            {ds.count.toLocaleString()}
-                          </span>
+                          <span>{cat.label}</span>
                         </button>
                       );
                     })}
@@ -3680,37 +3634,36 @@ export default function LeadIntellectWorkspace() {
                                       <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.2 rounded font-medium">
                                         {p.seniority}
                                       </span>
-                                      {p.dataset && (
-                                        <span
-                                          className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-200/80 px-1.5 py-0.2 rounded font-semibold truncate max-w-[150px]"
-                                          title={`Database: ${p.dataset}`}
-                                        >
-                                          📁 {p.dataset.replace(" (DiscoverOrg)", "").replace(" Decision Makers", "")}
-                                        </span>
-                                      )}
-                                      {p.intentSignal && (
-                                        <>
-                                          <button
-                                            type="button"
-                                            onClick={() => setSelectedIntentProspect(p)}
-                                            className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-teal/15 text-teal-dark hover:bg-teal/25 border border-teal/30 transition-colors cursor-pointer"
-                                            title={`Intent: ${p.intentSignal.headline} (${p.intentSignal.recencyDays}d ago). Click for Opportunity Brief.`}
-                                          >
-                                            <Zap className="w-2.5 h-2.5 text-teal-dark shrink-0" />
-                                            <span className="truncate max-w-[120px]">{p.intentSignal.categoryLabel}</span>
-                                            <span className="text-[9px] opacity-75 font-mono">({p.intentSignal.recencyDays}d)</span>
-                                          </button>
-                                          {p.intentSignal.webPlatform && (
-                                            <span
-                                              className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200"
-                                              title={`Web Source: ${WEB_INTENT_PLATFORMS.find((w) => w.id === p.intentSignal?.webPlatform)?.label || "Web"}`}
+                                      {(() => {
+                                        const sig = p.intentSignal || getProspectIntentSignal(p);
+                                        if (!sig) return null;
+                                        return (
+                                          <>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedIntentProspect({ ...p, intentSignal: sig });
+                                              }}
+                                              className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-teal/15 text-teal-dark hover:bg-teal/25 border border-teal/30 transition-colors cursor-pointer"
+                                              title={`Intent: ${sig.headline} (${sig.recencyDays}d ago). Click for Opportunity Brief.`}
                                             >
-                                              <span>{WEB_INTENT_PLATFORMS.find((w) => w.id === p.intentSignal?.webPlatform)?.icon || "🌐"}</span>
-                                              <span>{WEB_INTENT_PLATFORMS.find((w) => w.id === p.intentSignal?.webPlatform)?.label || "Web"}</span>
-                                            </span>
-                                          )}
-                                        </>
-                                      )}
+                                              <Zap className="w-2.5 h-2.5 text-teal-dark shrink-0" />
+                                              <span className="truncate max-w-[120px]">{sig.categoryLabel}</span>
+                                              <span className="text-[9px] opacity-75 font-mono">({sig.recencyDays}d)</span>
+                                            </button>
+                                            {sig.webPlatform && (
+                                              <span
+                                                className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                                title={`Web Source: ${WEB_INTENT_PLATFORMS.find((w) => w.id === sig.webPlatform)?.label || "Web"}`}
+                                              >
+                                                <span>{WEB_INTENT_PLATFORMS.find((w) => w.id === sig.webPlatform)?.icon || "🌐"}</span>
+                                                <span>{WEB_INTENT_PLATFORMS.find((w) => w.id === sig.webPlatform)?.label || "Web"}</span>
+                                              </span>
+                                            )}
+                                          </>
+                                        );
+                                      })()}
                                     </div>
                                   </td>
                                 )}
@@ -4381,45 +4334,61 @@ export default function LeadIntellectWorkspace() {
           {activeNav === "intelligence" && (
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-10 max-w-6xl mx-auto w-full space-y-6">
               {/* Header & Definition Banner */}
-              <div className="rounded-2xl border border-teal/20 bg-gradient-to-r from-teal/10 via-white to-indigo-50/40 p-6 shadow-xs">
-                <div className="inline-flex items-center gap-2 text-xs font-bold text-teal-dark bg-white border border-teal/20 px-3 py-1 rounded-full mb-2">
-                  <Zap className="w-3.5 h-3.5 text-teal-dark" />
-                  AI MARKET &amp; BUYER INTENT ENGINE
+              <div className="rounded-2xl border border-teal/20 bg-gradient-to-r from-teal/10 via-white to-indigo-50/40 p-6 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="inline-flex items-center gap-2 text-xs font-bold text-teal-dark bg-white border border-teal/20 px-3 py-1 rounded-full mb-2">
+                      <Zap className="w-3.5 h-3.5 text-teal-dark" />
+                      AI WHOLE-WEB BUYER INTENT ENGINE
+                    </div>
+                    <h1 className="text-2xl font-extrabold text-navy">
+                      Account Intelligence &amp; In-Market Signals
+                    </h1>
+                    <p className="text-xs sm:text-sm text-text-muted mt-1.5 max-w-3xl leading-relaxed">
+                      LeadIntellect monitors 25,000+ monitored accounts across 7 verified intent vectors. Identify decision-makers at companies actively searching, expanding headcount, or re-evaluating software stacks before competitors reach them.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAiOrchestratorOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-dark via-teal to-teal text-navy font-bold text-xs shadow-md hover:brightness-105 transition-all cursor-pointer shrink-0 self-start sm:self-center"
+                  >
+                    <Sparkles className="w-4 h-4 text-navy" />
+                    <span>Run AI Orchestrator</span>
+                  </button>
                 </div>
-                <h1 className="text-2xl font-extrabold text-navy">
-                  Account Intelligence &amp; In-Market Signals
-                </h1>
-                <p className="text-xs sm:text-sm text-text-muted mt-1.5 max-w-3xl leading-relaxed">
-                  <strong>What is this tab?</strong> LeadIntellect AI monitors technographic shifts, hiring surges, and buying intent queries across 8,600+ companies. This helps sales &amp; marketing teams prioritize accounts that are actively in-market before their competitors even know.
-                </p>
 
                 {/* Intelligence Stats */}
-                <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
                   <div className="p-3 bg-white rounded-xl border border-slate-200">
-                    <p className="text-[10px] font-bold uppercase text-slate-400">High-Intent Surging Accounts</p>
-                    <p className="text-xl font-extrabold text-teal-dark mt-1">142 Accounts</p>
+                    <p className="text-[10px] font-bold uppercase text-slate-400">High-Surge Accounts</p>
+                    <p className="text-xl font-extrabold text-teal-dark mt-1">
+                      {intelligenceSummary?.totalSurging || intelligenceAccounts.length || 80} Accounts
+                    </p>
                   </div>
                   <div className="p-3 bg-white rounded-xl border border-slate-200">
-                    <p className="text-[10px] font-bold uppercase text-slate-400">Monitored ICP Accounts</p>
-                    <p className="text-xl font-extrabold text-navy mt-1">8,631 Accounts</p>
+                    <p className="text-[10px] font-bold uppercase text-slate-400">Monitored ICP Universe</p>
+                    <p className="text-xl font-extrabold text-navy mt-1">25,022 Accounts</p>
                   </div>
                   <div className="p-3 bg-white rounded-xl border border-slate-200">
-                    <p className="text-[10px] font-bold uppercase text-slate-400">Active Surge Topics</p>
-                    <p className="text-xl font-extrabold text-indigo-600 mt-1">28 Categories</p>
+                    <p className="text-[10px] font-bold uppercase text-slate-400">Active Intent Categories</p>
+                    <p className="text-xl font-extrabold text-indigo-600 mt-1">7 Categories</p>
                   </div>
                   <div className="p-3 bg-white rounded-xl border border-slate-200">
-                    <p className="text-[10px] font-bold uppercase text-slate-400">Avg Account ICP Fit</p>
-                    <p className="text-xl font-extrabold text-emerald-600 mt-1">87.4 / 100</p>
+                    <p className="text-[10px] font-bold uppercase text-slate-400">Avg In-Market Surge</p>
+                    <p className="text-xl font-extrabold text-emerald-600 mt-1">
+                      {intelligenceSummary?.avgSurgeScore || 91.4} / 100
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Sub-Tabs: Intent Surges, ICP Fit Matrix, Signal Stream */}
+              {/* Sub-Tabs: Intent Surges, Signals Feed, Predictive ICP Matrix */}
               <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
                 {[
-                  { id: "intent" as const, label: "Surging Buyer Intent (142)", icon: Zap },
+                  { id: "intent" as const, label: `Surging Buyer Intent (${intelligenceAccounts.length || 80})`, icon: Zap },
+                  { id: "signals" as const, label: `Live Signals Stream (${intelligenceSignals.length || 25})`, icon: TrendingUp },
                   { id: "icp" as const, label: "Predictive ICP Matrix", icon: Target },
-                  { id: "signals" as const, label: "Live Market Signals Feed", icon: TrendingUp },
                 ].map((t) => {
                   const Icon = t.icon;
                   return (
@@ -4442,120 +4411,265 @@ export default function LeadIntellectWorkspace() {
               {/* View 1: Surging Intent Accounts */}
               {intelligenceTab === "intent" && (
                 <div className="space-y-4">
+                  {/* Category Pills & Filter Controls */}
+                  <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                    <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+                      <div className="relative flex-1">
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Filter accounts by company name, domain, or industry..."
+                          value={intelligenceQuery}
+                          onChange={(e) => setIntelligenceQuery(e.target.value)}
+                          className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:outline-hidden focus:border-teal"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase">Recency:</span>
+                        <select
+                          value={intelligenceRecency}
+                          onChange={(e) => setIntelligenceRecency(Number(e.target.value))}
+                          aria-label="Filter intent by recency window"
+                          className="px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs bg-white text-navy font-semibold focus:outline-hidden focus:border-teal"
+                        >
+                          <option value="14">&lt; 14 Days (Real-Time)</option>
+                          <option value="30">&lt; 30 Days (Active)</option>
+                          <option value="60">&lt; 60 Days (Developing)</option>
+                          <option value="90">All Windows (&lt; 90 Days)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Intent Category Chips */}
+                    <div className="flex flex-wrap gap-1.5 pt-1 border-t border-slate-100">
+                      {[
+                        { id: "all", label: "All Intent Signals" },
+                        { id: "job_change", label: "⚡ Executive Moves (<90d)" },
+                        { id: "promotion", label: "💼 Leadership Promotions" },
+                        { id: "hiring", label: "👥 Hiring Surges" },
+                        { id: "funding_growth", label: "🚀 Funding & Expansion" },
+                        { id: "tech_adoption", label: "🔧 Technographic Shifts" },
+                        { id: "g2_buyer_intent", label: "📊 G2.com Buyer Intent" },
+                        { id: "community_pain_point", label: "💬 Community Pain Points" },
+                      ].map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setIntelligenceCategory(cat.id)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                            intelligenceCategory === cat.id
+                              ? "bg-teal text-navy shadow-2xs font-extrabold"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-navy"
+                          }`}
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Accounts Table */}
                   <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead className="bg-slate-50 border-b border-slate-200 text-text-muted font-bold tracking-wider text-[11px] uppercase">
-                        <tr>
-                          <th className="p-3.5">Company &amp; Domain</th>
-                          <th className="p-3.5">Intent Surge Score</th>
-                          <th className="p-3.5">Surging Topics</th>
-                          <th className="p-3.5">7-Day Velocity</th>
-                          <th className="p-3.5">Verified Contacts</th>
-                          <th className="p-3.5 text-right">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {[
-                          {
-                            name: "1-800-Flowers.com",
-                            domain: "1800flowers.com",
-                            industry: "eCommerce & Retail",
-                            surgeScore: 98,
-                            topics: ["ERP Modernization", "Cloud Security", "Enterprise Data Warehouse"],
-                            velocity: "+48% week-over-week",
-                            decisionMakers: 45,
-                          },
-                          {
-                            name: "2020 Spaces",
-                            domain: "2020spaces.com",
-                            industry: "Computer Software",
-                            surgeScore: 94,
-                            topics: ["CRM Migration", "Outbound Automation", "Azure Cloud"],
-                            velocity: "+36% week-over-week",
-                            decisionMakers: 18,
-                          },
-                          {
-                            name: "10th Magnitude",
-                            domain: "10thmagnitude.com",
-                            industry: "Professional Services",
-                            surgeScore: 91,
-                            topics: ["Multi-Cloud Architecture", "DevOps Pipeline", "Kubernetes"],
-                            velocity: "+29% week-over-week",
-                            decisionMakers: 12,
-                          },
-                          {
-                            name: "180 Medical",
-                            domain: "180medical.com",
-                            industry: "Medical Devices",
-                            surgeScore: 89,
-                            topics: ["HIPAA Compliance", "Telehealth Infrastructure", "Sales Automation"],
-                            velocity: "+24% week-over-week",
-                            decisionMakers: 15,
-                          },
-                          {
-                            name: "555 Corp",
-                            domain: "555.com",
-                            industry: "Professional Services",
-                            surgeScore: 86,
-                            topics: ["ERP Software", "HR Operations", "FinTech Integration"],
-                            velocity: "+18% week-over-week",
-                            decisionMakers: 8,
-                          },
-                        ].map((acc) => (
-                          <tr key={acc.domain} className="hover:bg-slate-50/70 transition-colors">
-                            <td className="p-3.5">
-                              <p className="font-bold text-navy text-sm">{acc.name}</p>
-                              <p className="text-[11px] text-text-muted">{acc.industry} &middot; {acc.domain}</p>
-                            </td>
-                            <td className="p-3.5">
-                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-extrabold border border-emerald-200">
-                                <Zap className="w-3 h-3 text-emerald-600" />
-                                <span>{acc.surgeScore} / 100 High Surge</span>
-                              </div>
-                            </td>
-                            <td className="p-3.5">
-                              <div className="flex flex-wrap gap-1">
-                                {acc.topics.map((tp) => (
-                                  <span key={tp} className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold">
-                                    {tp}
-                                  </span>
-                                ))}
-                              </div>
-                            </td>
-                            <td className="p-3.5 font-bold text-teal-dark">{acc.velocity}</td>
-                            <td className="p-3.5 text-navy font-bold">{acc.decisionMakers} Verified Leaders</td>
-                            <td className="p-3.5 text-right">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCompanyFilter(acc.name);
-                                  setDiscoverMode("people");
-                                  setActiveNav("discover");
-                                  showToast(`Filtered decision-makers at ${acc.name}`);
-                                }}
-                                className="px-3 py-1.5 rounded-xl bg-navy hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1 ml-auto cursor-pointer shadow-2xs"
-                              >
-                                <span>Prospect Account</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
+                    {intelligenceLoading ? (
+                      <div className="p-12 text-center space-y-3">
+                        <div className="inline-block w-8 h-8 border-3 border-teal border-t-transparent rounded-full animate-spin" />
+                        <p className="text-xs text-text-muted font-semibold">
+                          Scanning whole-web telemetry &amp; live intent signals...
+                        </p>
+                      </div>
+                    ) : intelligenceAccounts.length === 0 ? (
+                      <div className="p-12 text-center space-y-3">
+                        <Zap className="w-8 h-8 text-slate-300 mx-auto" />
+                        <p className="text-sm font-bold text-navy">No surging accounts matching active filters</p>
+                        <p className="text-xs text-text-muted">
+                          Try resetting your category or recency window to view more in-market accounts.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIntelligenceCategory("all");
+                            setIntelligenceRecency(90);
+                            setIntelligenceQuery("");
+                          }}
+                          className="px-4 py-1.5 rounded-xl bg-navy text-white text-xs font-bold hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          Reset Filters
+                        </button>
+                      </div>
+                    ) : (
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead className="bg-slate-50 border-b border-slate-200 text-text-muted font-bold tracking-wider text-[11px] uppercase">
+                          <tr>
+                            <th className="p-3.5">Company &amp; Domain</th>
+                            <th className="p-3.5">Intent Surge Score</th>
+                            <th className="p-3.5">Surging Topics &amp; Telemetry</th>
+                            <th className="p-3.5">7-Day Velocity</th>
+                            <th className="p-3.5">Decision Makers</th>
+                            <th className="p-3.5 text-right">Action</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {intelligenceAccounts.map((acc: any) => (
+                            <tr key={acc.id || acc.domain} className="hover:bg-slate-50/70 transition-colors">
+                              <td className="p-3.5">
+                                <p className="font-bold text-navy text-sm">{acc.name}</p>
+                                <p className="text-[11px] text-text-muted">
+                                  {acc.industry} &middot; <span className="font-mono text-slate-500">{acc.domain}</span>
+                                </p>
+                                <p className="text-[10px] text-slate-400 mt-0.5">
+                                  {acc.employeeRange} emps &middot; {acc.revenueRange}
+                                </p>
+                              </td>
+                              <td className="p-3.5">
+                                <div className="space-y-1">
+                                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-extrabold border border-emerald-200">
+                                    <Zap className="w-3 h-3 text-emerald-600" />
+                                    <span>{acc.surgeScore} / 100 In-Market</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-[10px] text-slate-500 font-medium">
+                                    <span className="truncate max-w-[150px]">{acc.categoryLabel}</span>
+                                    <span>&middot;</span>
+                                    <span className="font-mono">{acc.recencyDays}d ago</span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-3.5">
+                                <p className="text-[11px] font-semibold text-navy truncate max-w-xs" title={acc.headline}>
+                                  {acc.headline}
+                                </p>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {acc.topics?.map((tp: string) => (
+                                    <span key={tp} className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold">
+                                      {tp}
+                                    </span>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="p-3.5 font-bold text-teal-dark">{acc.velocity}</td>
+                              <td className="p-3.5">
+                                <span className="font-bold text-navy">{acc.decisionMakerCount} Verified Leaders</span>
+                              </td>
+                              <td className="p-3.5 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  {acc.lead && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedIntentProspect(acc.lead)}
+                                      className="px-2.5 py-1.5 rounded-xl bg-teal/15 hover:bg-teal/25 text-teal-dark font-bold text-xs border border-teal/30 flex items-center gap-1 cursor-pointer transition-colors"
+                                      title="Open verified 6-point Opportunity Brief"
+                                    >
+                                      <Zap className="w-3 h-3 text-teal-dark" />
+                                      <span className="hidden sm:inline">Brief</span>
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setCompanyFilter(acc.name);
+                                      setDiscoverMode("people");
+                                      setPage(1);
+                                      setActiveNav("discover");
+                                      showToast(`Filtered ${acc.decisionMakerCount} verified decision-makers at ${acc.name}`);
+                                    }}
+                                    className="px-3 py-1.5 rounded-xl bg-navy hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1 cursor-pointer shadow-2xs transition-colors shrink-0"
+                                  >
+                                    <span>Prospect</span>
+                                    <ArrowRight className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* View 2: Predictive ICP Matrix */}
+              {/* View 2: Live Market Signals Feed */}
+              {intelligenceTab === "signals" && (
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs divide-y divide-slate-100">
+                    {intelligenceSignals.map((sig: any, idx: number) => (
+                      <div key={sig.id || idx} className="py-4 first:pt-0 last:pb-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-1 max-w-2xl">
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-navy text-sm">{sig.company}</span>
+                            <span className="text-[11px] text-text-muted">&middot; {sig.industry}</span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal/15 text-teal-dark border border-teal/30">
+                              {sig.categoryLabel}
+                            </span>
+                          </div>
+                          <p className="text-xs text-navy font-bold">{sig.headline}</p>
+                          <p className="text-xs text-slate-600 italic">&ldquo;{sig.event}&rdquo;</p>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-400 pt-0.5">
+                            <span>{sig.timeAgo}</span>
+                            <span>&middot;</span>
+                            <span>Source: {sig.sourceProvider}</span>
+                            {sig.decisionMaker && (
+                              <>
+                                <span>&middot;</span>
+                                <span className="font-medium text-slate-600">
+                                  Decision Maker: {sig.decisionMaker.name} ({sig.decisionMaker.title})
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {sig.lead && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedIntentProspect(sig.lead)}
+                                className="px-3 py-1.5 rounded-xl bg-teal/15 hover:bg-teal/25 text-teal-dark font-bold text-xs border border-teal/30 flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <Zap className="w-3 h-3 text-teal-dark" />
+                                <span>Opportunity Brief</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOutreachProspect(sig.lead);
+                                  setActiveNav("outreach");
+                                }}
+                                className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200 flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <Sparkles className="w-3 h-3 text-indigo-600" />
+                                <span>AI Outreach</span>
+                              </button>
+                            </>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCompanyFilter(sig.company);
+                              setDiscoverMode("people");
+                              setPage(1);
+                              setActiveNav("discover");
+                              showToast(`Filtered decision-makers at ${sig.company}`);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-navy hover:bg-slate-800 text-white text-xs font-bold cursor-pointer transition-colors"
+                          >
+                            Prospect
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* View 3: Predictive ICP Matrix */}
               {intelligenceTab === "icp" && (
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4">
                     <h3 className="font-bold text-navy text-sm flex items-center gap-2">
                       <Target className="w-4 h-4 text-teal-dark" />
-                      ICP Propensity Breakdown
+                      ICP Propensity Breakdown (25,022 Accounts)
                     </h3>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       <div>
                         <div className="flex justify-between text-xs font-semibold mb-1">
                           <span>Tier 1: High Fit &amp; Active Budget (Score 85-100)</span>
@@ -4589,77 +4703,33 @@ export default function LeadIntellectWorkspace() {
                   <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4">
                     <h3 className="font-bold text-navy text-sm flex items-center gap-2">
                       <Layers className="w-4 h-4 text-indigo-600" />
-                      Top Technographic Signals
+                      Top Technographic Signals Detected
                     </h3>
                     <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <p className="font-bold text-navy">Salesforce CRM</p>
-                        <p className="text-text-muted mt-0.5">3,890 companies installed</p>
-                      </div>
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <p className="font-bold text-navy">AWS Cloud</p>
-                        <p className="text-text-muted mt-0.5">4,120 companies installed</p>
-                      </div>
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <p className="font-bold text-navy">Snowflake / Databricks</p>
-                        <p className="text-text-muted mt-0.5">1,480 companies installed</p>
-                      </div>
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <p className="font-bold text-navy">HubSpot Marketing</p>
-                        <p className="text-text-muted mt-0.5">2,640 companies installed</p>
-                      </div>
+                      {[
+                        { name: "Salesforce CRM", count: "3,890 companies", query: "Salesforce" },
+                        { name: "AWS Cloud", count: "4,120 companies", query: "AWS" },
+                        { name: "Snowflake / Databricks", count: "1,480 companies", query: "Snowflake" },
+                        { name: "HubSpot Marketing", count: "2,640 companies", query: "HubSpot" },
+                        { name: "Microsoft Azure", count: "3,150 companies", query: "Azure" },
+                        { name: "Workday HCM", count: "1,290 companies", query: "Workday" },
+                      ].map((tech) => (
+                        <div
+                          key={tech.name}
+                          onClick={() => {
+                            setQuery(tech.query);
+                            setPage(1);
+                            setActiveNav("discover");
+                            showToast(`Searching accounts using ${tech.name}`);
+                          }}
+                          className="p-3 bg-slate-50 hover:bg-indigo-50/50 rounded-xl border border-slate-100 hover:border-indigo-200 transition-colors cursor-pointer group"
+                        >
+                          <p className="font-bold text-navy group-hover:text-indigo-700">{tech.name}</p>
+                          <p className="text-text-muted mt-0.5">{tech.count}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
-              )}
-
-              {/* View 3: Live Signal Stream */}
-              {intelligenceTab === "signals" && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs divide-y divide-slate-100">
-                  {[
-                    {
-                      company: "1-800-Flowers.com",
-                      event: "Hiring Surge: Posted 14 Senior IT, Cloud & ERP roles",
-                      time: "2 hours ago",
-                      type: "hiring",
-                    },
-                    {
-                      company: "Apex FinTech Labs",
-                      event: "Series B Funding: Raised $45M led by Horizon Ventures",
-                      time: "5 hours ago",
-                      type: "funding",
-                    },
-                    {
-                      company: "2020 Spaces",
-                      event: "Tech Stack Change: Migrated from legacy CRM to modern cloud platform",
-                      time: "1 day ago",
-                      type: "tech",
-                    },
-                    {
-                      company: "Zenith Cloud Solutions",
-                      event: "Leadership Appointment: Appointed Vikram Malhotra as VP Cloud Engineering",
-                      time: "2 days ago",
-                      type: "executive",
-                    },
-                  ].map((sig, idx) => (
-                    <div key={idx} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
-                      <div>
-                        <span className="font-bold text-navy text-xs">{sig.company}</span>
-                        <p className="text-xs text-slate-700 font-medium mt-0.5">{sig.event}</p>
-                        <span className="text-[10px] text-slate-400 mt-1 inline-block">{sig.time}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCompanyFilter(sig.company);
-                          setActiveNav("discover");
-                        }}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-bold text-navy cursor-pointer shrink-0"
-                      >
-                        Prospect
-                      </button>
-                    </div>
-                  ))}
                 </div>
               )}
             </div>
@@ -4857,23 +4927,29 @@ export default function LeadIntellectWorkspace() {
                 );
               })()}
 
-              {/* Database Origin & Collection Badge */}
-              {activeProfile.dataset && (
-                <div className="p-3 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50/70 to-white flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Database className="w-4 h-4 text-indigo-600 shrink-0" />
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-indigo-500">Database Collection</span>
-                      <p className="text-xs font-bold text-navy">{activeProfile.dataset}</p>
+              {/* Buyer Intent & Intelligence Signal */}
+              {(() => {
+                const sig = activeProfile.intentSignal || getProspectIntentSignal(activeProfile);
+                if (!sig) return null;
+                return (
+                  <div className="p-3 rounded-xl border border-teal/20 bg-gradient-to-r from-teal/10 to-white flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-teal-dark shrink-0" />
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-teal-dark">Verified In-Market Intent</span>
+                        <p className="text-xs font-bold text-navy truncate max-w-[220px]">{sig.headline || sig.categoryLabel}</p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedIntentProspect({ ...activeProfile, intentSignal: sig })}
+                      className="text-[10px] font-bold bg-teal text-navy px-2.5 py-1 rounded-md hover:bg-teal-light cursor-pointer shadow-2xs shrink-0"
+                    >
+                      Opportunity Brief
+                    </button>
                   </div>
-                  {activeProfile.datasetCategory && (
-                    <span className="text-[10px] font-semibold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">
-                      {activeProfile.datasetCategory}
-                    </span>
-                  )}
-                </div>
-              )}
+                );
+              })()}
 
               {/* Profile Details Grid */}
               <div className="grid grid-cols-2 gap-2.5 text-xs">

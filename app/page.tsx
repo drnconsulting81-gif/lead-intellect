@@ -5,6 +5,7 @@ import ProblemSection from "@/components/ProblemSection";
 import Workflow from "@/components/Workflow";
 import FeatureGrid from "@/components/FeatureGrid";
 import IntelligenceFramework from "@/components/IntelligenceFramework";
+import IntentCategoriesSection from "@/components/IntentCategoriesSection";
 import ICPScore from "@/components/ICPScore";
 import EnrichmentSection from "@/components/EnrichmentSection";
 import AgentDemo from "@/components/AgentDemo";
@@ -26,6 +27,7 @@ export default function Home() {
         <Workflow />
         <FeatureGrid />
         <IntelligenceFramework />
+        <IntentCategoriesSection />
         <ICPScore />
         <EnrichmentSection />
         <AgentDemo />

@@ -7,7 +7,7 @@ import {
   saveUser,
   logCreditTransaction,
 } from "@/lib/db";
-import { PLAN_PRICING } from "../create-order/route";
+import { PLAN_PRICING } from "@/lib/pricing";
 
 export async function POST(req: Request) {
   try {
