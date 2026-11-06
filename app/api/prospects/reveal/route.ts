@@ -57,22 +57,29 @@ export async function POST(req: Request) {
       });
     }
 
+    // Fallback: If user is on trial or guest, provision user record with trial credits
     if (!user) {
-      return NextResponse.json(
-        { error: "Authorized user account not found. Please log in or register." },
-        { status: 401 }
-      );
+      user = await saveUser({
+        name: cleanEmail.split("@")[0].replace(/[._-]/g, " "),
+        email: cleanEmail,
+        provider: "email",
+        role: "user",
+        plan: "free",
+        credits: 99,
+      });
     }
 
-    // Enforce paid plan requirement to unlock contact intelligence
-    const isPaid = isUserOnPaidPlan(user);
-    if (!isPaid && !isCeo) {
+    const userCredits = typeof user.credits === "number" ? user.credits : 99;
+
+    // Check if user already revealed this contact (Idempotent - 0 credits charged)
+    const alreadyRevealed = await hasUserRevealedProspect(cleanEmail, String(prospectId));
+    if (!alreadyRevealed && !isCeo && userCredits < 1) {
       return NextResponse.json(
         {
-          error: "Database access locked. Revealing direct corporate emails and mobile lines requires an active paid subscription (Basic, Starter, or Growth). Please upgrade your plan to unlock.",
+          error: "You have 0 credits remaining. Please upgrade your subscription or purchase additional credits to unlock verified contact details.",
           paymentRequired: true,
           insufficientCredits: true,
-          remainingCredits: user.credits || 0,
+          remainingCredits: 0,
         },
         { status: 403 }
       );
@@ -102,16 +109,18 @@ export async function POST(req: Request) {
 
     // 3. Idempotency Check: Did this user already reveal this contact?
     // Policy: Repeated reveals of the same contact by the same user are 100% free!
-    let alreadyRevealed = false;
-    try {
-      alreadyRevealed = await hasUserRevealedProspect(cleanEmail, targetId);
-    } catch (err) {
-      console.warn("hasUserRevealedProspect error:", err);
+    let isAlreadyRevealed = Boolean(alreadyRevealed);
+    if (!isAlreadyRevealed) {
+      try {
+        isAlreadyRevealed = await hasUserRevealedProspect(cleanEmail, targetId);
+      } catch (err) {
+        console.warn("hasUserRevealedProspect error:", err);
+      }
     }
 
     let remainingCredits = user.credits ?? 3500;
 
-    if (!alreadyRevealed) {
+    if (!isAlreadyRevealed) {
       // 4. Balance check before reveal
       if (!isCeo && remainingCredits < 1) {
         return NextResponse.json(
@@ -162,8 +171,8 @@ export async function POST(req: Request) {
       phoneType: foundProspect.phoneType || "Direct Dial",
       hasPhone: Boolean(phone && phone !== "None"),
       linkedin: foundProspect.linkedin || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(String(foundProspect.name || ""))}`,
-      alreadyRevealed,
-      costCharged: alreadyRevealed ? 0 : 1,
+      alreadyRevealed: isAlreadyRevealed,
+      costCharged: isAlreadyRevealed ? 0 : 1,
       remainingCredits,
     });
   } catch (err) {

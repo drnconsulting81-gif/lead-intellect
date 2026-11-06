@@ -78,7 +78,16 @@ export async function GET(req: Request) {
       }
 
       if (country && country !== "all") {
-        if (!c.country || !c.country.toLowerCase().includes(country)) return false;
+        const cLower = (c.country || "").toLowerCase();
+        const target = country.toLowerCase().trim();
+        const match =
+          cLower === target ||
+          cLower.includes(target) ||
+          target.includes(cLower) ||
+          ((target === "united states" || target === "usa" || target === "us") && (cLower === "united states" || cLower === "usa" || cLower === "us")) ||
+          ((target === "united kingdom" || target === "uk") && (cLower === "united kingdom" || cLower === "uk")) ||
+          ((target === "united arab emirates" || target === "uae") && (cLower === "united arab emirates" || cLower === "uae"));
+        if (!match) return false;
       }
 
       if (city && city !== "all") {
@@ -90,11 +99,31 @@ export async function GET(req: Request) {
       }
 
       if (employeeRange && employeeRange !== "all") {
-        if (c.employeeRange !== employeeRange) return false;
+        const eLower = (c.employeeRange || "").toLowerCase();
+        const tLower = employeeRange.toLowerCase();
+        const match =
+          eLower === tLower ||
+          eLower.includes(tLower) ||
+          (tLower.includes("1000+") && (eLower.includes("1000+") || eLower.includes("1000") || eLower.includes("5000"))) ||
+          (tLower.includes("501-1000") && eLower.includes("501-1000")) ||
+          (tLower.includes("201-500") && eLower.includes("201-500")) ||
+          (tLower.includes("51-200") && eLower.includes("51-200")) ||
+          (tLower.includes("11-50") && eLower.includes("11-50")) ||
+          (tLower.includes("1-10") && eLower.includes("1-10"));
+        if (!match) return false;
       }
 
       if (revenueRange && revenueRange !== "all") {
-        if (c.revenueRange !== revenueRange) return false;
+        const rLower = (c.revenueRange || "").toLowerCase();
+        const tLower = revenueRange.toLowerCase();
+        const match =
+          rLower === tLower ||
+          rLower.includes(tLower) ||
+          (tLower.includes("100m+") && (rLower.includes("100m+") || rLower.includes("100m"))) ||
+          (tLower.includes("20m - 100m") && (rLower.includes("20m - 100m") || rLower.includes("20m - 50m") || rLower.includes("50m - 100m"))) ||
+          (tLower.includes("1m - 20m") && (rLower.includes("1m - 20m") || rLower.includes("5m - 20m") || rLower.includes("1m"))) ||
+          (tLower.includes("10m - 50m") && (rLower.includes("10m - 50m") || rLower.includes("20m - 50m")));
+        if (!match) return false;
       }
 
       if (ownership && ownership !== "all") {

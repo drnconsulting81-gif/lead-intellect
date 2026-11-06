@@ -25,16 +25,20 @@ export async function POST(req: Request) {
       status: "new",
     });
 
-    // Asynchronously dispatch notification / CRM webhook
-    sendLeadNotification({
-      type: "demo",
-      fullName,
-      email,
-      companyName,
-      title: title || "",
-      phone: phone || "",
-      comments: comments || "",
-    }).catch((err) => console.error("Notification dispatch failed:", err));
+    // Await notification so serverless runtime doesn't terminate before email delivery
+    try {
+      await sendLeadNotification({
+        type: "demo",
+        fullName,
+        email,
+        companyName,
+        title: title || "",
+        phone: phone || "",
+        comments: comments || "",
+      });
+    } catch (err) {
+      console.error("Notification dispatch failed:", err);
+    }
 
     return NextResponse.json({
       success: true,

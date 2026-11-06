@@ -337,13 +337,38 @@ export async function sendVerificationCodeEmail({
 
   let status: "sent" | "failed" | "simulated" = "simulated";
   let errorMessage: string | undefined = undefined;
+  const targetRecipients = isUpgrade ? [email, "raghud2483@gmail.com"] : [email];
+
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (resendApiKey) {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: process.env.SMTP_FROM || "LeadIntellect Security <verify@leadintellect.ai>",
+          to: targetRecipients,
+          subject,
+          html,
+        }),
+      });
+      if (res.ok) {
+        status = "sent";
+      }
+    } catch (err) {
+      errorMessage = err instanceof Error ? err.message : String(err);
+    }
+  }
 
   const transporter = getTransporter();
-  if (transporter) {
+  if (transporter && status !== "sent") {
     try {
       await transporter.sendMail({
         from: process.env.SMTP_FROM || '"LeadIntellect Security" <verify@leadintellect.ai>',
-        to: email,
+        to: targetRecipients,
         subject,
         html,
       });

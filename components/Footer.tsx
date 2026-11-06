@@ -13,7 +13,7 @@ const footerColumns = [
     title: "Product",
     links: [
       { label: "Product Tour", href: "/product" },
-      { label: "People & Company Search", href: "/dashboard" },
+      { label: "People & Company Search", href: "/product" },
       { label: "Pricing & Plans", href: "/pricing" },
       { label: "Data Quality & Provenance", href: "/data-use" },
       { label: "Start Free", href: "/signup" },
@@ -26,7 +26,7 @@ const footerColumns = [
       { label: "Contact Us", href: "/contact" },
       { label: "Documentation", href: "/docs" },
       { label: "Sign In", href: "/login" },
-      { label: "Admin Portal", href: "/admin" },
+      { label: "Resource Center", href: "/resources" },
     ],
   },
   {

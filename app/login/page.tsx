@@ -12,9 +12,14 @@ import {
   AlertCircle,
   X,
   Lock,
+  Mail,
+  ArrowLeft,
+  Home,
+  LayoutDashboard,
+  LogOut,
+  Sparkles,
+  ShieldCheck,
 } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Logo from "@/components/Logo";
 
 export default function LoginPage() {
@@ -22,6 +27,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [existingUser, setExistingUser] = useState<any>(null);
 
   // Form states
   const [email, setEmail] = useState("");
@@ -40,18 +46,28 @@ export default function LoginPage() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSuccess, setForgotSuccess] = useState(false);
 
-  // Check if already authenticated
+  // Inspect if existing session exists, but DO NOT force auto-redirect
   useEffect(() => {
     try {
       const stored = localStorage.getItem("leadintellect_user");
       if (stored) {
         const u = JSON.parse(stored);
         if (u && u.email) {
-          router.push(u.role === "admin" ? "/admin" : "/dashboard");
+          setExistingUser(u);
         }
       }
     } catch {}
-  }, [router]);
+  }, []);
+
+  const handleSignOutExisting = () => {
+    try {
+      localStorage.removeItem("leadintellect_user");
+      sessionStorage.removeItem("leadintellect_user");
+      window.dispatchEvent(new Event("storage"));
+    } catch {}
+    setExistingUser(null);
+    setSuccessMsg("Signed out. You can now log into a different account.");
+  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,14 +108,15 @@ export default function LoginPage() {
           }
         } catch {}
 
-        setSuccessMsg("✓ Logged in successfully. Taking you to your workspace...");
+        setExistingUser(data.user);
+        setSuccessMsg("✓ Logged in successfully. Launching your workspace...");
         setTimeout(() => {
           if (data.user.role === "admin") {
             window.location.href = "/admin";
           } else {
             window.location.href = "/dashboard";
           }
-        }, 800);
+        }, 900);
       } else {
         setErrorMsg(data.error || "Invalid email or password. Please try again.");
       }
@@ -149,10 +166,11 @@ export default function LoginPage() {
       if (res.ok && data.user) {
         localStorage.setItem("leadintellect_user", JSON.stringify(data.user));
         setSocialModalProvider(null);
-        setSuccessMsg(`✓ Authenticated with ${provider.toUpperCase()}. Opening workspace...`);
+        setExistingUser(data.user);
+        setSuccessMsg(`✓ Authenticated with ${provider.toUpperCase()}. Launching workspace...`);
         setTimeout(() => {
           window.location.href = data.user.role === "admin" ? "/admin" : "/dashboard";
-        }, 700);
+        }, 800);
       } else {
         setErrorMsg(data.error || "Social authentication failed.");
       }
@@ -176,38 +194,103 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F9FAFB] text-[#0F172A]">
-      <Navbar />
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0B132B]">
+      {/* Top Header with return to homepage */}
+      <header className="w-full bg-white border-b border-slate-200/80 px-6 py-4 flex items-center justify-between">
+        <Logo size="md" />
+        <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="text-xs font-semibold text-slate-600 hover:text-navy px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all flex items-center gap-1.5"
+          >
+            <Home className="w-3.5 h-3.5 text-teal-dark" />
+            <span>Return to Homepage</span>
+          </Link>
+          {existingUser && (
+            <Link
+              href={existingUser.role === "admin" ? "/admin" : "/dashboard"}
+              className="text-xs font-bold text-white bg-[#5832E6] hover:bg-[#4323c2] px-3.5 py-1.5 rounded-lg shadow-xs transition-all flex items-center gap-1.5"
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Open Workspace</span>
+            </Link>
+          )}
+        </div>
+      </header>
 
-      <main className="flex-1 pt-28 pb-16 flex items-center justify-center px-4">
-        <div className="w-full max-w-[420px]">
+      <main className="flex-1 py-12 px-4 flex items-center justify-center">
+        <div className="w-full max-w-[440px]">
+          {/* Active Session Notification if already signed in */}
+          {existingUser && (
+            <div className="mb-6 p-4 rounded-2xl bg-indigo-50/80 border border-indigo-200 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-indigo-950">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Currently Signed In</span>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-200/60 text-indigo-900">
+                  {existingUser.role === "admin" ? "Admin" : existingUser.plan || "Free Trial"}
+                </span>
+              </div>
+              <p className="text-xs text-indigo-900/80 font-medium">
+                Signed in as <strong className="text-indigo-950">{existingUser.email}</strong>
+              </p>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <Link
+                  href={existingUser.role === "admin" ? "/admin" : "/dashboard"}
+                  className="py-2 px-3 rounded-xl bg-[#5832E6] hover:bg-[#4323c2] text-white font-bold text-xs text-center flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <span>Workspace</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleSignOutExisting}
+                  className="py-2 px-3 rounded-xl bg-white hover:bg-slate-100 border border-indigo-200 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5 text-rose-500" />
+                  <span>Switch Account</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Main Card */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_10px_30px_rgba(0,0,0,0.04)] p-7 sm:p-8">
-            {/* Top Toggle Tabs (Matching user screenshot) */}
-            <div className="grid grid-cols-2 gap-2 mb-6">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_12px_40px_rgba(11,19,43,0.06)] p-7 sm:p-8">
+            {/* Header & Tabs */}
+            <div className="mb-6 text-center">
+              <h1 className="text-xl font-extrabold text-navy tracking-tight">
+                Sign In to LeadIntellect
+              </h1>
+              <p className="text-xs text-text-muted mt-1">
+                Access verified B2B prospecting intelligence &amp; buyer signals
+              </p>
+            </div>
+
+            {/* Clean Segment Switcher */}
+            <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-xl mb-6">
               <button
                 type="button"
-                className="py-2.5 px-4 rounded-xl text-xs font-bold text-center bg-[#22252A] text-white shadow-xs cursor-default"
+                className="py-2 px-3 rounded-lg text-xs font-bold text-navy bg-white shadow-xs cursor-default"
               >
-                Log In
+                Sign In
               </button>
               <Link
                 href="/signup"
-                className="py-2.5 px-4 rounded-xl text-xs font-semibold text-center bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                className="py-2 px-3 rounded-lg text-xs font-semibold text-text-muted hover:text-navy text-center transition-colors flex items-center justify-center gap-1"
               >
-                <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
-                <span>Sign Up</span>
+                <span>Create Account</span>
+                <ExternalLink className="w-3 h-3 text-slate-400" />
               </Link>
             </div>
 
             {/* Social Logins */}
             <div className="space-y-2.5">
-              {/* Google */}
               <button
                 type="button"
                 onClick={() => handleSocialClick("google")}
                 disabled={loading}
-                className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/80 text-xs font-semibold text-slate-800 transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
+                className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-800 transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                   <path
@@ -227,15 +310,14 @@ export default function LoginPage() {
                     d="M12 4.77c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.25 2.57 1.21 6.57l4.11 3.15c.94-2.82 3.58-4.95 6.68-4.95z"
                   />
                 </svg>
-                <span>Log In with Google</span>
+                <span>Continue with Google</span>
               </button>
 
-              {/* Microsoft */}
               <button
                 type="button"
                 onClick={() => handleSocialClick("microsoft")}
                 disabled={loading}
-                className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/80 text-xs font-semibold text-slate-800 transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
+                className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-800 transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 21 21">
                   <rect x="1" y="1" width="9" height="9" fill="#f25022" />
@@ -243,39 +325,25 @@ export default function LoginPage() {
                   <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
                   <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
                 </svg>
-                <span>Log In with Microsoft</span>
+                <span>Continue with Microsoft</span>
               </button>
 
-              {/* Apple */}
-              <button
-                type="button"
-                onClick={() => handleSocialClick("apple")}
-                disabled={loading}
-                className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/80 text-xs font-semibold text-slate-800 transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
-              >
-                <svg className="w-4 h-4 shrink-0 fill-current text-slate-900" viewBox="0 0 170 170">
-                  <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.67-7.81-11.96-14.34-6.41-9.79-11.48-20.74-15.2-32.84-3.72-12.1-5.58-23.77-5.58-35.01 0-14.75 3.69-27.18 11.08-37.28 7.38-10.1 16.71-15.28 27.97-15.54 4.58 0 9.77 1.17 15.58 3.51 5.8 2.34 9.77 3.56 11.9 3.67 1.83 0 5.8-1.29 11.9-3.86 6.1-2.58 11.29-3.76 15.58-3.55 12.33.64 22.42 5.09 30.28 13.36-10.79 6.53-16.08 15.58-15.86 27.14.22 9.04 3.73 16.71 10.53 23 6.8 6.29 14.88 9.78 24.24 10.49-1.94 6.24-4.33 12.63-7.18 19.16zM119.22 31.84c0-7.39 2.67-14.29 8.01-20.7 5.34-6.42 11.96-10.49 19.86-12.21.22 1.09.33 2.18.33 3.26 0 7.39-2.73 14.37-8.19 20.94-5.45 6.57-12.13 10.59-20.01 12.06 0-1.12 0-2.23 0-3.35z" />
-                </svg>
-                <span>Sign in with Apple</span>
-              </button>
-
-              {/* Organization SSO */}
               <button
                 type="button"
                 onClick={() => handleSocialClick("organization")}
                 disabled={loading}
-                className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/80 text-xs font-semibold text-slate-800 transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
+                className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-800 transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
               >
                 <Key className="w-3.5 h-3.5 text-slate-600" />
-                <span>Log In with your Organization</span>
+                <span>Single Sign-On (SSO)</span>
               </button>
             </div>
 
             {/* "Or" Divider */}
             <div className="relative flex py-5 items-center">
               <div className="flex-grow border-t border-slate-200"></div>
-              <span className="flex-shrink mx-3 text-[11px] text-slate-400 font-medium">
-                Or
+              <span className="flex-shrink mx-3 text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                Or with work email
               </span>
               <div className="flex-grow border-t border-slate-200"></div>
             </div>
@@ -288,113 +356,141 @@ export default function LoginPage() {
               </div>
             )}
             {successMsg && (
-              <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>{successMsg}</span>
+              <div className="mb-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold space-y-2">
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{successMsg}</span>
+                </div>
+                <div className="flex items-center gap-3 pt-1">
+                  <Link
+                    href="/"
+                    className="text-[11px] font-bold text-emerald-800 underline hover:text-emerald-950"
+                  >
+                    ← Return to Homepage
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    className="text-[11px] font-bold text-emerald-800 underline hover:text-emerald-950"
+                  >
+                    Open Workspace &rarr;
+                  </Link>
+                </div>
               </div>
             )}
 
             {/* Credentials Form */}
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                  Email
+                <label className="block text-xs font-bold text-navy mb-1.5">
+                  Work Email
                 </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="Work Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-300 transition-all"
-                />
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="name@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#5832E6] focus:ring-1 focus:ring-[#5832E6] transition-all"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                  Password
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-navy">Password</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotEmail(email);
+                      setForgotPasswordOpen(true);
+                    }}
+                    className="text-[11px] font-semibold text-[#5832E6] hover:underline cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
                 <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type={showPassword ? "text" : "password"}
                     required
-                    placeholder="Enter your password"
+                    placeholder="Enter your account password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-300 transition-all"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#5832E6] focus:ring-1 focus:ring-[#5832E6] transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
-              {/* High-Contrast "Log In" Primary CTA Button */}
+              {/* Primary Sign In Button (LeadIntellect Purple Branding) */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-xl bg-[#E6FF00] hover:bg-[#D4ED00] text-black font-extrabold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-[#5832E6] to-[#4323c2] hover:from-[#4d2ad4] hover:to-[#3b1fa8] text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
-                <span>{loading ? "Authenticating..." : "Log In"}</span>
+                <span>{loading ? "Authenticating..." : "Sign In to LeadIntellect"}</span>
               </button>
 
-              {/* Aux Controls: Keep me signed in & Forgot Password */}
+              {/* Aux Controls: Keep me signed in & Return home option */}
               <div className="flex items-center justify-between text-xs pt-1">
                 <label className="flex items-center gap-2 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={keepSignedIn}
                     onChange={(e) => setKeepSignedIn(e.target.checked)}
-                    className="w-4 h-4 rounded text-slate-900 border-slate-300 focus:ring-0 cursor-pointer accent-black"
+                    className="w-4 h-4 rounded text-[#5832E6] border-slate-300 focus:ring-0 cursor-pointer accent-[#5832E6]"
                   />
-                  <span className="text-slate-700 text-[11px] font-medium">Keep me signed in</span>
+                  <span className="text-slate-600 text-[11px] font-medium">Keep me signed in</span>
                 </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setForgotEmail(email);
-                    setForgotPasswordOpen(true);
-                  }}
-                  className="text-[11px] font-medium text-blue-600 hover:underline cursor-pointer"
+
+                <Link
+                  href="/"
+                  className="text-[11px] font-semibold text-slate-500 hover:text-navy flex items-center gap-1"
                 >
-                  Forgot password?
-                </button>
+                  <Home className="w-3 h-3" />
+                  <span>Go to Homepage</span>
+                </Link>
               </div>
             </form>
           </div>
 
-          {/* Footer (Matching user screenshot) */}
-          <div className="mt-8 text-center text-xs text-slate-500 space-y-1">
-            <p className="text-[11px]">2026 All Rights Reserved.</p>
+          {/* Footer Info */}
+          <div className="mt-8 text-center text-xs text-slate-500 space-y-1.5">
+            <p className="text-[11px]">
+              &copy; {new Date().getFullYear()} LeadIntellect. All rights reserved.
+            </p>
             <div className="flex items-center justify-center gap-3 text-[11px]">
               <Link href="/privacy" className="hover:text-slate-800 hover:underline">
-                Privacy
+                Privacy Policy
               </Link>
-              <span>and</span>
+              <span>&bull;</span>
               <Link href="/terms" className="hover:text-slate-800 hover:underline">
-                Terms
+                Terms of Service
+              </Link>
+              <span>&bull;</span>
+              <Link href="/contact" className="hover:text-slate-800 hover:underline">
+                Support
               </Link>
             </div>
           </div>
         </div>
       </main>
 
-      <Footer />
-
       {/* Social Provider Modal (Enter work email for SSO) */}
       {socialModalProvider && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-900 capitalize">
+              <h3 className="text-sm font-bold text-navy capitalize">
                 Authenticate with {socialModalProvider}
               </h3>
               <button
@@ -424,12 +520,12 @@ export default function LoginPage() {
                 placeholder="name@company.com"
                 value={socialEmail}
                 onChange={(e) => setSocialEmail(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-slate-400"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#5832E6]"
               />
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 rounded-xl bg-[#22252A] hover:bg-black text-white text-xs font-bold transition-colors cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-[#5832E6] hover:bg-[#4323c2] text-white text-xs font-bold transition-colors cursor-pointer"
               >
                 Continue &rarr;
               </button>
@@ -443,7 +539,7 @@ export default function LoginPage() {
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-900">Reset Your Password</h3>
+              <h3 className="text-sm font-bold text-navy">Reset Your Password</h3>
               <button
                 type="button"
                 onClick={() => setForgotPasswordOpen(false)}
@@ -468,11 +564,11 @@ export default function LoginPage() {
                   placeholder="name@company.com"
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-slate-400"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#5832E6]"
                 />
                 <button
                   type="submit"
-                  className="w-full py-2.5 rounded-xl bg-[#E6FF00] hover:bg-[#D4ED00] text-black text-xs font-bold transition-colors cursor-pointer"
+                  className="w-full py-2.5 rounded-xl bg-[#5832E6] hover:bg-[#4323c2] text-white text-xs font-bold transition-colors cursor-pointer"
                 >
                   Send Reset Link
                 </button>

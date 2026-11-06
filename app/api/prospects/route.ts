@@ -142,8 +142,55 @@ function parseFilterList(param: string | null): string[] {
 function matchesOr(val: string | undefined | null, filterList: string[]): boolean {
   if (filterList.length === 0) return true;
   if (!val) return false;
-  const lower = val.toLowerCase();
-  return filterList.some((item) => lower === item || lower.includes(item));
+  const lower = val.toLowerCase().trim();
+  return filterList.some((item) => lower === item.toLowerCase().trim() || lower.includes(item.toLowerCase().trim()));
+}
+
+function matchesCountry(val: string | undefined | null, filterList: string[]): boolean {
+  if (filterList.length === 0) return true;
+  if (!val) return false;
+  const lower = val.toLowerCase().trim();
+  return filterList.some((item) => {
+    const it = item.toLowerCase().trim();
+    if (lower === it || lower.includes(it) || it.includes(lower)) return true;
+    if ((it === "united states" || it === "usa" || it === "us") && (lower === "united states" || lower === "usa" || lower === "us")) return true;
+    if ((it === "united kingdom" || it === "uk") && (lower === "united kingdom" || lower === "uk" || lower.includes("kingdom"))) return true;
+    if ((it === "united arab emirates" || it === "uae") && (lower === "united arab emirates" || lower === "uae")) return true;
+    return false;
+  });
+}
+
+function matchesRevenue(val: string | undefined | null, filterList: string[]): boolean {
+  if (filterList.length === 0) return true;
+  if (!val) return false;
+  const lower = val.toLowerCase().trim();
+  return filterList.some((item) => {
+    const it = item.toLowerCase().trim();
+    if (lower === it || lower.includes(it)) return true;
+    if (it.includes("100m+") && (lower.includes("100m+") || lower.includes("100m"))) return true;
+    if (it.includes("20m - 100m") && (lower.includes("20m - 100m") || lower.includes("20m - 50m") || lower.includes("50m - 100m"))) return true;
+    if (it.includes("1m - 20m") && (lower.includes("1m - 20m") || lower.includes("5m - 20m") || lower.includes("1m"))) return true;
+    if (it.includes("10m - 50m") && (lower.includes("10m - 50m") || lower.includes("20m - 50m"))) return true;
+    if ((it.includes("< 1m") || it.includes("0 - 1m")) && (lower.includes("1m") || lower.includes("early"))) return true;
+    return false;
+  });
+}
+
+function matchesEmployee(val: string | undefined | null, filterList: string[]): boolean {
+  if (filterList.length === 0) return true;
+  if (!val) return false;
+  const lower = val.toLowerCase().trim();
+  return filterList.some((item) => {
+    const it = item.toLowerCase().trim();
+    if (lower === it || lower.includes(it)) return true;
+    if (it.includes("1000+") && (lower.includes("1000+") || lower.includes("1000") || lower.includes("5000") || lower.includes("1001"))) return true;
+    if (it.includes("501-1000") && lower.includes("501-1000")) return true;
+    if (it.includes("201-500") && lower.includes("201-500")) return true;
+    if (it.includes("51-200") && lower.includes("51-200")) return true;
+    if (it.includes("11-50") && lower.includes("11-50")) return true;
+    if (it.includes("1-10") && lower.includes("1-10")) return true;
+    return false;
+  });
 }
 
 function maskEmail(em: string | undefined | null): string {
@@ -272,11 +319,11 @@ export async function GET(req: Request) {
       // 4. Multi-select categories (OR within category, AND between categories)
       if (!matchesOr(p.seniority, seniorityList)) return false;
       if (!matchesOr(p.industry, industryList)) return false;
-      if (!matchesOr(p.country, countryList)) return false;
+      if (!matchesCountry(p.country, countryList)) return false;
       if (!matchesOr(p.state, stateList)) return false;
       if (!matchesOr(p.department, departmentList)) return false;
-      if (!matchesOr(p.employeeRange, employeeRangeList)) return false;
-      if (!matchesOr(p.revenueRange, revenueRangeList)) return false;
+      if (!matchesEmployee(p.employeeRange, employeeRangeList)) return false;
+      if (!matchesRevenue(p.revenueRange, revenueRangeList)) return false;
       if (!matchesOr(p.ownership, ownershipList)) return false;
       if (!matchesOr(p.phoneType, phoneTypeList)) return false;
       if (!matchesOr(p.dataset || "", datasetList)) return false;
@@ -366,8 +413,8 @@ export async function GET(req: Request) {
     const isPaidUser = isUserOnPaidPlan(user) || isCeoEmail(userEmail);
 
     const total = filtered.length;
-    // For unpaid evaluation users, cap page results to 10 to prevent bulk scraping
-    const effectiveLimit = isPaidUser ? limit : Math.min(limit, 10);
+    // Allow users to browse 25, 50, or 100 records per page as selected in table controls
+    const effectiveLimit = limit;
     const totalPages = Math.ceil(total / effectiveLimit) || 1;
     const startIndex = (page - 1) * effectiveLimit;
     const paginated = filtered.slice(startIndex, startIndex + effectiveLimit);

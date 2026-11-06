@@ -23,15 +23,19 @@ export async function POST(req: Request) {
       message,
     });
 
-    // Asynchronously dispatch notification
-    sendLeadNotification({
-      type: "contact",
-      fullName,
-      email,
-      companyName: company || "",
-      comments: `[${subject || "General Inquiry"}] ${message}`,
-      phone: phone || "",
-    }).catch((err) => console.error("Notification dispatch failed:", err));
+    // Await notification so serverless runtime doesn't terminate before email delivery
+    try {
+      await sendLeadNotification({
+        type: "contact",
+        fullName,
+        email,
+        companyName: company || "",
+        comments: `[${subject || "General Inquiry"}] ${message}`,
+        phone: phone || "",
+      });
+    } catch (err) {
+      console.error("Notification dispatch failed:", err);
+    }
 
     return NextResponse.json({
       success: true,

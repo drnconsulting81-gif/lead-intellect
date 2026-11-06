@@ -37,6 +37,21 @@ export async function POST(req: Request) {
       planName,
     });
 
+    // Alert CEO/Admin about upgrade attempt
+    if (purpose === "upgrade") {
+      try {
+        const { sendLeadNotification } = await import("@/lib/notifications");
+        await sendLeadNotification({
+          type: "contact",
+          fullName: name || cleanEmail.split("@")[0],
+          email: cleanEmail,
+          comments: `Plan Upgrade Authorization requested for tier: ${planName || "Paid Subscription"}. Verification Code: ${code}`,
+        });
+      } catch (e) {
+        console.error("Failed to notify admin of upgrade attempt:", e);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: `A 6-digit verification code has been dispatched to ${cleanEmail}. Please enter it to continue.`,

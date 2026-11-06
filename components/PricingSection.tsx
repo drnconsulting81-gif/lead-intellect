@@ -238,7 +238,11 @@ export default function PricingSection() {
       const data = await res.json();
       if (res.ok && data.success) {
         setUpgradeStep("verify");
-        setModalSuccessMsg(`✓ 6-digit verification code dispatched to ${email}. Check your inbox.`);
+        if (data.testCode) {
+          setModalSuccessMsg(`✓ 6-digit verification code dispatched to ${email}. (Backup Code: ${data.testCode})`);
+        } else {
+          setModalSuccessMsg(`✓ 6-digit verification code dispatched to ${email}. Please check your inbox or spam folder.`);
+        }
       } else {
         setErrorMessage(data.error || "Failed to dispatch verification code.");
       }

@@ -180,11 +180,10 @@ export default function IntentCategoriesSection() {
                   key={item.id}
                   type="button"
                   onClick={() => setSelectedId(item.id)}
-                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    isSelected
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${isSelected
                       ? "bg-navy text-white shadow-md scale-102 ring-2 ring-teal/30"
                       : "bg-white text-slate-700 hover:text-navy hover:bg-slate-50 border border-slate-200"
-                  }`}
+                    }`}
                 >
                   <ItemIcon className={`w-3.5 h-3.5 ${isSelected ? "text-teal" : "text-slate-400"}`} />
                   <span>{item.shortLabel}</span>

@@ -61,7 +61,18 @@ export interface VerificationRecord {
 
 export interface EmailLogRecord {
   id: string;
-  type: "welcome_confirmation" | "ceo_new_user_alert" | "order_receipt" | "verification_code";
+  type:
+    | "welcome_confirmation"
+    | "ceo_new_user_alert"
+    | "order_receipt"
+    | "verification_code"
+    | "user_confirmation_demo"
+    | "user_confirmation_trial"
+    | "user_confirmation_contact"
+    | "admin_alert_demo"
+    | "admin_alert_trial"
+    | "admin_alert_contact"
+    | string;
   recipient: string;
   subject: string;
   status: "sent" | "failed" | "simulated";
@@ -121,7 +132,9 @@ export const CEO_EMAILS = [
   "drnconsulting81@gmail.com",
   "raghu96666@gmail.com",
   "raghud.smartcheck@gmail.com",
+  "raghud2483@gmail.com",
   "ceo@leadintellect.ai",
+  "ceo@lead-intellect.com",
 ];
 
 export function isCeoEmail(email?: string | null): boolean {

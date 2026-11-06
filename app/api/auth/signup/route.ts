@@ -46,23 +46,27 @@ export async function POST(req: Request) {
         provider,
       });
 
-      // Dispatch real welcome confirmation email to user
-      sendWelcomeConfirmationEmail({
-        name: user.name,
-        email: user.email,
-        company: user.company,
-        credits: user.credits || 99,
-      }).catch((err) => console.error("Error sending welcome email:", err));
-
-      // Dispatch alert to CEO
-      sendCeoNewUserAlert({
-        name: user.name,
-        email: user.email,
-        company: user.company,
-        title: user.title,
-        provider,
-        role: user.role,
-      }).catch((err) => console.error("Error sending CEO alert:", err));
+      // Dispatch real welcome confirmation email to user and alert to CEO
+      try {
+        await Promise.allSettled([
+          sendWelcomeConfirmationEmail({
+            name: user.name,
+            email: user.email,
+            company: user.company,
+            credits: user.credits || 99,
+          }),
+          sendCeoNewUserAlert({
+            name: user.name,
+            email: user.email,
+            company: user.company,
+            title: user.title,
+            provider,
+            role: user.role,
+          }),
+        ]);
+      } catch (e) {
+        console.error("Error dispatching signup emails:", e);
+      }
 
       // Dispatch legacy CRM / Slack webhook
       await sendLeadNotification({
@@ -117,23 +121,27 @@ export async function POST(req: Request) {
       provider: "email",
     });
 
-    // 5. Send Welcome & Confirmation Email to user
-    sendWelcomeConfirmationEmail({
-      name: user.name,
-      email: user.email,
-      company: user.company,
-      credits: user.credits || 99,
-    }).catch((err) => console.error("Error sending user confirmation email:", err));
-
-    // 6. Send Alert Email to CEO
-    sendCeoNewUserAlert({
-      name: user.name,
-      email: user.email,
-      company: user.company,
-      title: user.title,
-      provider: "email",
-      role: user.role,
-    }).catch((err) => console.error("Error sending CEO alert:", err));
+    // 5. Send Welcome & Confirmation Email to user and Alert to CEO
+    try {
+      await Promise.allSettled([
+        sendWelcomeConfirmationEmail({
+          name: user.name,
+          email: user.email,
+          company: user.company,
+          credits: user.credits || 99,
+        }),
+        sendCeoNewUserAlert({
+          name: user.name,
+          email: user.email,
+          company: user.company,
+          title: user.title,
+          provider: "email",
+          role: user.role,
+        }),
+      ]);
+    } catch (err) {
+      console.error("Error dispatching signup emails:", err);
+    }
 
     // 7. Dispatch notification to CRM / Webhook logger
     await sendLeadNotification({

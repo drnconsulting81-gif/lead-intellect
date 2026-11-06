@@ -115,9 +115,9 @@ export default function Navbar() {
                       <Play className="w-4 h-4 fill-current" />
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-navy">Resource Center &amp; Demo</div>
+                      <div className="text-xs font-bold text-navy">Resource Center &amp; Video Tutorials</div>
                       <p className="text-[11px] text-text-muted leading-tight mt-0.5">
-                        Interactive video demo &amp; playbooks
+                        Interactive video demo, tutorials &amp; playbooks
                       </p>
                     </div>
                   </Link>
@@ -147,25 +147,9 @@ export default function Navbar() {
                       <BookOpen className="w-4 h-4" />
                     </div>
                     <div>
-                      <div className="text-xs font-semibold text-navy">Blogs & Articles</div>
+                      <div className="text-xs font-semibold text-navy">Blogs &amp; Case Studies</div>
                       <p className="text-[11px] text-text-muted leading-tight mt-0.5">
-                        B2B sales strategy & intelligence
-                      </p>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/tutorials"
-                    onClick={() => setResourcesOpen(false)}
-                    className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-surface text-navy transition-colors group"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-teal/10 text-teal-dark flex items-center justify-center shrink-0 group-hover:bg-teal group-hover:text-navy transition-colors">
-                      <Video className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-navy">Video Tutorials</div>
-                      <p className="text-[11px] text-text-muted leading-tight mt-0.5">
-                        Watch how LeadIntellect works
+                        B2B sales strategy &amp; intelligence
                       </p>
                     </div>
                   </Link>
@@ -291,7 +275,7 @@ export default function Navbar() {
                     onClick={() => setOpen(false)}
                     className="text-xs text-navy font-bold py-1 flex items-center gap-1.5"
                   >
-                    <Play className="w-3.5 h-3.5 text-teal-dark fill-teal-dark" /> Resource Center &amp; Demo
+                    <Play className="w-3.5 h-3.5 text-teal-dark fill-teal-dark" /> Resource Center &amp; Video Tutorials
                   </Link>
                   <Link
                     href="/#faq"
@@ -305,14 +289,7 @@ export default function Navbar() {
                     onClick={() => setOpen(false)}
                     className="text-xs text-text-muted hover:text-navy py-1 flex items-center gap-1.5"
                   >
-                    <BookOpen className="w-3.5 h-3.5 text-violet" /> Blogs
-                  </Link>
-                  <Link
-                    href="/tutorials"
-                    onClick={() => setOpen(false)}
-                    className="text-xs text-text-muted hover:text-navy py-1 flex items-center gap-1.5"
-                  >
-                    <Video className="w-3.5 h-3.5 text-teal-dark" /> Video Tutorials
+                    <BookOpen className="w-3.5 h-3.5 text-violet" /> Blogs &amp; Insights
                   </Link>
                 </div>
               )}

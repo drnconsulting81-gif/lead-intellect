@@ -17,33 +17,14 @@ export default function Logo({
   showText = true,
   size = "md",
   theme = "light",
-  href,
+  href = "/",
 }: LogoProps) {
   const iconSize = size === "sm" ? 34 : size === "lg" ? 46 : 40;
   const textSize = size === "sm" ? "text-lg" : size === "lg" ? "text-2xl" : "text-xl";
 
-  // If user is logged in, navigate directly to workspace/dashboard so they remain in system
-  const [targetHref, setTargetHref] = useState(href || "/");
-
-  useEffect(() => {
-    if (href) {
-      setTargetHref(href);
-      return;
-    }
-    try {
-      const stored = localStorage.getItem("leadintellect_user");
-      if (stored) {
-        const u = JSON.parse(stored);
-        if (u && u.email) {
-          setTargetHref(u.role === "admin" ? "/admin" : "/dashboard");
-        }
-      }
-    } catch {}
-  }, [href]);
-
   return (
     <Link
-      href={targetHref}
+      href={href}
       className={`inline-flex items-center gap-2.5 font-display group select-none transition-all ${className}`}
     >
       {/* High-Resolution Vector Emblem matching user brand asset */}

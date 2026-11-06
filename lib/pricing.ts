@@ -32,3 +32,4 @@ export const PLAN_PRICING: Record<
     credits: 200,
   },
 };
+

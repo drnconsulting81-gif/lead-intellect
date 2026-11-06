@@ -63,6 +63,9 @@ import {
   Globe,
   Rocket,
   ChevronsRight,
+  Home,
+  Crown,
+  CreditCard,
   ChevronsLeft,
   ArrowRight,
   Star,
@@ -156,6 +159,7 @@ interface UserSession {
   provider: string;
   role?: "admin" | "user";
   credits?: number;
+  plan?: string;
 }
 
 interface UserList {
@@ -543,6 +547,46 @@ export default function LeadIntellectWorkspace() {
   // Collapsible AI Search Suggestions Banner (Maximizes prospect list view)
   const [aiBannerOpen, setAiBannerOpen] = useState(false);
 
+  // User Profile Menu & Advanced Filters Modal States
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
+
+  // Alphabetical Typeahead / Autocomplete Suggestions States
+  const [titleSuggestions, setTitleSuggestions] = useState<string[]>([]);
+  const [showTitleSuggestions, setShowTitleSuggestions] = useState(false);
+  const [industrySuggestions, setIndustrySuggestions] = useState<string[]>([]);
+  const [showIndustrySuggestions, setShowIndustrySuggestions] = useState(false);
+  const [industrySearchText, setIndustrySearchText] = useState("");
+  const [countrySuggestions, setCountrySuggestions] = useState<string[]>([]);
+  const [showCountrySuggestions, setShowCountrySuggestions] = useState(false);
+  const [countrySearchText, setCountrySearchText] = useState("");
+  const [topSuggestions, setTopSuggestions] = useState<{ text: string; category: string }[]>([]);
+  const [showTopSuggestions, setShowTopSuggestions] = useState(false);
+  const [intentSelectorOpen, setIntentSelectorOpen] = useState(false);
+  const [cachedEnrichProspects, setCachedEnrichProspects] = useState<Prospect[]>([]);
+
+  // Advanced Filters (50+ Enterprise Criteria)
+  const [advFilters, setAdvFilters] = useState<{
+    technographic: string[];
+    fundingStage: string[];
+    growthRate: string;
+    buyingIntentScore: string;
+    executiveChange: boolean;
+  }>({
+    technographic: [],
+    fundingStage: [],
+    growthRate: "all",
+    buyingIntentScore: "all",
+    executiveChange: false,
+  });
+
+  const isCEOUser =
+    currentUser?.role === "admin" ||
+    (currentUser?.email &&
+      ["raghud2483@gmail.com", "ceo@lead-intellect.com", "drnconsulting81@gmail.com", "ceo@leadintellect.ai"].includes(
+        currentUser.email.toLowerCase()
+      ));
+
   // CSV Import & Data Enrichment Modal States
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importFileContent, setImportFileContent] = useState("");
@@ -723,15 +767,62 @@ export default function LeadIntellectWorkspace() {
         // ignore
       }
     });
+
+    // Read initial tab from URL if present
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const tabParam = sp.get("tab") as NavItem | null;
+      if (
+        tabParam &&
+        ["home", "discover", "lists", "enrich", "intelligence", "integrations", "settings"].includes(tabParam)
+      ) {
+        setActiveNav(tabParam);
+      }
+    }
+
+    // Keyboard backspace guard: prevent browser from bouncing back to marketing homepage
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Backspace") {
+        const target = e.target as HTMLElement | null;
+        if (target) {
+          const tagName = target.tagName ? target.tagName.toLowerCase() : "";
+          const isInput =
+            tagName === "input" ||
+            tagName === "textarea" ||
+            tagName === "select" ||
+            target.isContentEditable;
+          if (!isInput) {
+            e.preventDefault();
+            if (window.history.length > 1) {
+              window.history.back();
+            }
+          }
+        }
+      }
+    };
+
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state && e.state.tab) {
+        setActiveNav(e.state.tab);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("popstate", handlePopState);
+    };
   }, []);
 
-  // Handle user sign out cleanly
+  // Handle user sign out cleanly to Homepage
   const handleSignOut = () => {
     try {
       localStorage.removeItem("leadintellect_user");
+      sessionStorage.removeItem("leadintellect_user");
       window.dispatchEvent(new Event("storage"));
     } catch {}
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
   // Fetch Lists
@@ -924,9 +1015,8 @@ export default function LeadIntellectWorkspace() {
 
       const data = await res.json();
       if (!res.ok) {
-        if (data.paymentRequired) {
-          showToast("Reveal locked: Active subscription required. Redirecting to plans...", "error");
-          setTimeout(() => { window.location.href = "/pricing"; }, 1500);
+        if (data.paymentRequired || credits <= 0) {
+          showToast("Insufficient credits remaining. Please upgrade or add credits to reveal more contacts.", "info");
         } else {
           showToast(data.error || "Failed to reveal contact details.", "error");
         }
@@ -974,15 +1064,27 @@ export default function LeadIntellectWorkspace() {
     }
   };
 
-  // Toggle Onboarding Task (Home page)
-    // Active List prospects for Stage 3 Enrichment
+  // Cache prospects persistently so Enrich & Verify never flickers or disappears
+  useEffect(() => {
+    if (prospects && prospects.length > 0) {
+      setCachedEnrichProspects((prev) => {
+        const map = new Map<string, Prospect>();
+        prev.forEach((p) => map.set(p.id, p));
+        prospects.forEach((p) => map.set(p.id, p));
+        return Array.from(map.values());
+      });
+    }
+  }, [prospects]);
+
+  // Active List prospects for Stage 3 Enrichment (Stable caching prevents flickering)
   const activeEnrichListProspects = useMemo(() => {
-    if (enrichSelectedListId === "all") return prospects;
+    const pool = cachedEnrichProspects.length > 0 ? cachedEnrichProspects : prospects;
+    if (enrichSelectedListId === "all") return pool.length > 0 ? pool : prospects;
     const targetList = userLists.find((l) => l.id === enrichSelectedListId);
-    if (!targetList) return prospects;
-    const filtered = prospects.filter((p) => targetList.prospectIds.includes(p.id));
-    return filtered.length > 0 ? filtered : prospects;
-  }, [enrichSelectedListId, userLists, prospects]);
+    if (!targetList) return pool.length > 0 ? pool : prospects;
+    const filtered = pool.filter((p) => targetList.prospectIds.includes(p.id));
+    return filtered.length > 0 ? filtered : pool;
+  }, [enrichSelectedListId, userLists, cachedEnrichProspects, prospects]);
 
   // Batch Enrich All in List
   const handleBatchEnrichList = async () => {
@@ -1982,7 +2084,7 @@ export default function LeadIntellectWorkspace() {
         )}
       </div>
 
-      {/* Accordion 4: Location */}
+      {/* Accordion 4: Location (City, State, Country) */}
       <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
         <button
           type="button"
@@ -2001,47 +2103,103 @@ export default function LeadIntellectWorkspace() {
         </button>
         {filterSections.location && (
           <div className="p-3.5 pt-1 space-y-3 border-t border-slate-100">
-            <select
-              value={country}
-              onChange={(e) => {
-                setCountry(e.target.value);
-                setPage(1);
-              }}
-              className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 focus:bg-white"
-            >
-              <option value="all">Global (All Countries)</option>
-              <option value="United States">United States</option>
-              <option value="Canada">Canada</option>
-              <option value="United Kingdom">United Kingdom</option>
-              <option value="India">India</option>
-              <option value="Australia">Australia</option>
-              <option value="Germany">Germany</option>
-              <option value="France">France</option>
-              <option value="Singapore">Singapore</option>
-              <option value="Netherlands">Netherlands</option>
-              <option value="United Arab Emirates">United Arab Emirates</option>
-              <option value="Japan">Japan</option>
-              <option value="Brazil">Brazil</option>
-              <option value="Ireland">Ireland</option>
-              <option value="Spain">Spain</option>
-              <option value="Switzerland">Switzerland</option>
-              <option value="Sweden">Sweden</option>
-            </select>
-            <input
-              type="text"
-              value={cityFilter}
-              onChange={(e) => {
-                setCityFilter(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Filter by City or State..."
-              className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark"
-            />
+            {/* Country Selector with Editable & Removable Chip */}
+            <div>
+              <p className="text-[11px] font-bold text-navy mb-1">Country</p>
+              {country && country !== "all" ? (
+                <div className="flex items-center justify-between p-2 rounded-lg bg-teal/10 border border-teal/30 text-teal-dark text-xs font-semibold">
+                  <span className="truncate">📍 {country}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCountry("all");
+                      setCountrySearchText("");
+                      setPage(1);
+                    }}
+                    className="w-4 h-4 rounded flex items-center justify-center hover:bg-teal/20 text-teal-dark cursor-pointer shrink-0 ml-1"
+                    title="Remove country filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={countrySearchText}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCountrySearchText(val);
+                      if (val.trim().length >= 1) {
+                        fetch(`/api/suggestions?type=countries&q=${encodeURIComponent(val.trim())}&limit=10`)
+                          .then((r) => r.json())
+                          .then((d) => {
+                            setCountrySuggestions(d.suggestions || []);
+                            setShowCountrySuggestions(true);
+                          })
+                          .catch(() => {});
+                      } else {
+                        setCountrySuggestions([]);
+                        setShowCountrySuggestions(false);
+                      }
+                    }}
+                    onFocus={() => {
+                      if (countrySuggestions.length > 0) setShowCountrySuggestions(true);
+                    }}
+                    placeholder="Search 70+ countries (e.g. US, Canada, UK)..."
+                    className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark"
+                  />
+                  {showCountrySuggestions && countrySuggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto custom-scrollbar p-1">
+                      <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 flex items-center justify-between">
+                        <span>Select Country</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowCountrySuggestions(false)}
+                          className="text-slate-400 hover:text-navy text-xs"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      {countrySuggestions.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => {
+                            setCountry(c);
+                            setCountrySearchText(c);
+                            setShowCountrySuggestions(false);
+                            setPage(1);
+                          }}
+                          className="w-full text-left px-2.5 py-1.5 text-xs text-navy hover:bg-teal/10 hover:text-teal-dark rounded-lg transition-colors truncate block cursor-pointer"
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <p className="text-[11px] font-bold text-navy mb-1">City or State</p>
+              <input
+                type="text"
+                value={cityFilter}
+                onChange={(e) => {
+                  setCityFilter(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Filter by City or State (e.g. Boston, CA)..."
+                className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark"
+              />
+            </div>
           </div>
         )}
       </div>
 
-      {/* Accordion 5: Industry & Keywords */}
+      {/* Accordion 5: Industry (Keywords removed, searchable across all 1,000+ industries) */}
       <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
         <button
           type="button"
@@ -2050,7 +2208,7 @@ export default function LeadIntellectWorkspace() {
         >
           <span className="flex items-center gap-2">
             <Layers className="w-3.5 h-3.5 text-slate-500" />
-            Industry &amp; Keywords
+            Industry
           </span>
           {filterSections.industry ? (
             <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
@@ -2060,32 +2218,81 @@ export default function LeadIntellectWorkspace() {
         </button>
         {filterSections.industry && (
           <div className="p-3.5 pt-1 space-y-3 border-t border-slate-100">
-            <select
-              value={industry}
-              onChange={(e) => {
-                setIndustry(e.target.value);
-                setPage(1);
-              }}
-              className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 focus:bg-white"
-            >
-              <option value="all">All Industries</option>
-              <option value="Computer Software">Computer Software &amp; SaaS</option>
-              <option value="Professional Services">Professional Services</option>
-              <option value="eCommerce">eCommerce &amp; Retail</option>
-              <option value="Medical Devices">Medical Devices &amp; Healthcare</option>
-              <option value="Financial Services">Financial Services &amp; Banking</option>
-              <option value="Manufacturing">Manufacturing &amp; Industrial</option>
-              <option value="Telecommunications">Telecommunications</option>
-              <option value="Real Estate">Real Estate &amp; Construction</option>
-              <option value="Education">Education &amp; EdTech</option>
-              <option value="Media">Media &amp; Entertainment</option>
-              <option value="Transportation">Transportation &amp; Logistics</option>
-              <option value="Energy">Energy &amp; Utilities</option>
-              <option value="Hospitality">Hospitality &amp; Travel</option>
-              <option value="Cybersecurity">Cybersecurity</option>
-              <option value="Artificial Intelligence">Artificial Intelligence &amp; ML</option>
-              <option value="Marketing">Marketing &amp; Advertising</option>
-            </select>
+            {/* Searchable Industry with Editable & Removable Chip */}
+            {industry && industry !== "all" ? (
+              <div className="flex items-center justify-between p-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-semibold">
+                <span className="truncate">🏢 {industry}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIndustry("all");
+                    setIndustrySearchText("");
+                    setPage(1);
+                  }}
+                  className="w-4 h-4 rounded flex items-center justify-center hover:bg-indigo-100 text-indigo-700 cursor-pointer shrink-0 ml-1"
+                  title="Remove industry filter"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <input
+                  type="text"
+                  value={industrySearchText}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setIndustrySearchText(val);
+                    if (val.trim().length >= 1) {
+                      fetch(`/api/suggestions?type=industries&q=${encodeURIComponent(val.trim())}&limit=12`)
+                        .then((r) => r.json())
+                        .then((d) => {
+                          setIndustrySuggestions(d.suggestions || []);
+                          setShowIndustrySuggestions(true);
+                        })
+                        .catch(() => {});
+                    } else {
+                      setIndustrySuggestions([]);
+                      setShowIndustrySuggestions(false);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (industrySuggestions.length > 0) setShowIndustrySuggestions(true);
+                  }}
+                  placeholder="Search 1,000+ industries (e.g. SaaS, Fintech)..."
+                  className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark"
+                />
+                {showIndustrySuggestions && industrySuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-52 overflow-y-auto custom-scrollbar p-1">
+                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 flex items-center justify-between">
+                      <span>Matching Industries ({industrySuggestions.length})</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowIndustrySuggestions(false)}
+                        className="text-slate-400 hover:text-navy text-xs"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    {industrySuggestions.map((ind) => (
+                      <button
+                        key={ind}
+                        type="button"
+                        onClick={() => {
+                          setIndustry(ind);
+                          setIndustrySearchText(ind);
+                          setShowIndustrySuggestions(false);
+                          setPage(1);
+                        }}
+                        className="w-full text-left px-2.5 py-1.5 text-xs text-navy hover:bg-indigo-50 hover:text-indigo-700 rounded-lg transition-colors truncate block cursor-pointer"
+                      >
+                        {ind}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="space-y-1.5 pt-1">
               <label className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-700">
                 <input
@@ -2116,13 +2323,14 @@ export default function LeadIntellectWorkspace() {
         )}
       </div>
 
-      {/* View 50+ Filters Pill */}
+      {/* View 50+ Filters Button (Opens Advanced Filters Drawer directly) */}
       <button
         type="button"
-        onClick={() => showToast("50+ Advanced Filters unlocked on LeadIntellect Professional")}
-        className="w-full py-2 border border-slate-300 rounded-xl bg-slate-50 hover:bg-slate-100 text-navy font-bold text-xs transition-colors"
+        onClick={() => setAdvancedFiltersOpen(true)}
+        className="w-full py-2.5 px-3 border border-indigo-200 rounded-xl bg-indigo-50/60 hover:bg-indigo-100/70 text-indigo-900 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer"
       >
-        View 50+ Filters
+        <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+        <span>View 50+ Advanced Filters</span>
       </button>
     </div>
   );
@@ -2326,22 +2534,119 @@ export default function LeadIntellectWorkspace() {
           </div>
         </div>
 
-        {/* Bottom Section: Avatar & Credits */}
-        <div className="flex flex-col items-center py-3 gap-2 border-t border-slate-100 w-full px-2">
-          <div
-            title={`${credits.toLocaleString()} Credits Available`}
-            className="w-9 h-9 rounded-xl bg-slate-100 flex flex-col items-center justify-center text-[10px] font-extrabold text-navy cursor-pointer hover:bg-slate-200"
+        {/* Bottom Section: Avatar & Profile Menu */}
+        <div className="relative flex flex-col items-center py-3 gap-2 border-t border-slate-100 w-full px-2">
+          {/* User Profile Avatar (Clickable with dropdown menu) */}
+          <button
+            type="button"
+            onClick={() => setProfileMenuOpen((prev) => !prev)}
+            title={currentUser?.email || "Account & Profile"}
+            className="w-9 h-9 rounded-full bg-navy hover:ring-2 hover:ring-teal-dark text-white text-xs font-bold flex items-center justify-center cursor-pointer shadow-xs transition-all relative"
+            aria-label="User account menu"
           >
-            <Coins className="w-3.5 h-3.5 text-teal-dark" />
-            <span className="leading-none text-[9px] mt-0.5">{credits > 999 ? "999+" : credits}</span>
-          </div>
+            {currentUser?.name
+              ? currentUser.name.charAt(0).toUpperCase()
+              : currentUser?.email
+              ? currentUser.email.charAt(0).toUpperCase()
+              : "U"}
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+          </button>
 
-          <div
-            title={currentUser?.email || "User Profile"}
-            className="w-9 h-9 rounded-full bg-navy text-white text-xs font-bold flex items-center justify-center cursor-pointer shadow-xs"
-          >
-            {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : "U"}
-          </div>
+          {/* User Profile Popover Menu */}
+          {profileMenuOpen && (
+            <div className="absolute bottom-12 left-16 w-72 bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 z-50 text-left animate-in fade-in slide-in-from-bottom-2 duration-150">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-navy text-white text-xs font-bold flex items-center justify-center shrink-0">
+                    {currentUser?.name
+                      ? currentUser.name.charAt(0).toUpperCase()
+                      : currentUser?.email
+                      ? currentUser.email.charAt(0).toUpperCase()
+                      : "U"}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-navy truncate">
+                      {currentUser?.name || currentUser?.email?.split("@")[0] || "User"}
+                    </p>
+                    <p className="text-[11px] text-text-muted truncate">
+                      {currentUser?.email || "user@leadintellect.ai"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setProfileMenuOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Plan & Credits Badge */}
+              <div className="my-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-teal-dark block">
+                    Current Plan
+                  </span>
+                  <span className="text-xs font-extrabold text-navy capitalize">
+                    {currentUser?.plan || "Growth Plan"}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-text-muted block">Balance</span>
+                  <span className="text-xs font-bold text-teal-dark">
+                    {credits.toLocaleString()} credits
+                  </span>
+                </div>
+              </div>
+
+              {/* Menu Actions */}
+              <div className="space-y-1 pt-1 text-xs">
+                <Link
+                  href="/"
+                  onClick={() => setProfileMenuOpen(false)}
+                  className="w-full px-2.5 py-2 rounded-xl text-slate-700 hover:text-navy hover:bg-slate-50 font-semibold flex items-center gap-2 transition-colors"
+                >
+                  <Home className="w-3.5 h-3.5 text-teal-dark" />
+                  <span>Return to Homepage</span>
+                </Link>
+
+                {isCEOUser && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setProfileMenuOpen(false)}
+                    className="w-full px-2.5 py-2 rounded-xl text-indigo-700 hover:text-indigo-900 bg-indigo-50/60 hover:bg-indigo-50 font-bold flex items-center gap-2 transition-colors"
+                  >
+                    <Crown className="w-3.5 h-3.5 text-amber-500" />
+                    <span>CEO Admin Portal</span>
+                  </Link>
+                )}
+
+                <Link
+                  href="/pricing"
+                  onClick={() => setProfileMenuOpen(false)}
+                  className="w-full px-2.5 py-2 rounded-xl text-slate-700 hover:text-navy hover:bg-slate-50 font-semibold flex items-center gap-2 transition-colors"
+                >
+                  <CreditCard className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Upgrade &amp; Add Credits</span>
+                </Link>
+
+                <div className="pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      handleSignOut();
+                    }}
+                    className="w-full px-2.5 py-2 rounded-xl text-rose-600 hover:bg-rose-50 font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <button
             type="button"
@@ -2830,15 +3135,33 @@ export default function LeadIntellectWorkspace() {
                     <span>{hideFilters ? "Show Filters" : "Hide Filters"}</span>
                   </button>
 
-                  {/* Quick Search People Input */}
+                  {/* Quick Search People Input with Instant Alphabetical Suggestions */}
                   <div className="relative min-w-[260px] sm:min-w-[320px]">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       value={query}
                       onChange={(e) => {
-                        setQuery(e.target.value);
+                        const val = e.target.value;
+                        setQuery(val);
                         setPage(1);
+                        if (val.trim().length >= 1) {
+                          fetch(`/api/suggestions?type=all&q=${encodeURIComponent(val.trim())}&limit=8`)
+                            .then((r) => r.json())
+                            .then((d) => {
+                              setTopSuggestions(d.suggestions || []);
+                              setShowTopSuggestions(true);
+                            })
+                            .catch(() => {});
+                        } else {
+                          setTopSuggestions([]);
+                          setShowTopSuggestions(false);
+                        }
+                      }}
+                      onFocus={() => {
+                        if (query.trim().length >= 1 && topSuggestions.length > 0) {
+                          setShowTopSuggestions(true);
+                        }
                       }}
                       placeholder={
                         discoverMode === "people"
@@ -2850,11 +3173,55 @@ export default function LeadIntellectWorkspace() {
                     {query && (
                       <button
                         type="button"
-                        onClick={() => setQuery("")}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-navy"
+                        onClick={() => {
+                          setQuery("");
+                          setShowTopSuggestions(false);
+                          setPage(1);
+                        }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-navy cursor-pointer"
                       >
                         <X className="w-3 h-3" />
                       </button>
+                    )}
+
+                    {showTopSuggestions && topSuggestions.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto custom-scrollbar p-1.5">
+                        <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 flex items-center justify-between">
+                          <span>Suggestions</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowTopSuggestions(false)}
+                            className="text-slate-400 hover:text-navy text-xs cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        {topSuggestions.map((item, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              if (item.category === "Job Title") {
+                                setTitleFilter(item.text);
+                              } else if (item.category === "Industry") {
+                                setIndustry(item.text);
+                              } else if (item.category === "Country") {
+                                setCountry(item.text);
+                              } else {
+                                setQuery(item.text);
+                              }
+                              setShowTopSuggestions(false);
+                              setPage(1);
+                            }}
+                            className="w-full text-left px-2.5 py-1.5 text-xs hover:bg-teal/10 rounded-lg flex items-center justify-between transition-colors cursor-pointer"
+                          >
+                            <span className="font-semibold text-navy truncate">{item.text}</span>
+                            <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 shrink-0 ml-2">
+                              {item.category}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -3459,46 +3826,94 @@ export default function LeadIntellectWorkspace() {
                     </div>
                   )}
 
-                  {/* Whole-Web Buyer Intent Quick-Switcher Bar */}
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar px-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-teal-dark shrink-0 flex items-center gap-1">
-                      <Zap className="w-3.5 h-3.5 text-teal-dark" />
-                      Buyer Intent:
-                    </span>
+                  {/* Buyer Intent Signals (Selective Dropdown + Removable Chips) */}
+                  <div className="relative flex flex-wrap items-center gap-2 px-1 py-1">
                     <button
                       type="button"
-                      onClick={() => {
-                        setIntentCategory("all");
-                        setPage(1);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
-                        intentCategory === "all"
-                          ? "bg-teal text-navy shadow-xs"
-                          : "bg-white border border-slate-200 text-slate-700 hover:border-teal/50 hover:text-teal-dark"
-                      }`}
+                      onClick={() => setIntentSelectorOpen((prev) => !prev)}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-300 hover:border-teal-dark text-navy flex items-center gap-2 shadow-2xs transition-all cursor-pointer"
                     >
-                      <span>🌐 All Signals</span>
+                      <Zap className="w-3.5 h-3.5 text-teal-dark fill-teal" />
+                      <span>Buyer Intent Signals</span>
+                      {intentCategory !== "all" && (
+                        <span className="w-2 h-2 rounded-full bg-teal-dark" />
+                      )}
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                     </button>
-                    {INTENT_CATEGORIES.filter((c) => c.id !== "all").map((cat) => {
-                      const isActive = intentCategory === cat.id;
-                      return (
+
+                    {intentCategory !== "all" ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-navy text-teal text-xs font-bold shadow-xs">
+                        <span>⚡ {INTENT_CATEGORIES.find((c) => c.id === intentCategory)?.label || intentCategory}</span>
                         <button
-                          key={cat.id}
                           type="button"
                           onClick={() => {
-                            setIntentCategory(isActive ? "all" : cat.id);
+                            setIntentCategory("all");
                             setPage(1);
                           }}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
-                            isActive
-                              ? "bg-navy text-teal shadow-xs font-bold ring-1 ring-teal/40"
-                              : "bg-white border border-slate-200 text-slate-700 hover:border-teal/40 hover:text-navy"
+                          className="hover:text-white cursor-pointer ml-1"
+                          title="Remove intent filter"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        All Signals Active (Real-Time Whole-Web Radar)
+                      </span>
+                    )}
+
+                    {intentSelectorOpen && (
+                      <div className="absolute top-full left-1 mt-1 w-80 bg-white rounded-2xl border border-slate-200 shadow-2xl p-3 z-50 space-y-1.5 animate-in fade-in zoom-in-95 duration-100">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                          <span className="text-xs font-bold text-navy uppercase tracking-wider flex items-center gap-1.5">
+                            <Zap className="w-3.5 h-3.5 text-teal-dark" />
+                            <span>Select Intent Category</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setIntentSelectorOpen(false)}
+                            className="text-slate-400 hover:text-navy cursor-pointer text-xs"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIntentCategory("all");
+                            setIntentSelectorOpen(false);
+                            setPage(1);
+                          }}
+                          className={`w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                            intentCategory === "all"
+                              ? "bg-teal/15 text-teal-dark font-bold"
+                              : "hover:bg-slate-50 text-slate-700"
                           }`}
                         >
-                          <span>{cat.label}</span>
+                          <span>🌐 All Signals &amp; Changes</span>
+                          {intentCategory === "all" && <Check className="w-3.5 h-3.5 text-teal-dark" />}
                         </button>
-                      );
-                    })}
+                        {INTENT_CATEGORIES.filter((c) => c.id !== "all").map((cat) => (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => {
+                              setIntentCategory(cat.id);
+                              setIntentSelectorOpen(false);
+                              setPage(1);
+                            }}
+                            className={`w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                              intentCategory === cat.id
+                                ? "bg-navy text-teal font-bold shadow-xs"
+                                : "hover:bg-slate-50 text-slate-700"
+                            }`}
+                          >
+                            <span>{cat.label}</span>
+                            {intentCategory === cat.id && <Check className="w-3.5 h-3.5 text-teal" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Horizontal Scroll Helper Banner & View Settings */}
@@ -5035,11 +5450,21 @@ export default function LeadIntellectWorkspace() {
       {/* ================= MODAL: CREATE LIST ================= */}
       {listModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-xl border border-slate-200">
-            <h3 className="text-base font-bold text-navy flex items-center gap-2">
-              <BookmarkPlus className="w-4 h-4 text-teal-dark" />
-              Create New Prospect List
-            </h3>
+          <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-xl border border-slate-200 relative">
+            <div className="flex items-center justify-between pb-1">
+              <h3 className="text-base font-bold text-navy flex items-center gap-2">
+                <BookmarkPlus className="w-4 h-4 text-teal-dark" />
+                <span>Create New Prospect List</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setListModalOpen(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-navy hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Close modal"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
             <p className="text-xs text-text-muted mt-1">
               {selectedIds.length > 0
                 ? `Organize ${selectedIds.length} selected decision-makers into a targeted list.`
@@ -6050,6 +6475,211 @@ export default function LeadIntellectWorkspace() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {/* ================= MODAL: 50+ ADVANCED FILTERS ================= */}
+      {advancedFiltersOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-3xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 max-h-[88vh] overflow-y-auto custom-scrollbar space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 font-extrabold text-[10px] uppercase tracking-wider mb-1">
+                  <Sparkles className="w-3 h-3 text-indigo-600" />
+                  <span>LeadIntellect Advanced Intelligence Suite</span>
+                </div>
+                <h3 className="text-xl font-extrabold text-navy">
+                  50+ Advanced Enterprise Prospecting Filters
+                </h3>
+                <p className="text-xs text-text-muted mt-0.5">
+                  Granular multi-dimensional criteria across technographic shifts, funding rounds, buying intent &amp; hiring signals.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAdvancedFiltersOpen(false)}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-navy hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-6 text-xs">
+              {/* Technographics */}
+              <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <h4 className="font-bold text-navy flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-indigo-600" />
+                  <span>Technographic Stack (Installed Software)</span>
+                </h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    "Salesforce CRM",
+                    "HubSpot",
+                    "AWS Cloud",
+                    "Snowflake",
+                    "Datadog",
+                    "Google Cloud",
+                    "Microsoft Azure",
+                    "Stripe Payments",
+                    "Marketo",
+                    "Segment CDP",
+                  ].map((tech) => {
+                    const isChecked = advFilters.technographic.includes(tech);
+                    return (
+                      <label key={tech} className="flex items-center gap-2 cursor-pointer text-[11px] font-medium text-slate-700 p-1.5 rounded-lg hover:bg-white transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setAdvFilters((prev) => ({
+                              ...prev,
+                              technographic: isChecked
+                                ? prev.technographic.filter((t) => t !== tech)
+                                : [...prev.technographic, tech],
+                            }));
+                          }}
+                          className="rounded text-indigo-600 w-3.5 h-3.5"
+                        />
+                        <span>{tech}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Funding & Valuations */}
+              <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <h4 className="font-bold text-navy flex items-center gap-2">
+                  <Coins className="w-4 h-4 text-emerald-600" />
+                  <span>Funding Stage &amp; Capitalization</span>
+                </h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    "Seed / Angel",
+                    "Series A",
+                    "Series B",
+                    "Series C+",
+                    "Growth Equity",
+                    "Private Equity (PE)",
+                    "Public (IPO)",
+                    "Bootstrapped / Profitable",
+                  ].map((stage) => {
+                    const isChecked = advFilters.fundingStage.includes(stage);
+                    return (
+                      <label key={stage} className="flex items-center gap-2 cursor-pointer text-[11px] font-medium text-slate-700 p-1.5 rounded-lg hover:bg-white transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setAdvFilters((prev) => ({
+                              ...prev,
+                              fundingStage: isChecked
+                                ? prev.fundingStage.filter((s) => s !== stage)
+                                : [...prev.fundingStage, stage],
+                            }));
+                          }}
+                          className="rounded text-emerald-600 w-3.5 h-3.5"
+                        />
+                        <span>{stage}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Department Growth */}
+              <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <h4 className="font-bold text-navy flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-teal-dark" />
+                  <span>Department Headcount Growth Rate</span>
+                </h4>
+                <div className="space-y-1.5">
+                  {[
+                    { id: "all", label: "Any Growth Rate" },
+                    { id: "gt_20", label: "> 20% YoY Net Headcount Expansion" },
+                    { id: "gt_50", label: "> 50% YoY Hyper-Growth" },
+                    { id: "eng_surge", label: "Engineering & Tech Hiring Surge" },
+                    { id: "sales_surge", label: "Sales & Go-To-Market Expansion" },
+                  ].map((item) => (
+                    <label key={item.id} className="flex items-center gap-2 cursor-pointer text-[11px] font-medium text-slate-700 p-1 rounded hover:bg-white">
+                      <input
+                        type="radio"
+                        name="growthRate"
+                        checked={advFilters.growthRate === item.id}
+                        onChange={() => setAdvFilters((prev) => ({ ...prev, growthRate: item.id }))}
+                        className="text-teal-dark w-3.5 h-3.5"
+                      />
+                      <span>{item.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* In-Market Intent Score */}
+              <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <h4 className="font-bold text-navy flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-amber-500" />
+                  <span>Buyer Intent Velocity &amp; Signals</span>
+                </h4>
+                <div className="space-y-1.5">
+                  {[
+                    { id: "all", label: "Any In-Market Intent Score" },
+                    { id: "surge_90", label: "High Intent Surge (Score 90-100)" },
+                    { id: "g2_research", label: "Active Review / Comparison Research" },
+                    { id: "job_changes", label: "Recent C-Level Appointment (<90 Days)" },
+                  ].map((item) => (
+                    <label key={item.id} className="flex items-center gap-2 cursor-pointer text-[11px] font-medium text-slate-700 p-1 rounded hover:bg-white">
+                      <input
+                        type="radio"
+                        name="buyingIntentScore"
+                        checked={advFilters.buyingIntentScore === item.id}
+                        onChange={() => setAdvFilters((prev) => ({ ...prev, buyingIntentScore: item.id }))}
+                        className="text-amber-500 w-3.5 h-3.5"
+                      />
+                      <span>{item.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setAdvFilters({
+                    technographic: [],
+                    fundingStage: [],
+                    growthRate: "all",
+                    buyingIntentScore: "all",
+                    executiveChange: false,
+                  });
+                }}
+                className="text-xs font-semibold text-rose-600 hover:underline cursor-pointer"
+              >
+                Reset Advanced Filters
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAdvancedFiltersOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdvancedFiltersOpen(false);
+                    showToast("✓ Applied 50+ Advanced Enterprise Filters to LeadIntellect Engine");
+                    setPage(1);
+                  }}
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#5832E6] to-[#4323c2] text-white text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
+                >
+                  Apply 50+ Advanced Filters
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
