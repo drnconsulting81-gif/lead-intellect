@@ -57,7 +57,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type") || "all"; // "titles" | "industries" | "countries" | "companies"
     const query = (searchParams.get("q") || "").trim().toLowerCase();
-    const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "10", 10), 1), 50);
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam === "all" ? 500 : Math.min(Math.max(parseInt(limitParam || "25", 10), 1), 500);
 
     const indices = getLookupIndices();
 

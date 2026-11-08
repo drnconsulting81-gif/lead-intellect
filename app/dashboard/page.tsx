@@ -83,6 +83,78 @@ import {
   type WebPlatform,
 } from "@/lib/intent";
 
+const ALL_COUNTRIES = [
+  "United States", "USA", "United Kingdom", "Canada", "Australia", "Germany", "France", "India",
+  "Singapore", "Netherlands", "Sweden", "Switzerland", "Japan", "Israel", "Ireland", "Spain",
+  "Italy", "Brazil", "Mexico", "United Arab Emirates", "Saudi Arabia", "South Africa", "New Zealand",
+  "Albania", "Angola", "Argentina", "Austria", "Bangladesh", "Belgium", "Bermuda", "Botswana",
+  "Chile", "China", "Costa Rica", "Croatia", "Czech Republic", "Denmark", "Egypt", "El Salvador",
+  "Finland", "Greece", "Hong Kong", "Hungary", "Indonesia", "Jordan", "Kenya", "Kuwait", "Lebanon",
+  "Liechtenstein", "Luxembourg", "Malaysia", "Malta", "Nicaragua", "Norway", "Oman", "Panama",
+  "Philippines", "Poland", "Portugal", "Puerto Rico", "Qatar", "Romania", "Russia", "Serbia",
+  "South Korea", "Taiwan", "Thailand", "Turkey", "Ukraine", "Vietnam", "Zimbabwe"
+];
+
+const ALL_DEPARTMENTS = [
+  "Information Technology",
+  "Executive Management",
+  "Sales & Business Development",
+  "Marketing",
+  "Finance & Accounting",
+  "Operations",
+  "Human Resources",
+  "Engineering",
+  "Legal & Compliance",
+  "Customer Success & Support",
+  "Product Management",
+];
+
+const ALL_EMPLOYEE_RANGES = [
+  { id: "1-10", label: "1-10 Employees" },
+  { id: "11-50", label: "11-50 Employees" },
+  { id: "51-200", label: "51-200 Employees" },
+  { id: "201-500", label: "201-500 Employees" },
+  { id: "501-1000", label: "501-1000 Employees" },
+  { id: "1000+", label: "1000+ Enterprise" },
+];
+
+const ALL_REVENUE_RANGES = [
+  { id: "$0 - $1M", label: "< $1M (Early Stage)" },
+  { id: "$1M - $20M", label: "$1M - $20M (Growth)" },
+  { id: "$20M - $100M", label: "$20M - $100M (Mid-Market)" },
+  { id: "$100M+", label: "$100M+ (Enterprise)" },
+];
+
+const ALL_INDUSTRIES = [
+  "Accounting", "Accounting Services", "Advertising / Marketing", "Advertising Services",
+  "Aerospace & Defense", "Agriculture & Farming", "Agriculture & Forestry", "Airlines & Aviation",
+  "Alternative Medicine", "Apparel & Fashion", "Architecture & Engineering", "Automotive",
+  "Automotive & Mobility", "Aviation and Aerospace Component Manufacturing", "Banking",
+  "Banking & Financial Services", "Beverages", "Biotechnology", "Biotechnology & Life Sciences",
+  "Broadcast Media", "Building Materials", "Building Materials & Construction",
+  "Business Consulting and Services", "Business Supplies & Equipment", "Casinos & Gambling",
+  "Chemicals", "Chemicals & Plastics", "Civil Engineering", "Commercial Real Estate",
+  "Computer & Network Security", "Computer Hardware", "Computer Hardware & Electronics",
+  "Computer Software", "Construction", "Consumer Electronics", "Consumer Goods & Retail",
+  "Consumer Services", "Cybersecurity", "Defense & Aerospace", "E-Commerce & Digital Marketplaces",
+  "Education & EdTech", "Electrical & Electronic Manufacturing", "Energy, Oil & Gas",
+  "Entertainment & Media", "Environmental Services & Cleantech", "Financial Services",
+  "Financial Technology (FinTech)", "Food & Beverages Manufacturing", "Food Production",
+  "Government Administration", "Healthcare & HealthTech", "Healthcare & Life Sciences",
+  "Higher Education", "Hospital & Healthcare", "Hospitality & Leisure", "Human Resources & Recruiting",
+  "Industrial Automation & Robotics", "Information Services", "Information Technology & Services",
+  "Insurance & InsurTech", "Internet & Web Services", "Investment Management", "Legal & Compliance Services",
+  "Logistics & Supply Chain", "Management Consulting", "Manufacturing & Industrial Machinery",
+  "Marketing, Advertising & PR", "Mechanical or Industrial Engineering", "Medical Devices & Equipment",
+  "Mining & Metals", "Non-Profit & Philanthropy", "Oil & Gas", "Pharmaceuticals",
+  "Professional Services", "Public Relations & Communications", "Publishing", "Real Estate & PropTech",
+  "Renewable Energy & Solar", "Research & Development", "Retail & Consumer Services", "Robotics & AI",
+  "SaaS (Software-as-a-Service)", "Semiconductors & Microelectronics", "Software & Cloud Infrastructure",
+  "Staffing & Talent Acquisition", "Technology, Media & Telecom", "Telecommunications & 5G",
+  "Transportation, Trucking & Railroad", "Travel & Tourism", "Utilities, Water & Power",
+  "Venture Capital & Private Equity", "Warehousing & Distribution", "Wholesale Trade", "Wireless"
+];
+
 export interface Prospect {
   id: string;
   name: string;
@@ -440,21 +512,38 @@ export default function LeadIntellectWorkspace() {
   const [cityFilter, setCityFilter] = useState("");
   const [stateFilter, setStateFilter] = useState("");
   const [companyFilter, setCompanyFilter] = useState("");
-  const [industry, setIndustry] = useState("all");
-  const [country, setCountry] = useState("all");
-  const [employeeRange, setEmployeeRange] = useState("all");
-  const [revenueFilter, setRevenueFilter] = useState("all");
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [employeeRanges, setEmployeeRanges] = useState<string[]>([]);
+  const [revenueFilters, setRevenueFilters] = useState<string[]>([]);
+  const [countries, setCountries] = useState<string[]>([]);
+  const [industries, setIndustries] = useState<string[]>([]);
   const [ownershipFilter, setOwnershipFilter] = useState("all");
-  const [departmentFilter, setDepartmentFilter] = useState("all");
   const [emailStatus, setEmailStatus] = useState("all");
   const [hasPhone, setHasPhone] = useState(false);
   const [hasEmailFilter, setHasEmailFilter] = useState(false);
   const [hasLinkedinFilter, setHasLinkedinFilter] = useState(false);
   const [minContactsFilter, setMinContactsFilter] = useState("all");
   const [minScore, setMinScore] = useState(0);
-  const [intentCategory, setIntentCategory] = useState("all");
+  const [intentCategories, setIntentCategories] = useState<string[]>([]);
   const [intentRecency, setIntentRecency] = useState("all");
-  const [webPlatform, setWebPlatform] = useState<WebPlatform>("all");
+  const [webPlatforms, setWebPlatforms] = useState<string[]>([]);
+
+  // Computed & Compatibility Helpers
+  const industry = industries.join(",");
+  const country = countries.join(",");
+  const departmentFilter = departments.join(",");
+  const employeeRange = employeeRanges.join(",");
+  const revenueFilter = revenueFilters.join(",");
+  const intentCategory = intentCategories[0] || "all";
+  const webPlatform = (webPlatforms[0] as WebPlatform) || "all";
+
+  const setIndustry = (val: string) => setIndustries(val === "all" || !val ? [] : [val]);
+  const setCountry = (val: string) => setCountries(val === "all" || !val ? [] : [val]);
+  const setEmployeeRange = (val: string) => setEmployeeRanges(val === "all" || !val ? [] : [val]);
+  const setRevenueFilter = (val: string) => setRevenueFilters(val === "all" || !val ? [] : [val]);
+  const setDepartmentFilter = (val: string) => setDepartments(val === "all" || !val ? [] : [val]);
+  const setIntentCategory = (val: string) => setIntentCategories(val === "all" || !val ? [] : [val]);
+  const setWebPlatform = (val: WebPlatform) => setWebPlatforms(val === "all" || !val ? [] : [val]);
   const [limitPerPage, setLimitPerPage] = useState(25);
   const [fullListView, setFullListView] = useState(false);
   const [selectedIntentProspect, setSelectedIntentProspect] = useState<Prospect | null>(null);
@@ -612,14 +701,44 @@ export default function LeadIntellectWorkspace() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Strict CSV validation: only genuine CSV files allowed
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith(".csv") && file.type !== "text/csv" && file.type !== "application/vnd.ms-excel") {
+      showToast("Invalid file format: Please upload a genuine .csv file. Other document formats (e.g., PDF, DOCX, images) are not accepted.", "error");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size === 0) {
+      showToast("The selected CSV file is empty.", "error");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      showToast("File size exceeds 15MB limit. Please upload a smaller CSV batch.", "error");
+      e.target.value = "";
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
-      if (text) {
-        setImportFileContent(text);
-        setImportPreview(null);
-        setEnrichmentResult(null);
+      if (!text || !text.trim()) {
+        showToast("The selected file is empty or cannot be read as text.", "error");
+        return;
       }
+
+      if (text.includes("\0") || /[\uFFFD]/.test(text.slice(0, 500))) {
+        showToast("The uploaded file contains binary/non-text data. Only standard plain-text CSV spreadsheets are supported.", "error");
+        return;
+      }
+
+      setImportFileContent(text);
+      setImportPreview(null);
+      setEnrichmentResult(null);
+      showToast(`Selected "${file.name}" (${(file.size / 1024).toFixed(1)} KB). Ready for column mapping & preview.`);
     };
     reader.readAsText(file);
   };
@@ -855,20 +974,20 @@ export default function LeadIntellectWorkspace() {
         if (cityFilter) params.set("city", cityFilter);
         if (stateFilter) params.set("state", stateFilter);
         if (companyFilter) params.set("companyName", companyFilter);
-        if (industry !== "all") params.set("industry", industry);
-        if (country !== "all") params.set("country", country);
-        if (employeeRange !== "all") params.set("employeeRange", employeeRange);
-        if (revenueFilter !== "all") params.set("revenueRange", revenueFilter);
+        if (industries.length > 0) params.set("industry", industries.join(","));
+        if (countries.length > 0) params.set("country", countries.join(","));
+        if (employeeRanges.length > 0) params.set("employeeRange", employeeRanges.join(","));
+        if (revenueFilters.length > 0) params.set("revenueRange", revenueFilters.join(","));
         if (ownershipFilter !== "all") params.set("ownership", ownershipFilter);
-        if (departmentFilter !== "all") params.set("department", departmentFilter);
+        if (departments.length > 0) params.set("department", departments.join(","));
         if (emailStatus !== "all") params.set("emailStatus", emailStatus);
         if (hasPhone) params.set("hasPhone", "true");
         if (hasEmailFilter) params.set("hasEmail", "true");
         if (hasLinkedinFilter) params.set("hasLinkedin", "true");
         if (minScore > 0) params.set("minScore", minScore.toString());
-        if (intentCategory && intentCategory !== "all") params.set("intentCategory", intentCategory);
+        if (intentCategories.length > 0) params.set("intentCategory", intentCategories.join(","));
         if (intentRecency && intentRecency !== "all") params.set("intentRecency", intentRecency);
-        if (webPlatform && webPlatform !== "all") params.set("webPlatform", webPlatform);
+        if (webPlatforms.length > 0) params.set("webPlatform", webPlatforms.join(","));
         if (datasetFilter && datasetFilter !== "all") params.set("dataset", datasetFilter);
         params.set("page", page.toString());
         params.set("limit", limitPerPage.toString());
@@ -893,12 +1012,12 @@ export default function LeadIntellectWorkspace() {
       } else {
         const params = new URLSearchParams();
         if (query) params.set("query", query);
-        if (industry !== "all") params.set("industry", industry);
-        if (country !== "all") params.set("country", country);
+        if (industries.length > 0) params.set("industry", industries.join(","));
+        if (countries.length > 0) params.set("country", countries.join(","));
         if (stateFilter) params.set("state", stateFilter);
         if (cityFilter) params.set("city", cityFilter);
-        if (employeeRange !== "all") params.set("employeeRange", employeeRange);
-        if (revenueFilter !== "all") params.set("revenueRange", revenueFilter);
+        if (employeeRanges.length > 0) params.set("employeeRange", employeeRanges.join(","));
+        if (revenueFilters.length > 0) params.set("revenueRange", revenueFilters.join(","));
         if (ownershipFilter !== "all") params.set("ownership", ownershipFilter);
         if (minContactsFilter !== "all") params.set("minContacts", minContactsFilter);
         params.set("page", page.toString());
@@ -932,21 +1051,21 @@ export default function LeadIntellectWorkspace() {
     cityFilter,
     stateFilter,
     companyFilter,
-    industry,
-    country,
-    employeeRange,
-    revenueFilter,
+    industries,
+    countries,
+    employeeRanges,
+    revenueFilters,
     ownershipFilter,
-    departmentFilter,
+    departments,
     emailStatus,
     hasPhone,
     hasEmailFilter,
     hasLinkedinFilter,
     minContactsFilter,
     minScore,
-    intentCategory,
+    intentCategories,
     intentRecency,
-    webPlatform,
+    webPlatforms,
     datasetFilter,
     limitPerPage,
     page,
@@ -1741,45 +1860,46 @@ export default function LeadIntellectWorkspace() {
     setCityFilter("");
     setStateFilter("");
     setCompanyFilter("");
-    setIndustry("all");
-    setCountry("all");
-    setEmployeeRange("all");
-    setRevenueFilter("all");
+    setIndustries([]);
+    setCountries([]);
+    setEmployeeRanges([]);
+    setRevenueFilters([]);
     setOwnershipFilter("all");
-    setDepartmentFilter("all");
+    setDepartments([]);
     setEmailStatus("all");
     setHasPhone(false);
     setHasEmailFilter(false);
     setHasLinkedinFilter(false);
     setMinScore(0);
-    setIntentCategory("all");
+    setIntentCategories([]);
     setIntentRecency("all");
-    setWebPlatform("all");
+    setWebPlatforms([]);
+    setCountrySearchText("");
+    setIndustrySearchText("");
     setQuery("");
     setPage(1);
   };
 
   const activeFilterCount =
-    (datasetFilter !== "all" ? 1 : 0) +
     seniority.length +
+    departments.length +
+    employeeRanges.length +
+    revenueFilters.length +
+    countries.length +
+    industries.length +
+    intentCategories.length +
+    webPlatforms.length +
     (titleFilter ? 1 : 0) +
     (cityFilter ? 1 : 0) +
     (stateFilter ? 1 : 0) +
     (companyFilter ? 1 : 0) +
-    (industry !== "all" ? 1 : 0) +
-    (country !== "all" ? 1 : 0) +
-    (employeeRange !== "all" ? 1 : 0) +
-    (revenueFilter !== "all" ? 1 : 0) +
     (ownershipFilter !== "all" ? 1 : 0) +
-    (departmentFilter !== "all" ? 1 : 0) +
     (emailStatus !== "all" ? 1 : 0) +
     (hasPhone ? 1 : 0) +
     (hasEmailFilter ? 1 : 0) +
     (hasLinkedinFilter ? 1 : 0) +
     (minScore > 0 ? 1 : 0) +
-    (intentCategory !== "all" ? 1 : 0) +
     (intentRecency !== "all" ? 1 : 0) +
-    (webPlatform !== "all" ? 1 : 0) +
     (query ? 1 : 0);
 
   // Filter Accordions Component (Screenshot 1 & 3)
@@ -1815,7 +1935,7 @@ export default function LeadIntellectWorkspace() {
           <span className="flex items-center gap-2">
             <Zap className="w-3.5 h-3.5 text-teal-dark" />
             <span>Intent &amp; Change Signals</span>
-            {(intentCategory !== "all" || intentRecency !== "all") && (
+            {(intentCategories.length > 0 || intentRecency !== "all" || webPlatforms.length > 0) && (
               <span className="w-2 h-2 rounded-full bg-teal-dark animate-pulse" />
             )}
           </span>
@@ -1826,27 +1946,55 @@ export default function LeadIntellectWorkspace() {
           )}
         </button>
         {filterSections.intent && (
-          <div className="p-3.5 pt-1 space-y-3 border-t border-teal/20">
+          <div className="p-3.5 pt-1 space-y-3.5 border-t border-teal/20">
+            {/* Signal Category Multi-Select Checkboxes */}
             <div>
-              <label className="block text-[11px] font-bold text-navy uppercase tracking-wider mb-1">
-                Signal Category
-              </label>
-              <select
-                value={intentCategory}
-                onChange={(e) => {
-                  setIntentCategory(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full text-xs p-2 rounded-lg bg-white border border-slate-300 font-semibold text-navy focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
-              >
-                {INTENT_CATEGORIES.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[11px] font-bold text-navy uppercase tracking-wider">
+                  Signal Category {intentCategories.length > 0 && `(${intentCategories.length})`}
+                </label>
+                {intentCategories.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIntentCategories([]);
+                      setPage(1);
+                    }}
+                    className="text-[10px] text-rose-600 font-semibold hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar p-1 rounded-lg border border-slate-200 bg-white">
+                {INTENT_CATEGORIES.filter((c) => c.id !== "all").map((cat) => {
+                  const isChecked = intentCategories.includes(cat.id);
+                  return (
+                    <label
+                      key={cat.id}
+                      className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
+                        isChecked ? "bg-teal/10 font-bold text-teal-dark" : "hover:bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          setIntentCategories((prev) =>
+                            isChecked ? prev.filter((id) => id !== cat.id) : [...prev, cat.id]
+                          );
+                          setPage(1);
+                        }}
+                        className="rounded text-teal-dark focus:ring-teal-dark w-3.5 h-3.5 accent-[#0d9488]"
+                      />
+                      <span className="truncate">{cat.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
 
+            {/* Signal Recency Window */}
             <div>
               <label className="block text-[11px] font-bold text-navy uppercase tracking-wider mb-1.5">
                 Signal Recency Window
@@ -1872,37 +2020,63 @@ export default function LeadIntellectWorkspace() {
               </div>
             </div>
 
-            {/* Whole-Web Intent Source Channels */}
+            {/* Web & Social Intent Source Multi-Select Checkboxes */}
             <div>
-              <label className="block text-[11px] font-bold text-navy uppercase tracking-wider mb-1">
-                Web &amp; Social Intent Source
-              </label>
-              <select
-                value={webPlatform}
-                onChange={(e) => {
-                  setWebPlatform(e.target.value as WebPlatform);
-                  setPage(1);
-                }}
-                className="w-full text-xs p-2 rounded-lg bg-white border border-slate-300 font-semibold text-navy focus:outline-none focus:ring-1 focus:ring-teal-dark cursor-pointer"
-              >
-                {WEB_INTENT_PLATFORMS.map((plat) => (
-                  <option key={plat.id} value={plat.id}>
-                    {plat.icon} {plat.label}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[11px] font-bold text-navy uppercase tracking-wider">
+                  Web &amp; Social Intent Source {webPlatforms.length > 0 && `(${webPlatforms.length})`}
+                </label>
+                {webPlatforms.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWebPlatforms([]);
+                      setPage(1);
+                    }}
+                    className="text-[10px] text-rose-600 font-semibold hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar p-1 rounded-lg border border-slate-200 bg-white">
+                {WEB_INTENT_PLATFORMS.filter((p) => p.id !== "all").map((plat) => {
+                  const isChecked = webPlatforms.includes(plat.id);
+                  return (
+                    <label
+                      key={plat.id}
+                      className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
+                        isChecked ? "bg-teal/10 font-bold text-teal-dark" : "hover:bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          setWebPlatforms((prev) =>
+                            isChecked ? prev.filter((id) => id !== plat.id) : [...prev, plat.id]
+                          );
+                          setPage(1);
+                        }}
+                        className="rounded text-teal-dark focus:ring-teal-dark w-3.5 h-3.5 accent-[#0d9488]"
+                      />
+                      <span className="truncate">{plat.icon} {plat.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
               <p className="text-[10px] text-slate-400 mt-1">
                 Monitors live buyer intent across G2, Reddit, Quora, Web News &amp; Careers.
               </p>
             </div>
 
-            {(intentCategory !== "all" || intentRecency !== "all" || webPlatform !== "all") && (
+            {(intentCategories.length > 0 || intentRecency !== "all" || webPlatforms.length > 0) && (
               <button
                 type="button"
                 onClick={() => {
-                  setIntentCategory("all");
+                  setIntentCategories([]);
                   setIntentRecency("all");
-                  setWebPlatform("all");
+                  setWebPlatforms([]);
                   setPage(1);
                 }}
                 className="w-full py-1 text-[10px] font-bold text-rose-600 hover:underline text-center cursor-pointer"
@@ -1923,7 +2097,10 @@ export default function LeadIntellectWorkspace() {
         >
           <span className="flex items-center gap-2">
             <Briefcase className="w-3.5 h-3.5 text-slate-500" />
-            Job Title / Role
+            <span>Job Title / Role</span>
+            {(seniority.length > 0 || departments.length > 0 || titleFilter) && (
+              <span className="w-2 h-2 rounded-full bg-teal-dark" />
+            )}
           </span>
           {filterSections.jobTitles ? (
             <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
@@ -1932,7 +2109,7 @@ export default function LeadIntellectWorkspace() {
           )}
         </button>
         {filterSections.jobTitles && (
-          <div className="p-3.5 pt-1 space-y-3 border-t border-slate-100">
+          <div className="p-3.5 pt-1 space-y-3.5 border-t border-slate-100">
             <input
               type="text"
               value={titleFilter}
@@ -1944,8 +2121,8 @@ export default function LeadIntellectWorkspace() {
               className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark"
             />
             <div>
-              <p className="text-[11px] font-bold text-navy mb-1.5">Seniority Level</p>
-              <div className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
+              <p className="text-[11px] font-bold text-navy mb-1.5">Seniority Level {seniority.length > 0 && `(${seniority.length})`}</p>
+              <div className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar p-1 rounded-lg border border-slate-200 bg-white">
                 {[
                   "C-Suite",
                   "VP",
@@ -1955,50 +2132,74 @@ export default function LeadIntellectWorkspace() {
                   "Head of / Lead",
                   "Partner / Board",
                   "Professional / IC",
-                ].map((s) => (
-                  <label
-                    key={s}
-                    className="flex items-center gap-2 py-1 px-1 rounded hover:bg-slate-50 cursor-pointer text-slate-700 text-[11px]"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={seniority.includes(s)}
-                      onChange={() => {
-                        setSeniority((prev) =>
-                          prev.includes(s) ? prev.filter((item) => item !== s) : [...prev, s]
-                        );
-                        setPage(1);
-                      }}
-                      className="rounded text-teal-dark focus:ring-teal-dark w-3.5 h-3.5"
-                    />
-                    <span>{s}</span>
-                  </label>
-                ))}
+                ].map((s) => {
+                  const isChecked = seniority.includes(s);
+                  return (
+                    <label
+                      key={s}
+                      className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
+                        isChecked ? "bg-teal/10 font-bold text-teal-dark" : "hover:bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          setSeniority((prev) =>
+                            isChecked ? prev.filter((item) => item !== s) : [...prev, s]
+                          );
+                          setPage(1);
+                        }}
+                        className="rounded text-teal-dark focus:ring-teal-dark w-3.5 h-3.5 accent-[#0d9488]"
+                      />
+                      <span>{s}</span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
             <div>
-              <p className="text-[11px] font-bold text-navy mb-1">Department / Function</p>
-              <select
-                value={departmentFilter}
-                onChange={(e) => {
-                  setDepartmentFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 focus:bg-white"
-              >
-                <option value="all">All Departments</option>
-                <option value="Information Technology">Information Technology</option>
-                <option value="Executive Management">Executive Management</option>
-                <option value="Sales & Business Development">Sales &amp; Business Development</option>
-                <option value="Marketing">Marketing</option>
-                <option value="Finance & Accounting">Finance &amp; Accounting</option>
-                <option value="Operations">Operations</option>
-                <option value="Human Resources">Human Resources</option>
-                <option value="Engineering">Engineering</option>
-                <option value="Legal & Compliance">Legal &amp; Compliance</option>
-                <option value="Customer Success & Support">Customer Success &amp; Support</option>
-                <option value="Product Management">Product Management</option>
-              </select>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[11px] font-bold text-navy">Department / Function {departments.length > 0 && `(${departments.length})`}</p>
+                {departments.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDepartments([]);
+                      setPage(1);
+                    }}
+                    className="text-[10px] text-rose-600 font-semibold hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="space-y-1 max-h-44 overflow-y-auto custom-scrollbar p-1 rounded-lg border border-slate-200 bg-white">
+                {ALL_DEPARTMENTS.map((dept) => {
+                  const isChecked = departments.includes(dept);
+                  return (
+                    <label
+                      key={dept}
+                      className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
+                        isChecked ? "bg-teal/10 font-bold text-teal-dark" : "hover:bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          setDepartments((prev) =>
+                            isChecked ? prev.filter((d) => d !== dept) : [...prev, dept]
+                          );
+                          setPage(1);
+                        }}
+                        className="rounded text-teal-dark focus:ring-teal-dark w-3.5 h-3.5 accent-[#0d9488]"
+                      />
+                      <span className="truncate">{dept}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
@@ -2024,7 +2225,10 @@ export default function LeadIntellectWorkspace() {
         >
           <span className="flex items-center gap-2">
             <Building2 className="w-3.5 h-3.5 text-slate-500" />
-            Company Name &amp; Size
+            <span>Company Name &amp; Size</span>
+            {(companyFilter || employeeRanges.length > 0 || revenueFilters.length > 0) && (
+              <span className="w-2 h-2 rounded-full bg-teal-dark" />
+            )}
           </span>
           {filterSections.company ? (
             <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
@@ -2033,7 +2237,7 @@ export default function LeadIntellectWorkspace() {
           )}
         </button>
         {filterSections.company && (
-          <div className="p-3.5 pt-1 space-y-3 border-t border-slate-100">
+          <div className="p-3.5 pt-1 space-y-3.5 border-t border-slate-100">
             <input
               type="text"
               value={companyFilter}
@@ -2044,41 +2248,94 @@ export default function LeadIntellectWorkspace() {
               placeholder="e.g. Acme, Stripe, Datadog"
               className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark"
             />
+            {/* Employee Count Multi-Select Checkboxes */}
             <div>
-              <p className="text-[11px] font-bold text-navy mb-1">Employee Count</p>
-              <select
-                value={employeeRange}
-                onChange={(e) => {
-                  setEmployeeRange(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 focus:bg-white"
-              >
-                <option value="all">All Sizes</option>
-                <option value="1-10">1-10 Employees</option>
-                <option value="11-50">11-50 Employees</option>
-                <option value="51-200">51-200 Employees</option>
-                <option value="201-500">201-500 Employees</option>
-                <option value="501-1000">501-1000 Employees</option>
-                <option value="1000+">1000+ Enterprise</option>
-              </select>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[11px] font-bold text-navy">Employee Count {employeeRanges.length > 0 && `(${employeeRanges.length})`}</p>
+                {employeeRanges.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmployeeRanges([]);
+                      setPage(1);
+                    }}
+                    className="text-[10px] text-rose-600 font-semibold hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar p-1 rounded-lg border border-slate-200 bg-white">
+                {ALL_EMPLOYEE_RANGES.map((r) => {
+                  const isChecked = employeeRanges.includes(r.id);
+                  return (
+                    <label
+                      key={r.id}
+                      className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
+                        isChecked ? "bg-teal/10 font-bold text-teal-dark" : "hover:bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          setEmployeeRanges((prev) =>
+                            isChecked ? prev.filter((id) => id !== r.id) : [...prev, r.id]
+                          );
+                          setPage(1);
+                        }}
+                        className="rounded text-teal-dark focus:ring-teal-dark w-3.5 h-3.5 accent-[#0d9488]"
+                      />
+                      <span>{r.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
+
+            {/* Annual Revenue Multi-Select Checkboxes */}
             <div>
-              <p className="text-[11px] font-bold text-navy mb-1">Annual Revenue</p>
-              <select
-                value={revenueFilter}
-                onChange={(e) => {
-                  setRevenueFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 focus:bg-white"
-              >
-                <option value="all">All Revenue</option>
-                <option value="$0 - $1M">&lt; $1M (Early)</option>
-                <option value="$1M - $20M">$1M - $20M</option>
-                <option value="$20M - $100M">$20M - $100M (Mid-Market)</option>
-                <option value="$100M+">$100M+ (Enterprise)</option>
-              </select>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[11px] font-bold text-navy">Annual Revenue {revenueFilters.length > 0 && `(${revenueFilters.length})`}</p>
+                {revenueFilters.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRevenueFilters([]);
+                      setPage(1);
+                    }}
+                    className="text-[10px] text-rose-600 font-semibold hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar p-1 rounded-lg border border-slate-200 bg-white">
+                {ALL_REVENUE_RANGES.map((r) => {
+                  const isChecked = revenueFilters.includes(r.id);
+                  return (
+                    <label
+                      key={r.id}
+                      className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
+                        isChecked ? "bg-teal/10 font-bold text-teal-dark" : "hover:bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          setRevenueFilters((prev) =>
+                            isChecked ? prev.filter((id) => id !== r.id) : [...prev, r.id]
+                          );
+                          setPage(1);
+                        }}
+                        className="rounded text-teal-dark focus:ring-teal-dark w-3.5 h-3.5 accent-[#0d9488]"
+                      />
+                      <span>{r.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
@@ -2093,7 +2350,10 @@ export default function LeadIntellectWorkspace() {
         >
           <span className="flex items-center gap-2">
             <Globe className="w-3.5 h-3.5 text-slate-500" />
-            Location (City, State, Country)
+            <span>Location (Country, City, State)</span>
+            {(countries.length > 0 || cityFilter || stateFilter) && (
+              <span className="w-2 h-2 rounded-full bg-teal-dark" />
+            )}
           </span>
           {filterSections.location ? (
             <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
@@ -2102,86 +2362,90 @@ export default function LeadIntellectWorkspace() {
           )}
         </button>
         {filterSections.location && (
-          <div className="p-3.5 pt-1 space-y-3 border-t border-slate-100">
-            {/* Country Selector with Editable & Removable Chip */}
+          <div className="p-3.5 pt-1 space-y-3.5 border-t border-slate-100">
+            {/* Country Multi-Select with Search & Checkboxes */}
             <div>
-              <p className="text-[11px] font-bold text-navy mb-1">Country</p>
-              {country && country !== "all" ? (
-                <div className="flex items-center justify-between p-2 rounded-lg bg-teal/10 border border-teal/30 text-teal-dark text-xs font-semibold">
-                  <span className="truncate">📍 {country}</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[11px] font-bold text-navy">Country {countries.length > 0 && `(${countries.length} selected)`}</p>
+                {countries.length > 0 && (
                   <button
                     type="button"
                     onClick={() => {
-                      setCountry("all");
-                      setCountrySearchText("");
+                      setCountries([]);
                       setPage(1);
                     }}
-                    className="w-4 h-4 rounded flex items-center justify-center hover:bg-teal/20 text-teal-dark cursor-pointer shrink-0 ml-1"
-                    title="Remove country filter"
+                    className="text-[10px] text-rose-600 font-semibold hover:underline"
                   >
-                    <X className="w-3 h-3" />
+                    Clear All
                   </button>
-                </div>
-              ) : (
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={countrySearchText}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setCountrySearchText(val);
-                      if (val.trim().length >= 1) {
-                        fetch(`/api/suggestions?type=countries&q=${encodeURIComponent(val.trim())}&limit=10`)
-                          .then((r) => r.json())
-                          .then((d) => {
-                            setCountrySuggestions(d.suggestions || []);
-                            setShowCountrySuggestions(true);
-                          })
-                          .catch(() => {});
-                      } else {
-                        setCountrySuggestions([]);
-                        setShowCountrySuggestions(false);
-                      }
-                    }}
-                    onFocus={() => {
-                      if (countrySuggestions.length > 0) setShowCountrySuggestions(true);
-                    }}
-                    placeholder="Search 70+ countries (e.g. US, Canada, UK)..."
-                    className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark"
-                  />
-                  {showCountrySuggestions && countrySuggestions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto custom-scrollbar p-1">
-                      <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 flex items-center justify-between">
-                        <span>Select Country</span>
-                        <button
-                          type="button"
-                          onClick={() => setShowCountrySuggestions(false)}
-                          className="text-slate-400 hover:text-navy text-xs"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                      {countrySuggestions.map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => {
-                            setCountry(c);
-                            setCountrySearchText(c);
-                            setShowCountrySuggestions(false);
-                            setPage(1);
-                          }}
-                          className="w-full text-left px-2.5 py-1.5 text-xs text-navy hover:bg-teal/10 hover:text-teal-dark rounded-lg transition-colors truncate block cursor-pointer"
-                        >
-                          {c}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                )}
+              </div>
+
+              {/* Selected Country Chips */}
+              {countries.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2 max-h-24 overflow-y-auto custom-scrollbar p-1 bg-slate-50 rounded-lg border border-slate-200">
+                  {countries.map((c) => (
+                    <span
+                      key={c}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal/10 border border-teal/30 text-teal-dark text-[11px] font-semibold"
+                    >
+                      <span>📍 {c}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCountries((prev) => prev.filter((item) => item !== c));
+                          setPage(1);
+                        }}
+                        className="hover:text-rose-600 cursor-pointer ml-0.5"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
                 </div>
               )}
+
+              {/* Search Box */}
+              <input
+                type="text"
+                value={countrySearchText}
+                onChange={(e) => setCountrySearchText(e.target.value)}
+                placeholder="Search 70+ countries (e.g. US, UK, India)..."
+                className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark mb-1.5"
+              />
+
+              {/* Scrollable Country Checkbox List */}
+              <div className="space-y-1 max-h-44 overflow-y-auto custom-scrollbar p-1 rounded-lg border border-slate-200 bg-white">
+                {ALL_COUNTRIES.filter((c) =>
+                  !countrySearchText.trim() || c.toLowerCase().includes(countrySearchText.trim().toLowerCase())
+                ).map((c) => {
+                  const isChecked = countries.includes(c);
+                  return (
+                    <label
+                      key={c}
+                      className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
+                        isChecked ? "bg-teal/10 font-bold text-teal-dark" : "hover:bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          setCountries((prev) =>
+                            isChecked ? prev.filter((item) => item !== c) : [...prev, c]
+                          );
+                          setPage(1);
+                        }}
+                        className="rounded text-teal-dark focus:ring-teal-dark w-3.5 h-3.5 accent-[#0d9488]"
+                      />
+                      <span className="truncate">{c}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
 
+            {/* City or State */}
             <div>
               <p className="text-[11px] font-bold text-navy mb-1">City or State</p>
               <input
@@ -2199,7 +2463,7 @@ export default function LeadIntellectWorkspace() {
         )}
       </div>
 
-      {/* Accordion 5: Industry (Keywords removed, searchable across all 1,000+ industries) */}
+      {/* Accordion 5: Industry */}
       <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
         <button
           type="button"
@@ -2208,7 +2472,10 @@ export default function LeadIntellectWorkspace() {
         >
           <span className="flex items-center gap-2">
             <Layers className="w-3.5 h-3.5 text-slate-500" />
-            Industry
+            <span>Industry</span>
+            {industries.length > 0 && (
+              <span className="w-2 h-2 rounded-full bg-teal-dark" />
+            )}
           </span>
           {filterSections.industry ? (
             <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
@@ -2217,83 +2484,91 @@ export default function LeadIntellectWorkspace() {
           )}
         </button>
         {filterSections.industry && (
-          <div className="p-3.5 pt-1 space-y-3 border-t border-slate-100">
-            {/* Searchable Industry with Editable & Removable Chip */}
-            {industry && industry !== "all" ? (
-              <div className="flex items-center justify-between p-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-semibold">
-                <span className="truncate">🏢 {industry}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIndustry("all");
-                    setIndustrySearchText("");
-                    setPage(1);
-                  }}
-                  className="w-4 h-4 rounded flex items-center justify-center hover:bg-indigo-100 text-indigo-700 cursor-pointer shrink-0 ml-1"
-                  title="Remove industry filter"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ) : (
-              <div className="relative">
-                <input
-                  type="text"
-                  value={industrySearchText}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setIndustrySearchText(val);
-                    if (val.trim().length >= 1) {
-                      fetch(`/api/suggestions?type=industries&q=${encodeURIComponent(val.trim())}&limit=12`)
-                        .then((r) => r.json())
-                        .then((d) => {
-                          setIndustrySuggestions(d.suggestions || []);
-                          setShowIndustrySuggestions(true);
-                        })
-                        .catch(() => {});
-                    } else {
-                      setIndustrySuggestions([]);
-                      setShowIndustrySuggestions(false);
-                    }
-                  }}
-                  onFocus={() => {
-                    if (industrySuggestions.length > 0) setShowIndustrySuggestions(true);
-                  }}
-                  placeholder="Search 1,000+ industries (e.g. SaaS, Fintech)..."
-                  className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark"
-                />
-                {showIndustrySuggestions && industrySuggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-52 overflow-y-auto custom-scrollbar p-1">
-                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 flex items-center justify-between">
-                      <span>Matching Industries ({industrySuggestions.length})</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowIndustrySuggestions(false)}
-                        className="text-slate-400 hover:text-navy text-xs"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                    {industrySuggestions.map((ind) => (
-                      <button
-                        key={ind}
-                        type="button"
-                        onClick={() => {
-                          setIndustry(ind);
-                          setIndustrySearchText(ind);
-                          setShowIndustrySuggestions(false);
-                          setPage(1);
-                        }}
-                        className="w-full text-left px-2.5 py-1.5 text-xs text-navy hover:bg-indigo-50 hover:text-indigo-700 rounded-lg transition-colors truncate block cursor-pointer"
-                      >
-                        {ind}
-                      </button>
-                    ))}
-                  </div>
+          <div className="p-3.5 pt-1 space-y-3.5 border-t border-slate-100">
+            {/* Industry Multi-Select with Search & Checkboxes */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[11px] font-bold text-navy">Industry {industries.length > 0 && `(${industries.length} selected)`}</p>
+                {industries.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIndustries([]);
+                      setPage(1);
+                    }}
+                    className="text-[10px] text-rose-600 font-semibold hover:underline"
+                  >
+                    Clear All
+                  </button>
                 )}
               </div>
-            )}
-            <div className="space-y-1.5 pt-1">
+
+              {/* Selected Industry Chips */}
+              {industries.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2 max-h-24 overflow-y-auto custom-scrollbar p-1 bg-slate-50 rounded-lg border border-slate-200">
+                  {industries.map((ind) => (
+                    <span
+                      key={ind}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-900 text-[11px] font-semibold"
+                    >
+                      <span className="truncate max-w-[160px]">🏢 {ind}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIndustries((prev) => prev.filter((item) => item !== ind));
+                          setPage(1);
+                        }}
+                        className="hover:text-rose-600 cursor-pointer ml-0.5"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Search Box */}
+              <input
+                type="text"
+                value={industrySearchText}
+                onChange={(e) => setIndustrySearchText(e.target.value)}
+                placeholder="Search 200+ industries (e.g. SaaS, Fintech, Healthcare)..."
+                className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-dark mb-1.5"
+              />
+
+              {/* Scrollable Industry Checkbox List */}
+              <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar p-1 rounded-lg border border-slate-200 bg-white">
+                {ALL_INDUSTRIES.filter((ind) =>
+                  !industrySearchText.trim() || ind.toLowerCase().includes(industrySearchText.trim().toLowerCase())
+                ).map((ind) => {
+                  const isChecked = industries.includes(ind);
+                  return (
+                    <label
+                      key={ind}
+                      className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
+                        isChecked ? "bg-teal/10 font-bold text-teal-dark" : "hover:bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          setIndustries((prev) =>
+                            isChecked ? prev.filter((item) => item !== ind) : [...prev, ind]
+                          );
+                          setPage(1);
+                        }}
+                        className="rounded text-teal-dark focus:ring-teal-dark w-3.5 h-3.5 accent-[#0d9488]"
+                      />
+                      <span className="truncate">{ind}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Direct Contact Requirements */}
+            <div className="space-y-1.5 pt-1 border-t border-slate-100">
               <label className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-700">
                 <input
                   type="checkbox"
@@ -2302,9 +2577,9 @@ export default function LeadIntellectWorkspace() {
                     setHasPhone(e.target.checked);
                     setPage(1);
                   }}
-                  className="rounded text-teal-dark w-3.5 h-3.5"
+                  className="rounded text-teal-dark w-3.5 h-3.5 accent-[#0d9488]"
                 />
-                <span>Must Have Direct Phone</span>
+                <span className="font-medium">Must Have Direct Phone</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-700">
                 <input
@@ -2314,9 +2589,9 @@ export default function LeadIntellectWorkspace() {
                     setHasEmailFilter(e.target.checked);
                     setPage(1);
                   }}
-                  className="rounded text-teal-dark w-3.5 h-3.5"
+                  className="rounded text-teal-dark w-3.5 h-3.5 accent-[#0d9488]"
                 />
-                <span>Must Have Verified Email</span>
+                <span className="font-medium">Must Have Verified Email</span>
               </label>
             </div>
           </div>
@@ -2389,10 +2664,13 @@ export default function LeadIntellectWorkspace() {
 
           {/* Navigation Items */}
           <div className="flex flex-col items-center gap-1.5 w-full px-2">
-            {/* Home Icon (Screenshot 2) */}
+            {/* Home Icon */}
             <button
               type="button"
-              onClick={() => setActiveNav("home")}
+              onClick={() => {
+                setProspectFlyoutOpen(false);
+                setActiveNav("home");
+              }}
               title="Home (Onboarding & Overview)"
               className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                 activeNav === "home"
@@ -2406,7 +2684,10 @@ export default function LeadIntellectWorkspace() {
             {/* Intelligence Icon */}
             <button
               type="button"
-              onClick={() => setActiveNav("intelligence")}
+              onClick={() => {
+                setProspectFlyoutOpen(false);
+                setActiveNav("intelligence");
+              }}
               title="Intelligence (Buyer Intent & Signals)"
               className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                 activeNav === "intelligence"
@@ -2417,12 +2698,14 @@ export default function LeadIntellectWorkspace() {
               <Zap className="w-5 h-5" />
             </button>
 
-            {/* Prospect and Enrich (Search Icon with Flyout Dropdown) (Screenshots 4 & 5) */}
-            <div className="relative">
+            {/* Prospect and Enrich (Search Icon with Flyout Dropdown) */}
+            <div
+              className="relative"
+              onMouseLeave={() => setProspectFlyoutOpen(false)}
+            >
               <button
                 type="button"
                 onClick={() => setProspectFlyoutOpen((prev) => !prev)}
-                onMouseEnter={() => setProspectFlyoutOpen(true)}
                 title="Prospect and enrich"
                 className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                   activeNav === "discover" || activeNav === "lists"
@@ -2504,24 +2787,13 @@ export default function LeadIntellectWorkspace() {
               )}
             </div>
 
-            {/* 3. Enrich & Verify (ShieldCheck) */}
-            <button
-              type="button"
-              onClick={() => setActiveNav("enrich")}
-              title="3. Enrich & Verify (Email & Phone Verification)"
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
-                activeNav === "enrich"
-                  ? "bg-slate-100 text-teal-dark shadow-2xs"
-                  : "text-slate-500 hover:text-navy hover:bg-slate-100"
-              }`}
-            >
-              <ShieldCheck className="w-5 h-5" />
-            </button>
-
             {/* Integrations (Settings) */}
             <button
               type="button"
-              onClick={() => setActiveNav("integrations")}
+              onClick={() => {
+                setProspectFlyoutOpen(false);
+                setActiveNav("integrations");
+              }}
               title="Integrations & Settings"
               className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                 activeNav === "integrations"
@@ -3608,13 +3880,14 @@ export default function LeadIntellectWorkspace() {
                         </span>
                       )}
 
-                      {industry !== "all" && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-medium shadow-2xs">
-                          Industry: {industry}
+                      {/* Industries Multi-Select Chips */}
+                      {industries.map((ind) => (
+                        <span key={ind} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-medium shadow-2xs">
+                          <span>🏢 Industry: {ind}</span>
                           <button
                             type="button"
                             onClick={() => {
-                              setIndustry("all");
+                              setIndustries((prev) => prev.filter((item) => item !== ind));
                               setPage(1);
                             }}
                             className="hover:text-rose-600 cursor-pointer ml-0.5"
@@ -3622,15 +3895,16 @@ export default function LeadIntellectWorkspace() {
                             <X className="w-3 h-3" />
                           </button>
                         </span>
-                      )}
+                      ))}
 
-                      {country !== "all" && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal/10 border border-teal/30 text-teal-dark text-[11px] font-medium shadow-2xs">
-                          Country: {country}
+                      {/* Countries Multi-Select Chips */}
+                      {countries.map((c) => (
+                        <span key={c} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal/10 border border-teal/30 text-teal-dark text-[11px] font-medium shadow-2xs">
+                          <span>📍 Country: {c}</span>
                           <button
                             type="button"
                             onClick={() => {
-                              setCountry("all");
+                              setCountries((prev) => prev.filter((item) => item !== c));
                               setPage(1);
                             }}
                             className="hover:text-rose-600 cursor-pointer ml-0.5"
@@ -3638,7 +3912,7 @@ export default function LeadIntellectWorkspace() {
                             <X className="w-3 h-3" />
                           </button>
                         </span>
-                      )}
+                      ))}
 
                       {stateFilter && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-medium shadow-2xs">
@@ -3672,45 +3946,54 @@ export default function LeadIntellectWorkspace() {
                         </span>
                       )}
 
-                      {employeeRange !== "all" && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-medium shadow-2xs">
-                          Employees: {employeeRange}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEmployeeRange("all");
-                              setPage(1);
-                            }}
-                            className="hover:text-rose-600 cursor-pointer ml-0.5"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      )}
+                      {/* Employee Count Multi-Select Chips */}
+                      {employeeRanges.map((rId) => {
+                        const rLabel = ALL_EMPLOYEE_RANGES.find((x) => x.id === rId)?.label || rId;
+                        return (
+                          <span key={rId} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-medium shadow-2xs">
+                            <span>👥 Employees: {rLabel}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEmployeeRanges((prev) => prev.filter((item) => item !== rId));
+                                setPage(1);
+                              }}
+                              className="hover:text-rose-600 cursor-pointer ml-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        );
+                      })}
 
-                      {revenueFilter !== "all" && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-medium shadow-2xs">
-                          Revenue: {revenueFilter}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setRevenueFilter("all");
-                              setPage(1);
-                            }}
-                            className="hover:text-rose-600 cursor-pointer ml-0.5"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      )}
+                      {/* Annual Revenue Multi-Select Chips */}
+                      {revenueFilters.map((rId) => {
+                        const rLabel = ALL_REVENUE_RANGES.find((x) => x.id === rId)?.label || rId;
+                        return (
+                          <span key={rId} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-medium shadow-2xs">
+                            <span>💰 Revenue: {rLabel}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRevenueFilters((prev) => prev.filter((item) => item !== rId));
+                                setPage(1);
+                              }}
+                              className="hover:text-rose-600 cursor-pointer ml-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        );
+                      })}
 
-                      {departmentFilter !== "all" && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-medium shadow-2xs">
-                          Dept: {departmentFilter}
+                      {/* Department Multi-Select Chips */}
+                      {departments.map((dept) => (
+                        <span key={dept} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-medium shadow-2xs">
+                          <span>🏛️ Dept: {dept}</span>
                           <button
                             type="button"
                             onClick={() => {
-                              setDepartmentFilter("all");
+                              setDepartments((prev) => prev.filter((item) => item !== dept));
                               setPage(1);
                             }}
                             className="hover:text-rose-600 cursor-pointer ml-0.5"
@@ -3718,7 +4001,48 @@ export default function LeadIntellectWorkspace() {
                             <X className="w-3 h-3" />
                           </button>
                         </span>
-                      )}
+                      ))}
+
+                      {/* Intent Category Chips in Filter Chips Row */}
+                      {intentCategories.map((catId) => {
+                        const catLabel = INTENT_CATEGORIES.find((c) => c.id === catId)?.label || catId;
+                        return (
+                          <span key={catId} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal/15 border border-teal/30 text-teal-dark text-[11px] font-medium shadow-2xs">
+                            <span>⚡ Intent: {catLabel}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIntentCategories((prev) => prev.filter((item) => item !== catId));
+                                setPage(1);
+                              }}
+                              className="hover:text-rose-600 cursor-pointer ml-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        );
+                      })}
+
+                      {/* Web Intent Platform Chips */}
+                      {webPlatforms.map((platId) => {
+                        const plat = WEB_INTENT_PLATFORMS.find((p) => p.id === platId);
+                        const platLabel = plat ? `${plat.icon} ${plat.label}` : platId;
+                        return (
+                          <span key={platId} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal/15 border border-teal/30 text-teal-dark text-[11px] font-medium shadow-2xs">
+                            <span>🌐 Source: {platLabel}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setWebPlatforms((prev) => prev.filter((item) => item !== platId));
+                                setPage(1);
+                              }}
+                              className="hover:text-rose-600 cursor-pointer ml-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        );
+                      })}
 
                       {emailStatus !== "all" && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-medium shadow-2xs">
@@ -3826,7 +4150,7 @@ export default function LeadIntellectWorkspace() {
                     </div>
                   )}
 
-                  {/* Buyer Intent Signals (Selective Dropdown + Removable Chips) */}
+                  {/* Buyer Intent Signals (Selective Multi-Select Dropdown + Removable Chips) */}
                   <div className="relative flex flex-wrap items-center gap-2 px-1 py-1">
                     <button
                       type="button"
@@ -3835,27 +4159,39 @@ export default function LeadIntellectWorkspace() {
                     >
                       <Zap className="w-3.5 h-3.5 text-teal-dark fill-teal" />
                       <span>Buyer Intent Signals</span>
-                      {intentCategory !== "all" && (
-                        <span className="w-2 h-2 rounded-full bg-teal-dark" />
+                      {intentCategories.length > 0 && (
+                        <span className="px-1.5 py-0.2 rounded-full bg-teal-dark text-white text-[10px] font-extrabold">
+                          {intentCategories.length}
+                        </span>
                       )}
                       <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                     </button>
 
-                    {intentCategory !== "all" ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-navy text-teal text-xs font-bold shadow-xs">
-                        <span>⚡ {INTENT_CATEGORIES.find((c) => c.id === intentCategory)?.label || intentCategory}</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIntentCategory("all");
-                            setPage(1);
-                          }}
-                          className="hover:text-white cursor-pointer ml-1"
-                          title="Remove intent filter"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </span>
+                    {intentCategories.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {intentCategories.map((catId) => {
+                          const catLabel = INTENT_CATEGORIES.find((c) => c.id === catId)?.label || catId;
+                          return (
+                            <span
+                              key={catId}
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-navy text-teal text-xs font-bold shadow-xs"
+                            >
+                              <span>⚡ {catLabel}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIntentCategories((prev) => prev.filter((id) => id !== catId));
+                                  setPage(1);
+                                }}
+                                className="hover:text-white cursor-pointer ml-1"
+                                title="Remove intent filter"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </span>
+                          );
+                        })}
+                      </div>
                     ) : (
                       <span className="text-[11px] text-slate-500 font-medium">
                         All Signals Active (Real-Time Whole-Web Radar)
@@ -3863,55 +4199,93 @@ export default function LeadIntellectWorkspace() {
                     )}
 
                     {intentSelectorOpen && (
-                      <div className="absolute top-full left-1 mt-1 w-80 bg-white rounded-2xl border border-slate-200 shadow-2xl p-3 z-50 space-y-1.5 animate-in fade-in zoom-in-95 duration-100">
+                      <div
+                        onMouseLeave={() => setIntentSelectorOpen(false)}
+                        className="absolute top-full left-1 mt-1 w-80 bg-white rounded-2xl border border-slate-200 shadow-2xl p-3 z-50 space-y-1.5 animate-in fade-in zoom-in-95 duration-100"
+                      >
                         <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                           <span className="text-xs font-bold text-navy uppercase tracking-wider flex items-center gap-1.5">
                             <Zap className="w-3.5 h-3.5 text-teal-dark" />
-                            <span>Select Intent Category</span>
+                            <span>Select Intent Signals {intentCategories.length > 0 && `(${intentCategories.length})`}</span>
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => setIntentSelectorOpen(false)}
-                            className="text-slate-400 hover:text-navy cursor-pointer text-xs"
-                          >
-                            ✕
-                          </button>
+                          <div className="flex items-center gap-2">
+                            {intentCategories.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIntentCategories([]);
+                                  setPage(1);
+                                }}
+                                className="text-[10px] text-rose-600 font-bold hover:underline cursor-pointer"
+                              >
+                                Clear
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setIntentSelectorOpen(false)}
+                              className="text-slate-400 hover:text-navy cursor-pointer text-xs"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIntentCategory("all");
-                            setIntentSelectorOpen(false);
-                            setPage(1);
-                          }}
+
+                        {/* All Signals Option */}
+                        <label
                           className={`w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                            intentCategory === "all"
+                            intentCategories.length === 0
                               ? "bg-teal/15 text-teal-dark font-bold"
                               : "hover:bg-slate-50 text-slate-700"
                           }`}
                         >
-                          <span>🌐 All Signals &amp; Changes</span>
-                          {intentCategory === "all" && <Check className="w-3.5 h-3.5 text-teal-dark" />}
-                        </button>
-                        {INTENT_CATEGORIES.filter((c) => c.id !== "all").map((cat) => (
-                          <button
-                            key={cat.id}
-                            type="button"
-                            onClick={() => {
-                              setIntentCategory(cat.id);
-                              setIntentSelectorOpen(false);
-                              setPage(1);
-                            }}
-                            className={`w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                              intentCategory === cat.id
-                                ? "bg-navy text-teal font-bold shadow-xs"
-                                : "hover:bg-slate-50 text-slate-700"
-                            }`}
-                          >
-                            <span>{cat.label}</span>
-                            {intentCategory === cat.id && <Check className="w-3.5 h-3.5 text-teal" />}
-                          </button>
-                        ))}
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={intentCategories.length === 0}
+                              onChange={() => {
+                                setIntentCategories([]);
+                                setPage(1);
+                              }}
+                              className="rounded text-teal-dark focus:ring-teal-dark w-3.5 h-3.5 accent-[#0d9488]"
+                            />
+                            <span>🌐 All Signals &amp; Changes</span>
+                          </div>
+                          {intentCategories.length === 0 && <Check className="w-3.5 h-3.5 text-teal-dark" />}
+                        </label>
+
+                        {/* Checklist */}
+                        <div className="space-y-1 max-h-56 overflow-y-auto custom-scrollbar p-1">
+                          {INTENT_CATEGORIES.filter((c) => c.id !== "all").map((cat) => {
+                            const isChecked = intentCategories.includes(cat.id);
+                            return (
+                              <label
+                                key={cat.id}
+                                className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                                  isChecked
+                                    ? "bg-navy text-teal font-bold shadow-xs"
+                                    : "hover:bg-slate-50 text-slate-700"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => {
+                                      setIntentCategories((prev) =>
+                                        isChecked ? prev.filter((id) => id !== cat.id) : [...prev, cat.id]
+                                      );
+                                      setPage(1);
+                                    }}
+                                    className="rounded text-teal-dark focus:ring-teal-dark w-3.5 h-3.5 accent-[#0d9488]"
+                                  />
+                                  <span className="truncate">{cat.label}</span>
+                                </div>
+                                {isChecked && <Check className="w-3.5 h-3.5 text-teal shrink-0" />}
+                              </label>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>

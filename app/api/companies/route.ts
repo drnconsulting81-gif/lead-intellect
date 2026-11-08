@@ -61,6 +61,19 @@ export async function GET(req: Request) {
     const sortBy = searchParams.get("sortBy") || "decisionMakerCount";
     const sortOrder = searchParams.get("sortOrder") || "desc";
 
+    const parseList = (param: string | null) =>
+      param
+        ? param
+            .split(",")
+            .map((s) => s.trim().toLowerCase())
+            .filter((s) => s.length > 0 && s !== "all")
+        : [];
+
+    const industryList = parseList(searchParams.get("industry"));
+    const countryList = parseList(searchParams.get("country"));
+    const employeeRangeList = parseList(searchParams.get("employeeRange"));
+    const revenueRangeList = parseList(searchParams.get("revenueRange"));
+
     const filtered = all.filter((c) => {
       if (query) {
         const match =
@@ -73,20 +86,20 @@ export async function GET(req: Request) {
         if (!match) return false;
       }
 
-      if (industry && industry !== "all") {
-        if (!c.industry || !c.industry.toLowerCase().includes(industry)) return false;
+      if (industryList.length > 0) {
+        const ind = (c.industry || "").toLowerCase();
+        if (!industryList.some((item) => ind === item || ind.includes(item))) return false;
       }
 
-      if (country && country !== "all") {
+      if (countryList.length > 0) {
         const cLower = (c.country || "").toLowerCase();
-        const target = country.toLowerCase().trim();
-        const match =
-          cLower === target ||
-          cLower.includes(target) ||
-          target.includes(cLower) ||
-          ((target === "united states" || target === "usa" || target === "us") && (cLower === "united states" || cLower === "usa" || cLower === "us")) ||
-          ((target === "united kingdom" || target === "uk") && (cLower === "united kingdom" || cLower === "uk")) ||
-          ((target === "united arab emirates" || target === "uae") && (cLower === "united arab emirates" || cLower === "uae"));
+        const match = countryList.some((target) => {
+          if (cLower === target || cLower.includes(target) || target.includes(cLower)) return true;
+          if ((target === "united states" || target === "usa" || target === "us") && (cLower === "united states" || cLower === "usa" || cLower === "us")) return true;
+          if ((target === "united kingdom" || target === "uk") && (cLower === "united kingdom" || cLower === "uk")) return true;
+          if ((target === "united arab emirates" || target === "uae") && (cLower === "united arab emirates" || cLower === "uae")) return true;
+          return false;
+        });
         if (!match) return false;
       }
 
@@ -98,31 +111,32 @@ export async function GET(req: Request) {
         if (!c.state || !c.state.toLowerCase().includes(state)) return false;
       }
 
-      if (employeeRange && employeeRange !== "all") {
+      if (employeeRangeList.length > 0) {
         const eLower = (c.employeeRange || "").toLowerCase();
-        const tLower = employeeRange.toLowerCase();
-        const match =
-          eLower === tLower ||
-          eLower.includes(tLower) ||
-          (tLower.includes("1000+") && (eLower.includes("1000+") || eLower.includes("1000") || eLower.includes("5000"))) ||
-          (tLower.includes("501-1000") && eLower.includes("501-1000")) ||
-          (tLower.includes("201-500") && eLower.includes("201-500")) ||
-          (tLower.includes("51-200") && eLower.includes("51-200")) ||
-          (tLower.includes("11-50") && eLower.includes("11-50")) ||
-          (tLower.includes("1-10") && eLower.includes("1-10"));
+        const match = employeeRangeList.some((tLower) => {
+          if (eLower === tLower || eLower.includes(tLower)) return true;
+          if (tLower.includes("1000+") && (eLower.includes("1000+") || eLower.includes("1000") || eLower.includes("5000"))) return true;
+          if (tLower.includes("501-1000") && eLower.includes("501-1000")) return true;
+          if (tLower.includes("201-500") && eLower.includes("201-500")) return true;
+          if (tLower.includes("51-200") && eLower.includes("51-200")) return true;
+          if (tLower.includes("11-50") && eLower.includes("11-50")) return true;
+          if (tLower.includes("1-10") && eLower.includes("1-10")) return true;
+          return false;
+        });
         if (!match) return false;
       }
 
-      if (revenueRange && revenueRange !== "all") {
+      if (revenueRangeList.length > 0) {
         const rLower = (c.revenueRange || "").toLowerCase();
-        const tLower = revenueRange.toLowerCase();
-        const match =
-          rLower === tLower ||
-          rLower.includes(tLower) ||
-          (tLower.includes("100m+") && (rLower.includes("100m+") || rLower.includes("100m"))) ||
-          (tLower.includes("20m - 100m") && (rLower.includes("20m - 100m") || rLower.includes("20m - 50m") || rLower.includes("50m - 100m"))) ||
-          (tLower.includes("1m - 20m") && (rLower.includes("1m - 20m") || rLower.includes("5m - 20m") || rLower.includes("1m"))) ||
-          (tLower.includes("10m - 50m") && (rLower.includes("10m - 50m") || rLower.includes("20m - 50m")));
+        const match = revenueRangeList.some((tLower) => {
+          if (rLower === tLower || rLower.includes(tLower)) return true;
+          if (tLower.includes("100m+") && (rLower.includes("100m+") || rLower.includes("100m"))) return true;
+          if (tLower.includes("20m - 100m") && (rLower.includes("20m - 100m") || rLower.includes("20m - 50m") || rLower.includes("50m - 100m"))) return true;
+          if (tLower.includes("1m - 20m") && (rLower.includes("1m - 20m") || rLower.includes("5m - 20m") || rLower.includes("1m"))) return true;
+          if (tLower.includes("10m - 50m") && (rLower.includes("10m - 50m") || rLower.includes("20m - 50m"))) return true;
+          if ((tLower.includes("< 1m") || tLower.includes("0 - 1m")) && (rLower.includes("1m") || rLower.includes("early"))) return true;
+          return false;
+        });
         if (!match) return false;
       }
 

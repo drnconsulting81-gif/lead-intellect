@@ -104,19 +104,43 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { action, csvContent, mapping, listName, userEmail } = body;
 
-    if (!csvContent) {
+    if (!csvContent || typeof csvContent !== "string") {
       return NextResponse.json({ error: "CSV content is required." }, { status: 400 });
+    }
+
+    if (csvContent.includes("\0") || /[\uFFFD]/.test(csvContent.slice(0, 500))) {
+      return NextResponse.json(
+        { error: "Invalid file format: Detected binary or unreadable content. Only valid plain-text CSV (.csv) files are supported." },
+        { status: 400 }
+      );
     }
 
     const rows = parseCsv(csvContent);
     if (rows.length < 2) {
       return NextResponse.json(
-        { error: "CSV must contain at least a header row and one data row." },
+        { error: "CSV must contain at least a header row and one data row with proper contact records." },
         { status: 400 }
       );
     }
 
     const headers = rows[0];
+
+    // Validate that headers actually represent B2B prospect or company data
+    const recognizedFieldKeys = ["email", "name", "company", "title", "phone", "domain", "website", "linkedin", "city", "country", "industry"];
+    const hasRecognizedColumn = headers.some((h) => {
+      const lower = h.toLowerCase().trim();
+      return recognizedFieldKeys.some((k) => lower.includes(k));
+    });
+
+    if (!hasRecognizedColumn) {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid CSV schema: The uploaded CSV does not contain valid contact or company headers (e.g., Email, Full Name, Company Name, Job Title, Direct Phone, or Website). Please upload a valid prospecting CSV.",
+        },
+        { status: 400 }
+      );
+    }
 
     // Action 1: Preview and auto-detect column mapping
     if (action === "preview") {
@@ -219,14 +243,14 @@ export async function POST(req: Request) {
 
         if (matched) matchedCount++;
 
-        // Fill master fields
-        const fName = rawFirst || matched?.firstName || fullName.split(" ")[0] || "";
-        const lName = rawLast || matched?.lastName || fullName.split(" ").slice(1).join(" ") || "";
-        const cName = rawCompany || matched?.company || "Enterprise Lead";
-        const titleVal = rawTitle || matched?.title || "Executive";
-        const emailVal = rawEmail || matched?.email || `${fName.toLowerCase()}.${lName.toLowerCase()}@${cName.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`;
-        const directPhone = rawPhone || matched?.phone || "+1 (555) 019-2834";
-        const linkedinVal = rawLinkedin || matched?.linkedin || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(fullName + " " + cName)}`;
+        // Fill master fields with truthful data only
+        const fName = rawFirst || matched?.firstName || (fullName ? fullName.split(" ")[0] : "");
+        const lName = rawLast || matched?.lastName || (fullName ? fullName.split(" ").slice(1).join(" ") : "");
+        const cName = rawCompany || matched?.company || "";
+        const titleVal = rawTitle || matched?.title || "";
+        const emailVal = rawEmail || matched?.email || "";
+        const directPhone = rawPhone || matched?.phone || "";
+        const linkedinVal = rawLinkedin || matched?.linkedin || (fullName && cName ? `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(fullName + " " + cName)}` : "");
 
         if (emailVal && !rawEmail) enrichedEmailsCount++;
         if (directPhone && !rawPhone) enrichedPhonesCount++;
@@ -237,38 +261,38 @@ export async function POST(req: Request) {
           "First Name": fName,
           "Last Name": lName,
           "Title": titleVal,
-          "Departments": matched?.department || "Executive Management",
-          "Job Functions": matched?.jobFunctions || "Decision Maker",
+          "Departments": matched?.department || "",
+          "Job Functions": matched?.jobFunctions || "",
           "Reports To": matched?.reportsTo || "",
           "Email": emailVal,
-          "Email Status": matched?.emailStatus || "Verified Original",
+          "Email Status": matched?.emailStatus || (emailVal ? "User Provided" : "Not Found"),
           "Direct Phone": directPhone,
           "Cell Phone": matched?.cellPhone || directPhone,
           "Corp HQ Phone": matched?.hqPhone || directPhone,
           "LinkedIn URL": linkedinVal,
-          "LinkedIn Status": matched?.linkedinStatus || "Verified Profile",
-          "LinkedIn Search URL": `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(fullName + " " + cName)}`,
-          "Website": matched?.website || `www.${cName.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`,
-          "Industry": matched?.industry || "Professional Services",
-          "Industry Sector": matched?.subIndustry || "B2B Technology",
-          "Seniority Tier": matched?.seniority || "C-Suite",
-          "Job Domain": matched?.jobDomain || "Executive Leadership",
+          "LinkedIn Status": matched?.linkedin ? "Verified Profile" : "Search Link",
+          "LinkedIn Search URL": fullName && cName ? `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(fullName + " " + cName)}` : "",
+          "Website": matched?.website || (cName ? `www.${cName.toLowerCase().replace(/[^a-z0-9]/g, "")}.com` : ""),
+          "Industry": matched?.industry || "",
+          "Industry Sector": matched?.subIndustry || "",
+          "Seniority Tier": matched?.seniority || "",
+          "Job Domain": matched?.jobDomain || "",
           "Address 1": matched?.address1 || "",
           "Address 2": "",
-          "City": rawCity || matched?.city || "New York",
-          "State": rawState || matched?.state || "NY",
-          "Postal Code": matched?.postalCode || "10001",
-          "Country": rawCountry || matched?.country || "United States",
-          "Location Region": matched?.region || "North America",
-          "Revenue (Mil)": matched?.revenueMil || 25,
+          "City": rawCity || matched?.city || "",
+          "State": rawState || matched?.state || "",
+          "Postal Code": matched?.postalCode || "",
+          "Country": rawCountry || matched?.country || "",
+          "Location Region": matched?.region || "",
+          "Revenue (Mil)": matched?.revenueMil || "",
           "HQ Address 1": matched?.hqAddress1 || "",
           "HQ Address 2": "",
-          "HQ City": matched?.city || "New York",
-          "HQ State": matched?.state || "NY",
-          "HQ Postal Code": matched?.postalCode || "10001",
-          "HQ Country": matched?.country || "United States",
-          "Ownership": matched?.ownership || "Private",
-          "Data Quality Score": matched?.icpScore || 95,
+          "HQ City": matched?.city || rawCity || "",
+          "HQ State": matched?.state || rawState || "",
+          "HQ Postal Code": matched?.postalCode || "",
+          "HQ Country": matched?.country || rawCountry || "",
+          "Ownership": matched?.ownership || "",
+          "Data Quality Score": matched ? 98 : (emailVal && cName ? 85 : 60),
         };
 
         enrichedRows.push(enrichedRecord);

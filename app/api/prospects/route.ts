@@ -287,6 +287,8 @@ export async function GET(req: Request) {
     const ownershipList = parseFilterList(ownership);
     const phoneTypeList = parseFilterList(phoneType);
     const datasetList = parseFilterList(dataset);
+    const intentCategoryList = parseFilterList(intentCategory);
+    const webPlatformList = parseFilterList(webPlatform);
 
     const filtered = all.filter((p) => {
       // 1. General search query (searches across name, company, title, industry, city, state, country)
@@ -361,13 +363,13 @@ export async function GET(req: Request) {
       }
 
       // 8. Intent & Buying Signal Filters
-      if (intentCategory && intentCategory !== "all") {
+      if (intentCategoryList.length > 0) {
         const signal = getProspectIntentSignal(p);
-        if (signal.category !== intentCategory) return false;
+        if (!intentCategoryList.includes(signal.category.toLowerCase())) return false;
       }
-      if (webPlatform && webPlatform !== "all") {
+      if (webPlatformList.length > 0) {
         const signal = getProspectIntentSignal(p);
-        if (signal.webPlatform !== webPlatform) return false;
+        if (!webPlatformList.includes(signal.webPlatform.toLowerCase())) return false;
       }
       if (intentRecency && intentRecency !== "all") {
         const maxDays = Number(intentRecency);
