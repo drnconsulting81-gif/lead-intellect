@@ -20,6 +20,8 @@ dist/
 
 # Local Database runtime data
 data/db.json
+# Large combined prospects file (>100MB exceeds GitHub limit; committed as chunked parts data/prospects_part*.json)
+data/prospects.json
 
 # Private Lead & Contact Spreadsheets
 Database/

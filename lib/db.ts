@@ -838,9 +838,17 @@ export async function getUserUnlockedProspects(email: string): Promise<Array<Rec
       const filePath = path.join(process.cwd(), "data", "prospects.json");
       if (fs.existsSync(filePath)) {
         cachedMasterProspectsForDb = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+      } else {
+        const dataDir = path.join(process.cwd(), "data");
+        const parts = fs.readdirSync(dataDir).filter((f) => f.startsWith("prospects_part") && f.endsWith(".json"));
+        let combined: Array<Record<string, unknown> & { id: string }> = [];
+        for (const p of parts.sort()) {
+          combined = combined.concat(JSON.parse(fs.readFileSync(path.join(dataDir, p), "utf-8")));
+        }
+        cachedMasterProspectsForDb = combined;
       }
     } catch (err) {
-      console.error("Error reading prospects.json for unlocked leads:", err);
+      console.error("Error reading prospects for unlocked leads:", err);
     }
   }
 

@@ -47,8 +47,10 @@ async function runTests() {
   const prospects = JSON.parse(fs.readFileSync(prospectsPath, "utf-8"));
   const companies = JSON.parse(fs.readFileSync(companiesPath, "utf-8"));
 
-  assert(prospects.length >= 49000, `Prospects dataset size is ${prospects.length} records (expected ~50k)`);
-  assert(companies.length >= 8000, `Companies dataset size is ${companies.length} records (expected >8k)`);
+  assert(prospects.length >= 200000, `Prospects dataset size is ${prospects.length} records (expected >200k)`);
+  assert(companies.length >= 25000, `Companies dataset size is ${companies.length} records (expected >25k)`);
+  const auditPath = path.join(__dirname, "..", "data", "database_validation_audit.json");
+  assert(fs.existsSync(auditPath), "data/database_validation_audit.json exists with live scraping audit metrics");
 
   const sampleProspect = prospects[0];
   assert(Boolean(sampleProspect.id && sampleProspect.name), "Prospect records have valid ID and Full Name");

@@ -56,7 +56,7 @@ export default function SearchableDirectory() {
   const [companyFilter, setCompanyFilter] = useState("");
   const [leads, setLeads] = useState<LeadItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalCount, setTotalCount] = useState(85500);
+  const [totalCount, setTotalCount] = useState(220814);
   const [unlockedModalLead, setUnlockedModalLead] = useState<LeadItem | null>(null);
   const [signupModalOpen, setSignupModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -126,7 +126,7 @@ export default function SearchableDirectory() {
             <span>Searchable B2B Database Directory</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-navy tracking-tight">
-            Explore 85,000+ Validated B2B Decision-Makers
+            Explore 220,000+ Validated B2B Decision-Makers
           </h2>
           <p className="mt-3 text-slate-600 text-sm sm:text-base">
             Search genuine, verified leads by job title, industry, city, and company. External visitors receive{" "}

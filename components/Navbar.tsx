@@ -90,7 +90,7 @@ export default function Navbar() {
               className="text-sm font-semibold text-text-muted hover:text-navy px-1.5 py-1 rounded-md hover:bg-surface transition-colors flex items-center gap-1.5"
             >
               <span>Directory</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-teal/15 text-teal-dark font-bold">85K+</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-teal/15 text-teal-dark font-bold">220K+</span>
             </Link>
 
             {/* Resources Dropdown */}

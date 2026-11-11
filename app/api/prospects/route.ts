@@ -65,8 +65,20 @@ function loadProspects(): Prospect[] {
       cachedProspects = JSON.parse(raw);
       return cachedProspects || [];
     }
+
+    const dataDir = path.join(process.cwd(), "data");
+    const partFiles = fs.readdirSync(dataDir).filter((f) => f.startsWith("prospects_part") && f.endsWith(".json"));
+    if (partFiles.length > 0) {
+      let combined: Prospect[] = [];
+      for (const pf of partFiles.sort()) {
+        const raw = fs.readFileSync(path.join(dataDir, pf), "utf-8");
+        combined = combined.concat(JSON.parse(raw));
+      }
+      cachedProspects = combined;
+      return cachedProspects || [];
+    }
   } catch (err) {
-    console.error("Error loading prospects.json:", err);
+    console.error("Error loading prospects dataset:", err);
   }
   return [];
 }

@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 
 export const metadata = {
   title: "B2B Lead Directory & Database Search | LeadIntellect",
-  description: "Browse 85,000+ validated B2B decision-makers across healthcare, real estate, manufacturing, SaaS, and finance. Get 10 free credits upon signup.",
+  description: "Browse 220,000+ validated B2B decision-makers across healthcare, real estate, manufacturing, SaaS, and finance. Get 10 free credits upon signup.",
 };
 
 export default function DirectoryPage() {
