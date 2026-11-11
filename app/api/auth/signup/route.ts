@@ -44,6 +44,8 @@ export async function POST(req: Request) {
         title: title || "",
         company: company || "",
         provider,
+        role: "customer",
+        credits: 10,
       });
 
       // Dispatch real welcome confirmation email to user and alert to CEO
@@ -53,7 +55,7 @@ export async function POST(req: Request) {
             name: user.name,
             email: user.email,
             company: user.company,
-            credits: user.credits || 99,
+            credits: user.credits || 10,
           }),
           sendCeoNewUserAlert({
             name: user.name,
@@ -75,12 +77,12 @@ export async function POST(req: Request) {
         email: user.email,
         companyName: user.company || "N/A",
         title: user.title || "N/A",
-        comments: `🚀 New User Sign-up via ${provider.toUpperCase()} (${user.role}).`,
+        comments: `🚀 New Customer Sign-up via ${provider.toUpperCase()} (${user.role}). Granted 10 free unlocking credits.`,
       });
 
       return NextResponse.json({
         success: true,
-        message: `Account created with ${provider.toUpperCase()}. 99 free prospecting credits added!`,
+        message: `Account created with ${provider.toUpperCase()}. 10 free prospecting credits added!`,
         user: {
           id: user.id,
           name: user.name,
@@ -111,7 +113,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4. Create and persist user with role and credits
+    // 4. Create and persist user with customer role and 10 initial credits
     const user = await saveUser({
       name: name.trim(),
       email: email.trim().toLowerCase(),
@@ -119,6 +121,8 @@ export async function POST(req: Request) {
       company: (company || "").trim(),
       password,
       provider: "email",
+      role: "customer",
+      credits: 10,
     });
 
     // 5. Send Welcome & Confirmation Email to user and Alert to CEO
@@ -128,7 +132,7 @@ export async function POST(req: Request) {
           name: user.name,
           email: user.email,
           company: user.company,
-          credits: user.credits || 99,
+          credits: user.credits || 10,
         }),
         sendCeoNewUserAlert({
           name: user.name,
@@ -150,12 +154,12 @@ export async function POST(req: Request) {
       email: user.email,
       companyName: user.company || "N/A",
       title: user.title || "N/A",
-      comments: `🚀 New Platform User Sign-up (${user.role})! Account provisioned for ${user.name} (${user.email}).`,
+      comments: `🚀 New Customer Sign-up (${user.role})! Account provisioned for ${user.name} (${user.email}) with 10 free credits.`,
     });
 
     return NextResponse.json({
       success: true,
-      message: "Account created successfully! Confirmation email dispatched with 99 free credits.",
+      message: "Account created successfully! Confirmation email dispatched with 10 free credits.",
       user: {
         id: user.id,
         name: user.name,

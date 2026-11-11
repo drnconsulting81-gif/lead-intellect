@@ -36,7 +36,7 @@ export interface UserRecord {
   company?: string;
   password?: string;
   provider: "email" | "google" | "github" | "microsoft" | "executive";
-  role?: "admin" | "user";
+  role?: "admin" | "customer" | "user";
   plan?: "basic" | "starter" | "growth" | "enterprise" | "free";
   planStatus?: "active" | "inactive" | "cancelled";
   credits?: number;
@@ -463,8 +463,8 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
   const local = readLocalDb();
   const found = local.users.find((u) => u.email.toLowerCase() === cleanEmail);
   if (found) {
-    found.role = isCeoEmail(found.email) ? "admin" : (found.role || "user");
-    found.credits = typeof found.credits === "number" ? found.credits : 99;
+    found.role = isCeoEmail(found.email) ? "admin" : (found.role === "admin" ? "admin" : "customer");
+    found.credits = typeof found.credits === "number" ? found.credits : 10;
     found.plan = isCeoEmail(found.email) ? "enterprise" : (found.plan || "free");
     found.planStatus = isCeoEmail(found.email) ? "active" : (found.planStatus || "inactive");
     return found;
@@ -474,8 +474,8 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
 
 export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Promise<UserRecord> {
   const cleanEmail = user.email.toLowerCase().trim();
-  const role = isCeoEmail(cleanEmail) ? "admin" : (user.role || "user");
-  const credits = typeof user.credits === "number" ? user.credits : 99;
+  const role = isCeoEmail(cleanEmail) ? "admin" : (user.role === "admin" ? "admin" : "customer");
+  const credits = typeof user.credits === "number" ? user.credits : 10;
   const emailVerified = user.emailVerified ?? false;
   const plan = isCeoEmail(cleanEmail) ? "enterprise" : (user.plan || "free");
   const planStatus = isCeoEmail(cleanEmail) ? "active" : (user.planStatus || "inactive");
@@ -801,6 +801,53 @@ export async function hasUserRevealedProspect(email: string, prospectId: string)
   );
 }
 
+export async function getUserUnlockedProspectIds(email: string): Promise<string[]> {
+  const cleanEmail = email.toLowerCase().trim();
+  if (isMongoConfigured()) {
+    try {
+      const db = await getMongoDb();
+      if (db) {
+        const records = await db
+          .collection<CreditLedgerRecord>("credit_ledger")
+          .find({ userEmail: cleanEmail, action: "reveal" })
+          .toArray();
+        const ids = records.map((r) => String(r.recordId)).filter(Boolean);
+        return Array.from(new Set(ids));
+      }
+    } catch (err) {
+      console.warn("MongoDB getUserUnlockedProspectIds failed:", err);
+    }
+  }
+
+  const local = readLocalDb();
+  const ids = (local.creditLedger || [])
+    .filter((c) => c.userEmail.toLowerCase() === cleanEmail && c.action === "reveal" && c.recordId)
+    .map((c) => String(c.recordId));
+  return Array.from(new Set(ids));
+}
+
+let cachedMasterProspectsForDb: Array<Record<string, unknown> & { id: string }> | null = null;
+
+export async function getUserUnlockedProspects(email: string): Promise<Array<Record<string, unknown> & { id: string }>> {
+  const ids = await getUserUnlockedProspectIds(email);
+  if (ids.length === 0) return [];
+
+  const idSet = new Set(ids);
+  if (!cachedMasterProspectsForDb) {
+    try {
+      const filePath = path.join(process.cwd(), "data", "prospects.json");
+      if (fs.existsSync(filePath)) {
+        cachedMasterProspectsForDb = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+      }
+    } catch (err) {
+      console.error("Error reading prospects.json for unlocked leads:", err);
+    }
+  }
+
+  const all = cachedMasterProspectsForDb || [];
+  return all.filter((p) => idSet.has(String(p.id)));
+}
+
 export async function deductUserCredit(
   email: string,
   amount = 1,
@@ -810,7 +857,7 @@ export async function deductUserCredit(
 ): Promise<{ success: boolean; remainingCredits: number; error?: string }> {
   const cleanEmail = email.toLowerCase().trim();
   const isCeo = isCeoEmail(cleanEmail);
-  const defaultInitial = 99;
+  const defaultInitial = 10;
 
   // 1. Try MongoDB first if configured
   if (isMongoConfigured()) {
@@ -827,7 +874,7 @@ export async function deductUserCredit(
             name: isCeo ? "DRN Consulting (CEO)" : cleanEmail.split("@")[0],
             email: cleanEmail,
             provider: "email",
-            role: isCeo ? "admin" : "user",
+            role: isCeo ? "admin" : "customer",
             credits: defaultInitial,
             createdAt: new Date().toISOString(),
           };
@@ -838,14 +885,14 @@ export async function deductUserCredit(
         const currentCredits = u && typeof u.credits === "number" ? u.credits : defaultInitial;
 
         if (currentCredits < amount && !isCeo) {
-          return { success: false, remainingCredits: currentCredits, error: "Insufficient credits. Please upgrade your plan." };
+          return { success: false, remainingCredits: currentCredits, error: "You're out of credits. Upgrade your plan to unlock more leads." };
         }
 
         const updated = Math.max(0, currentCredits - amount);
 
         await usersCol.updateOne(
           { email: cleanEmail },
-          { $set: { credits: updated, role: isCeo ? "admin" : ((u && u.role) || "user") } }
+          { $set: { credits: updated, role: isCeo ? "admin" : ((u && u.role) || "customer") } }
         );
 
         await logCreditTransaction({
@@ -862,13 +909,14 @@ export async function deductUserCredit(
         const lIdx = local.users.findIndex((x) => x.email.toLowerCase() === cleanEmail);
         if (lIdx !== -1) {
           local.users[lIdx].credits = updated;
+          local.users[lIdx].role = isCeo ? "admin" : (local.users[lIdx].role || "customer");
         } else {
           local.users.push({
             id: u?.id || "usr_" + Date.now(),
             name: u?.name || (isCeo ? "DRN Consulting (CEO)" : cleanEmail.split("@")[0]),
             email: cleanEmail,
             provider: u?.provider || "email",
-            role: isCeo ? "admin" : "user",
+            role: isCeo ? "admin" : "customer",
             credits: updated,
             createdAt: new Date().toISOString(),
           });
@@ -891,20 +939,22 @@ export async function deductUserCredit(
       name: isCeo ? "DRN Consulting (CEO)" : cleanEmail.split("@")[0],
       email: cleanEmail,
       provider: "email",
-      role: isCeo ? "admin" : "user",
+      role: isCeo ? "admin" : "customer",
       credits: defaultInitial,
       createdAt: new Date().toISOString(),
     });
     lIdx = local.users.length - 1;
   }
 
-  const currentCredits = typeof local.users[lIdx].credits === "number" ? local.users[lIdx].credits! : defaultInitial;
+  const rawCredits = local.users[lIdx]?.credits;
+  const currentCredits: number = typeof rawCredits === "number" ? rawCredits : defaultInitial;
   if (currentCredits < amount && !isCeo) {
-    return { success: false, remainingCredits: currentCredits, error: "Insufficient credits" };
+    return { success: false, remainingCredits: currentCredits, error: "You're out of credits. Upgrade your plan to unlock more leads." };
   }
 
-  const updated = Math.max(0, currentCredits - amount);
+  const updated: number = Math.max(0, currentCredits - amount);
   local.users[lIdx].credits = updated;
+  local.users[lIdx].role = isCeo ? "admin" : (local.users[lIdx].role || "customer");
   writeLocalDb(local);
 
   await logCreditTransaction({

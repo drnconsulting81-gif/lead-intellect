@@ -54,6 +54,7 @@ import {
   Square,
   Info,
   Lock,
+  Key,
   Play,
   TrendingUp,
   Zap,
@@ -200,6 +201,21 @@ export interface Prospect {
   faxNumber?: string;
   streetAddress?: string;
   intentSignal?: IntentSignal;
+  isUnlocked?: boolean;
+  isRevealed?: boolean;
+  isLocked?: boolean;
+  maskedEmail?: string;
+  maskedPhone?: string;
+}
+
+function isCeoEmail(email?: string): boolean {
+  if (!email) return false;
+  return [
+    "raghud2483@gmail.com",
+    "ceo@lead-intellect.com",
+    "drnconsulting81@gmail.com",
+    "ceo@leadintellect.ai",
+  ].includes(email.toLowerCase().trim());
 }
 
 export interface Company {
@@ -229,7 +245,7 @@ interface UserSession {
   company?: string;
   title?: string;
   provider: string;
-  role?: "admin" | "user";
+  role?: "admin" | "customer" | "user";
   credits?: number;
   plan?: string;
 }
@@ -385,10 +401,16 @@ export default function LeadIntellectWorkspace() {
     email: "guest@leadintellect.ai",
     company: "Revenue Operations",
     provider: "email",
-    role: "user",
-    credits: 99,
+    role: "customer",
+    credits: 10,
   });
-  const [credits, setCredits] = useState<number>(99);
+  const [credits, setCredits] = useState<number>(10);
+
+  // Customer Unlocked Leads & Credit Gating States
+  const [savedLeads, setSavedLeads] = useState<Prospect[]>([]);
+  const [loadingSavedLeads, setLoadingSavedLeads] = useState(false);
+  const [outOfCreditsModalOpen, setOutOfCreditsModalOpen] = useState(false);
+  const [savedLeadsSearch, setSavedLeadsSearch] = useState("");
 
   // Column Customization States (14 Template Fields from Database Template.xlsx)
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
@@ -848,16 +870,16 @@ export default function LeadIntellectWorkspace() {
         if (stored) {
           const parsed = JSON.parse(stored);
           const isPaidPlan = parsed.plan === "pro" || parsed.plan === "business" || parsed.subscriptionStatus === "active";
-          const genuineCredits = typeof parsed.credits === "number"
-            ? (isPaidPlan ? parsed.credits : Math.min(parsed.credits, 99))
-            : 99;
+          const genuineCredits = typeof parsed.credits === "number" ? parsed.credits : 10;
           parsed.credits = genuineCredits;
+          parsed.role = isCeoEmail(parsed.email) ? "admin" : (parsed.role === "admin" ? "admin" : "customer");
           setCurrentUser(parsed);
           setCredits(genuineCredits);
           activeEmail = parsed.email || activeEmail;
           try {
             localStorage.setItem("leadintellect_user", JSON.stringify(parsed));
           } catch {}
+          loadSavedLeads(activeEmail);
         }
 
         // Fetch authoritative credit balance from server/database
@@ -1112,12 +1134,104 @@ export default function LeadIntellectWorkspace() {
     };
   }, [activeNav, fetchLists, intelligenceCategory, intelligenceRecency, intelligenceQuery]);
 
+  // Saved Unlocked Leads Loader
+  const loadSavedLeads = async (emailToUse?: string) => {
+    const targetEmail = emailToUse || currentUser?.email;
+    if (!targetEmail || targetEmail === "guest@leadintellect.ai") return;
+    setLoadingSavedLeads(true);
+    try {
+      const res = await fetch(`/api/prospects/unlocked?userEmail=${encodeURIComponent(targetEmail)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.prospects)) {
+          setSavedLeads(data.prospects);
+          // Seed revealedContacts so they are displayed unmasked everywhere
+          setRevealedContacts((prev) => {
+            const next = { ...prev };
+            data.prospects.forEach((p: Prospect) => {
+              next[p.id] = {
+                email: p.email,
+                phone: p.phone,
+                linkedin: p.linkedin,
+                revealedAt: Date.now(),
+              };
+            });
+            return next;
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Error loading saved unlocked leads:", e);
+    } finally {
+      setLoadingSavedLeads(false);
+    }
+  };
+
+  // CSV Export for Unlocked Leads Only (Strictly restricted for non-admin customers)
+  const handleExportUnlockedLeads = () => {
+    if (savedLeads.length === 0) {
+      showToast("No unlocked leads to export. Unlock leads from the Directory first.", "info");
+      return;
+    }
+
+    const headers = [
+      "Full Name",
+      "Job Title",
+      "Company Name",
+      "Industry",
+      "City",
+      "State",
+      "Country",
+      "Verified Official Email",
+      "Verified Direct Phone",
+      "LinkedIn Profile",
+      "Website",
+      "ICP Score",
+    ];
+
+    const rows = savedLeads.map((p) => {
+      const activeEmail = revealedContacts[p.id]?.email || p.email;
+      const activePhone = revealedContacts[p.id]?.phone || p.phone;
+      return [
+        `"${(p.name || "").replace(/"/g, '""')}"`,
+        `"${(p.title || "").replace(/"/g, '""')}"`,
+        `"${(p.company || "").replace(/"/g, '""')}"`,
+        `"${(p.industry || "").replace(/"/g, '""')}"`,
+        `"${(p.city || "").replace(/"/g, '""')}"`,
+        `"${(p.state || "").replace(/"/g, '""')}"`,
+        `"${(p.country || "").replace(/"/g, '""')}"`,
+        `"${(activeEmail || "").replace(/"/g, '""')}"`,
+        `"${(activePhone || "").replace(/"/g, '""')}"`,
+        `"${(p.linkedin || "").replace(/"/g, '""')}"`,
+        `"${(p.website || "").replace(/"/g, '""')}"`,
+        `"${p.icpScore || ""}"`,
+      ];
+    });
+
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `LeadIntellect_My_Saved_Leads_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast(`Successfully exported ${savedLeads.length} unlocked leads to CSV!`, "success");
+  };
+
   // Contact Reveal Action (Server-Authoritative, Idempotent & Transaction-Safe)
   const handleRevealContact = async (p: Prospect) => {
     if (revealedContacts[p.id]) {
       showToast(`Contact already unlocked: ${revealedContacts[p.id].email}`);
       return;
     }
+
+    if (credits <= 0 && !isCEOUser && currentUser.role !== "admin") {
+      setOutOfCreditsModalOpen(true);
+      return;
+    }
+
     setRevealingId(p.id);
 
     try {
@@ -1134,8 +1248,8 @@ export default function LeadIntellectWorkspace() {
 
       const data = await res.json();
       if (!res.ok) {
-        if (data.paymentRequired || credits <= 0) {
-          showToast("Insufficient credits remaining. Please upgrade or add credits to reveal more contacts.", "info");
+        if (data.insufficientCredits || data.paymentRequired || credits <= 0) {
+          setOutOfCreditsModalOpen(true);
         } else {
           showToast(data.error || "Failed to reveal contact details.", "error");
         }
@@ -1156,6 +1270,21 @@ export default function LeadIntellectWorkspace() {
         },
       }));
 
+      // Automatically store in My Saved Leads tab so user is never charged twice
+      setSavedLeads((prev) => {
+        if (prev.some((x) => x.id === p.id)) return prev;
+        return [
+          {
+            ...p,
+            email: verifiedEmail,
+            phone: verifiedPhone,
+            isRevealed: true,
+            isUnlocked: true,
+          },
+          ...prev,
+        ];
+      });
+
       if (data.remainingCredits !== undefined) {
         setCredits(data.remainingCredits);
         // Persist updated credit balance to localStorage so page refresh stays accurate
@@ -1174,7 +1303,8 @@ export default function LeadIntellectWorkspace() {
       showToast(
         data.alreadyRevealed
           ? `Contact previously unlocked: ${verifiedEmail} (0 credits charged)`
-          : `Contact Revealed & Verified: ${verifiedEmail} (1 credit used)`
+          : `⚡ 1 credit deducted. Contact unlocked and saved to "My Saved Leads".`,
+        "success"
       );
     } catch {
       showToast("Network error during contact reveal. Please check your connection and retry.", "error");
@@ -2718,10 +2848,16 @@ export default function LeadIntellectWorkspace() {
 
               {/* Flyout Submenu */}
               {prospectFlyoutOpen && (
-                <div
-                  onMouseLeave={() => setProspectFlyoutOpen(false)}
-                  className="absolute left-12 top-0 z-50 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 py-2.5 animate-in fade-in zoom-in-95 duration-100"
-                >
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setProspectFlyoutOpen(false)}
+                    onMouseEnter={() => setProspectFlyoutOpen(false)}
+                  />
+                  <div
+                    onMouseLeave={() => setProspectFlyoutOpen(false)}
+                    className="absolute left-12 top-0 z-50 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 py-2.5 animate-in fade-in zoom-in-95 duration-100"
+                  >
                   <p className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     Prospect and enrich
                   </p>
@@ -2784,7 +2920,8 @@ export default function LeadIntellectWorkspace() {
                     <span>Data enrichment</span>
                   </button>
                 </div>
-              )}
+              </>
+            )}
             </div>
 
             {/* Integrations (Settings) */}
@@ -2938,20 +3075,22 @@ export default function LeadIntellectWorkspace() {
           <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto custom-scrollbar py-1">
             <h2 className="text-xs sm:text-sm font-bold text-navy shrink-0 hidden md:flex items-center gap-1.5">
               {activeNav === "home" && "Get started with LeadIntellect"}
-              {activeNav === "discover" && (discoverMode === "people" ? "Find people" : "Find companies")}
-              {activeNav === "lists" && "Lists & Qualification"}
-              {activeNav === "enrich" && "Enrich & Verify"}
+              {activeNav === "discover" && (discoverMode === "people" ? "Search Directory: People" : "Search Directory: Companies")}
+              {activeNav === "lists" && `My Saved Leads (${savedLeads.length} Unlocked)`}
+              {activeNav === "enrich" && "Enrich & Verify (Admin Only)"}
               {activeNav === "intelligence" && "Market & Account Intelligence"}
               {activeNav === "integrations" && "Integrations & API Settings"}
               {activeNav === "settings" && "Account Settings"}
             </h2>
 
-            {/* Core Prospecting & Verification Workflow Navigation Bar */}
+            {/* Core Prospecting Workflow Navigation Bar */}
             <nav className="flex items-center gap-1 shrink-0 text-xs">
               {[
-                { id: "discover", num: "1", label: "Discover Leads" },
-                { id: "lists", num: "2", label: "Lists & Qualification" },
-                { id: "enrich", num: "3", label: "Enrich & Verify" },
+                { id: "discover", num: "1", label: "Search Directory" },
+                { id: "lists", num: "2", label: `My Saved Leads (${savedLeads.length})` },
+                ...(currentUser?.role === "admin" || isCEOUser
+                  ? [{ id: "enrich", num: "3", label: "Enrich & Verify (Admin)" }]
+                  : []),
               ].map((stage, idx, arr) => {
                 const isActive = activeNav === stage.id;
                 return (
@@ -2988,12 +3127,30 @@ export default function LeadIntellectWorkspace() {
 
           {/* Right Header Controls */}
           <div className="flex items-center gap-3">
+            {/* User Role Badge */}
+            <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+              currentUser?.role === "admin" || isCEOUser
+                ? "bg-amber-100 text-amber-900 border border-amber-300"
+                : "bg-teal/15 text-teal-dark border border-teal/30"
+            }`}>
+              {currentUser?.role === "admin" || isCEOUser ? "👑 Admin" : "Customer"}
+            </span>
+
             {/* Credits Counter Pill */}
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-bold text-navy">
               <Coins className="w-3.5 h-3.5 text-teal-dark" />
               <span>{credits.toLocaleString()}</span>
               <span className="text-[10px] text-text-muted font-normal">credits</span>
             </div>
+
+            {currentUser?.role === "admin" || isCEOUser ? (
+              <Link
+                href="/admin"
+                className="hidden sm:inline-flex px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold border border-indigo-200"
+              >
+                CEO Admin Portal
+              </Link>
+            ) : null}
 
             <Link
               href="/pricing"
@@ -4368,7 +4525,7 @@ export default function LeadIntellectWorkspace() {
                         <tbody className="divide-y divide-slate-100">
                           {prospects.map((p) => {
                             const isSelected = selectedIds.includes(p.id);
-                            const isRevealed = Boolean(revealedContacts[p.id]);
+                            const isRevealed = Boolean(revealedContacts[p.id]) || Boolean(p.isUnlocked) || Boolean(p.isRevealed) || currentUser?.role === "admin" || isCEOUser;
                             const activeEmail = revealedContacts[p.id]?.email || p.email;
                             const activePhone = revealedContacts[p.id]?.phone || p.phone;
 
@@ -4512,7 +4669,7 @@ export default function LeadIntellectWorkspace() {
                                       <div className="space-y-1">
                                         <div className="flex items-center gap-1.5">
                                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
-                                            <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                                            <CheckCircle className="w-3 h-3 text-emerald-600" />
                                             Verified
                                           </span>
                                           <span className="font-bold text-navy text-xs select-all">{activeEmail}</span>
@@ -4552,23 +4709,20 @@ export default function LeadIntellectWorkspace() {
                                     ) : (
                                       <div className="space-y-1">
                                         <div className="flex items-center gap-1.5">
-                                          <span
-                                            className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                                              p.emailStatus === "verified"
-                                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                                : "bg-sky-50 text-sky-700 border border-sky-200"
-                                            }`}
-                                          >
-                                            <ShieldCheck className="w-3 h-3" />
-                                            {p.emailStatus === "verified" ? "Verified Email (Click Reveal)" : "Deliverable MX"}
+                                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                                            <Lock className="w-2.5 h-2.5 text-slate-400" />
+                                            <span>Masked</span>
+                                          </span>
+                                          <span className="font-mono text-xs text-slate-400 select-none tracking-wider">
+                                            {p.maskedEmail || (p.email && p.email.includes("@") ? `${p.email.charAt(0)}***@${p.email.split("@")[1]}` : "j***@company.com")}
                                           </span>
                                         </div>
-                                        {p.hasPhone && (
-                                          <span className="text-[10px] text-slate-500 flex items-center gap-1">
-                                            <Phone className="w-3 h-3 text-teal-dark" />
-                                            {p.phoneType || "Direct Dial Available"}
+                                        <div className="flex items-center gap-1.5 text-slate-400 text-xs">
+                                          <Phone className="w-3 h-3 text-slate-300 shrink-0" />
+                                          <span className="font-mono select-none tracking-wider">
+                                            {p.maskedPhone || "+91 987*****"}
                                           </span>
-                                        )}
+                                        </div>
                                       </div>
                                     )}
                                   </td>
@@ -4662,20 +4816,20 @@ export default function LeadIntellectWorkspace() {
                                         <button
                                           onClick={() => handleRevealContact(p)}
                                           disabled={revealingId === p.id}
-                                          className="px-2.5 py-1.5 rounded-lg bg-teal/15 hover:bg-teal/25 text-teal-dark text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                          className="px-3 py-1.5 rounded-xl bg-teal/20 hover:bg-teal text-navy text-[11px] font-extrabold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs hover:shadow-xs"
                                         >
                                           {revealingId === p.id ? (
                                             <RefreshCw className="w-3 h-3 animate-spin" />
                                           ) : (
-                                            <Eye className="w-3 h-3" />
+                                            <Key className="w-3 h-3 text-teal-dark" />
                                           )}
-                                          <span>Reveal (1 Cr)</span>
+                                          <span>Unlock Contact (1 Cr)</span>
                                         </button>
                                       ) : (
                                         <div className="flex items-center gap-1.5">
-                                          <span className="px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold flex items-center gap-1 border border-emerald-200">
-                                            <CheckCircle className="w-2.5 h-2.5 text-emerald-600" />
-                                            <span>Verified</span>
+                                          <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-extrabold flex items-center gap-1 border border-emerald-200 shadow-2xs">
+                                            <CheckCircle className="w-3 h-3 text-emerald-600" />
+                                            <span>✓ Unlocked</span>
                                           </span>
                                           <button
                                             type="button"
@@ -4730,110 +4884,299 @@ export default function LeadIntellectWorkspace() {
             </div>
           )}
 
-          {/* ================= STAGE 2: LISTS & QUALIFICATION ================= */}
+          {/* ================= STAGE 2: MY SAVED LEADS & QUALIFICATION ================= */}
           {activeNav === "lists" && (
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-10 max-w-6xl mx-auto w-full space-y-6">
+              {/* Header & Main Actions */}
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal/10 text-teal-dark font-bold text-[10px] uppercase tracking-wider mb-1">
-                    Workflow Stage 2 of 6
+                    My Saved Contacts &bull; Stage 2 of 3
                   </div>
-                  <h1 className="text-2xl font-extrabold text-navy">Lists &amp; Lead Qualification</h1>
-                  <p className="text-xs text-text-muted mt-1">
-                    Organize prospects into target segments, verify ICP qualification fit, and prevent duplicate outreach.
+                  <h1 className="text-2xl font-extrabold text-navy">My Saved Leads</h1>
+                  <p className="text-xs text-text-muted mt-1 max-w-2xl">
+                    All contacts you have unlocked with verified direct emails and phone numbers. You own these contacts permanently and are never charged twice to access or export them.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setActiveNav("enrich")}
-                    className="px-3.5 py-2 rounded-xl bg-teal/15 hover:bg-teal/25 text-teal-dark text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                    onClick={() => setActiveNav("discover")}
+                    className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-navy text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                   >
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Proceed to Stage 3: Enrich &amp; Verify</span>
-                    <ArrowRight className="w-3 h-3" />
+                    <Search className="w-3.5 h-3.5 text-teal-dark" />
+                    <span>Search Directory (85k+)</span>
                   </button>
                   <button
-                    onClick={() => setListModalOpen(true)}
-                    className="px-4 py-2 rounded-xl bg-navy text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-all flex items-center gap-1.5 cursor-pointer"
+                    onClick={handleExportUnlockedLeads}
+                    className="px-4 py-2 rounded-xl bg-navy text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>New List</span>
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export Unlocked Leads (CSV)</span>
                   </button>
                 </div>
               </div>
 
-              {/* Qualification Breakdown KPI Cards */}
+              {/* KPI Breakdown Metric Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 bg-white rounded-xl border border-slate-200">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Total Saved Lists</p>
-                  <p className="text-xl font-extrabold text-navy mt-0.5">{userLists.length} Lists</p>
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                  <p className="text-[10px] font-bold uppercase text-slate-400">Unlocked Contacts</p>
+                  <p className="text-2xl font-extrabold text-teal-dark mt-0.5">{savedLeads.length}</p>
+                  <span className="text-[10px] text-slate-400">Permanently saved to your account</span>
                 </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Organized Prospects</p>
-                  <p className="text-xl font-extrabold text-teal-dark mt-0.5">
-                    {userLists.reduce((sum, l) => sum + (l.prospectIds?.length || 0), 0)} Leads
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                  <p className="text-[10px] font-bold uppercase text-slate-400">Available Credits</p>
+                  <p className="text-2xl font-extrabold text-navy mt-0.5 flex items-center gap-1">
+                    <Coins className="w-4 h-4 text-teal-dark" />
+                    <span>{credits}</span>
                   </p>
+                  <span className="text-[10px] text-slate-400">1 credit = 1 verified contact reveal</span>
                 </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Tier 1 Fit (Score 85+)</p>
-                  <p className="text-xl font-extrabold text-emerald-600 mt-0.5">High Priority</p>
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                  <p className="text-[10px] font-bold uppercase text-slate-400">Verification Rate</p>
+                  <p className="text-2xl font-extrabold text-emerald-600 mt-0.5">100%</p>
+                  <span className="text-[10px] text-emerald-700 font-semibold">SMTP + MX Handshake</span>
                 </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">Next Action</p>
-                  <p className="text-xs font-bold text-slate-700 mt-1">Stage 3 Contact Reveal</p>
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                  <p className="text-[10px] font-bold uppercase text-slate-400">Re-Reveal Policy</p>
+                  <p className="text-base font-extrabold text-navy mt-1">0 Credits Charged</p>
+                  <span className="text-[10px] text-slate-400">Never pay twice for a contact</span>
                 </div>
               </div>
 
-              {userLists.length === 0 ? (
-                <div className="rounded-2xl border border-slate-200 bg-white p-16 text-center shadow-xs">
-                  <ListFilter className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                  <h3 className="text-sm font-bold text-navy">No lists created yet</h3>
-                  <p className="text-xs text-text-muted mt-1 max-w-sm mx-auto">
-                    Create your first target list or select leads from Stage 1: Discover Leads and click &quot;Add to List&quot;.
-                  </p>
-                  <div className="mt-4 flex items-center justify-center gap-3">
-                    <button
-                      onClick={() => setListModalOpen(true)}
-                      className="px-4 py-2 rounded-xl bg-navy hover:bg-slate-800 text-white text-xs font-bold cursor-pointer"
-                    >
-                      Create First List
-                    </button>
+              {/* Search & Filter Bar for Saved Leads */}
+              {savedLeads.length > 0 && (
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-slate-200 shadow-2xs">
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Filter saved leads by name, job title, company, industry, or city..."
+                      value={savedLeadsSearch}
+                      onChange={(e) => setSavedLeadsSearch(e.target.value)}
+                      className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:outline-hidden focus:border-teal"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 text-xs text-text-muted px-1">
+                    <span>
+                      Showing <strong>{savedLeads.filter((p) => {
+                        if (!savedLeadsSearch.trim()) return true;
+                        const q = savedLeadsSearch.toLowerCase();
+                        return (
+                          (p.name && p.name.toLowerCase().includes(q)) ||
+                          (p.title && p.title.toLowerCase().includes(q)) ||
+                          (p.company && p.company.toLowerCase().includes(q)) ||
+                          (p.industry && p.industry.toLowerCase().includes(q)) ||
+                          (p.city && p.city.toLowerCase().includes(q)) ||
+                          (p.email && p.email.toLowerCase().includes(q))
+                        );
+                      }).length}</strong> of {savedLeads.length} unlocked contacts
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Unlocked Contacts Table or Empty State */}
+              {savedLeads.length === 0 ? (
+                <div className="rounded-2xl border border-slate-200 bg-white p-12 sm:p-16 text-center shadow-xs space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-teal/10 text-teal-dark flex items-center justify-center mx-auto shadow-inner">
+                    <Coins className="w-7 h-7" />
+                  </div>
+                  <div className="max-w-md mx-auto space-y-1">
+                    <h3 className="text-lg font-bold text-navy">You haven&apos;t unlocked any leads yet</h3>
+                    <p className="text-xs text-text-muted leading-relaxed">
+                      You have <strong>{credits} free credits</strong> ready to use! Browse our validated directory of 85,000+ B2B decision-makers, click &quot;Unlock Contact&quot;, and your verified contacts will appear here permanently.
+                    </p>
+                  </div>
+                  <div className="pt-2 flex items-center justify-center gap-3">
                     <button
                       onClick={() => setActiveNav("discover")}
-                      className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-navy text-xs font-bold cursor-pointer"
+                      className="px-5 py-2.5 rounded-xl bg-navy hover:bg-slate-800 text-white text-xs font-bold cursor-pointer transition-all shadow-xs flex items-center gap-2"
                     >
-                      Go to Stage 1: Discover Leads
+                      <Search className="w-4 h-4 text-teal" />
+                      <span>Search Lead Directory (85,000+ Leads)</span>
                     </button>
+                    <Link
+                      href="/pricing"
+                      className="px-4 py-2.5 rounded-xl bg-teal/15 hover:bg-teal/25 text-teal-dark text-xs font-bold cursor-pointer transition-all"
+                    >
+                      View Pricing Plans
+                    </Link>
                   </div>
                 </div>
               ) : (
-                <div className="grid md:grid-cols-3 gap-6">
-                  {userLists.map((l) => (
-                    <div
-                      key={l.id}
-                      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-all"
-                    >
-                      <div>
-                        <div className="flex items-start justify-between">
-                          <h3 className="font-bold text-navy text-base">{l.name}</h3>
-                          <span className="text-xs font-extrabold text-teal-dark bg-teal/10 px-2 py-0.5 rounded-full">
-                            {l.prospectIds.length} leads
-                          </span>
-                        </div>
-                        <p className="text-xs text-text-muted mt-2 min-h-[32px] leading-relaxed">
-                          {l.description || "Prospect group created from Discover"}
-                        </p>
-                        <div className="mt-3 flex items-center gap-2 text-[10px] text-slate-400">
-                          <span>Updated: {new Date(l.updatedAt).toLocaleDateString()}</span>
-                          <span>&middot;</span>
-                          <span className="text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded">
-                            Verified Fit
-                          </span>
-                        </div>
-                      </div>
+                <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+                  <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead className="bg-[#0B132B] text-slate-200 font-bold uppercase text-[11px] tracking-wider">
+                        <tr>
+                          <th className="p-3">Decision Maker</th>
+                          <th className="p-3">Company &amp; Industry</th>
+                          <th className="p-3">Location</th>
+                          <th className="p-3">Verified Work Email</th>
+                          <th className="p-3">Verified Direct Dial</th>
+                          <th className="p-3">LinkedIn</th>
+                          <th className="p-3 text-right">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {savedLeads
+                          .filter((p) => {
+                            if (!savedLeadsSearch.trim()) return true;
+                            const q = savedLeadsSearch.toLowerCase();
+                            return (
+                              (p.name && p.name.toLowerCase().includes(q)) ||
+                              (p.title && p.title.toLowerCase().includes(q)) ||
+                              (p.company && p.company.toLowerCase().includes(q)) ||
+                              (p.industry && p.industry.toLowerCase().includes(q)) ||
+                              (p.city && p.city.toLowerCase().includes(q)) ||
+                              (p.email && p.email.toLowerCase().includes(q))
+                            );
+                          })
+                          .map((p) => {
+                            const activeEmail = revealedContacts[p.id]?.email || p.email;
+                            const activePhone = revealedContacts[p.id]?.phone || p.phone;
 
-                      <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-2">
-                        <div className="flex items-center justify-between">
+                            return (
+                              <tr key={p.id} className="hover:bg-slate-50/70 transition-colors">
+                                <td className="p-3">
+                                  <p className="font-bold text-navy">{p.name}</p>
+                                  <p className="text-[11px] text-text-muted mt-0.5">{p.title}</p>
+                                  <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.2 rounded font-medium mt-1 inline-block">
+                                    {p.seniority || "Decision Maker"}
+                                  </span>
+                                </td>
+                                <td className="p-3">
+                                  <p className="font-semibold text-navy">{p.company}</p>
+                                  <p className="text-[11px] text-text-muted">{p.industry}</p>
+                                  <span className="text-[10px] text-slate-400">
+                                    {p.employeeRange || "10-250 emps"} &bull; {p.revenueRange || "$10M-$50M"}
+                                  </span>
+                                </td>
+                                <td className="p-3 text-text-muted">
+                                  <p className="font-medium text-navy">{p.city || p.location}</p>
+                                  <p className="text-[10px] text-slate-400">{p.country || "United States"}</p>
+                                </td>
+                                <td className="p-3 font-mono text-[11px]">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-navy select-all">{activeEmail}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyToClipboard(activeEmail, "Email")}
+                                      title="Copy email to clipboard"
+                                      className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-navy cursor-pointer"
+                                    >
+                                      {copiedItem === "Email" ? (
+                                        <Check className="w-3 h-3 text-emerald-600" />
+                                      ) : (
+                                        <Copy className="w-3 h-3" />
+                                      )}
+                                    </button>
+                                  </div>
+                                  <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200 mt-1">
+                                    <CheckCircle className="w-2.5 h-2.5 text-emerald-600" />
+                                    <span>SMTP Handshake Verified</span>
+                                  </span>
+                                </td>
+                                <td className="p-3 font-mono text-[11px]">
+                                  {activePhone ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-semibold text-slate-700 select-all">{activePhone}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => copyToClipboard(activePhone, "Phone")}
+                                        title="Copy direct dial to clipboard"
+                                        className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-navy cursor-pointer"
+                                      >
+                                        {copiedItem === "Phone" ? (
+                                          <Check className="w-3 h-3 text-emerald-600" />
+                                        ) : (
+                                          <Copy className="w-3 h-3" />
+                                        )}
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-400 italic">HQ Direct Available</span>
+                                  )}
+                                </td>
+                                <td className="p-3">
+                                  {p.linkedin ? (
+                                    <a
+                                      href={p.linkedin}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-teal-dark hover:underline flex items-center gap-1 text-xs"
+                                    >
+                                      <LinkedInIcon className="w-3.5 h-3.5" />
+                                      <span>Profile</span>
+                                    </a>
+                                  ) : (
+                                    <span className="text-slate-400">&mdash;</span>
+                                  )}
+                                </td>
+                                <td className="p-3 text-right">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-extrabold border border-emerald-200">
+                                    <CheckCircle className="w-3 h-3 text-emerald-600" />
+                                    <span>✓ Unlocked (0 Cr)</span>
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="p-4 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <span className="text-text-muted">
+                      Need to export these leads for outreach in HubSpot, Salesforce, or Apollo?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleExportUnlockedLeads}
+                      className="px-4 py-2 rounded-xl bg-navy text-white text-xs font-bold hover:bg-slate-800 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Export All {savedLeads.length} Unlocked Leads (CSV)</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Custom Qualification Lists Section */}
+              <div className="pt-6 border-t border-slate-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-navy text-base">Custom Target Lists ({userLists.length})</h3>
+                    <p className="text-xs text-text-muted">Organize your prospects into segmented campaign lists.</p>
+                  </div>
+                  <button
+                    onClick={() => setListModalOpen(true)}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-navy text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Create New List</span>
+                  </button>
+                </div>
+
+                {userLists.length > 0 && (
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {userLists.map((l) => (
+                      <div
+                        key={l.id}
+                        className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition-all"
+                      >
+                        <div>
+                          <div className="flex items-start justify-between">
+                            <h4 className="font-bold text-navy text-sm">{l.name}</h4>
+                            <span className="text-[10px] font-extrabold text-teal-dark bg-teal/10 px-2 py-0.5 rounded-full">
+                              {l.prospectIds.length} leads
+                            </span>
+                          </div>
+                          <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                            {l.description || "Target list created from Discover"}
+                          </p>
+                        </div>
+                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
                           <button
                             onClick={() => {
                               setSelectedIds(l.prospectIds);
@@ -4842,16 +5185,13 @@ export default function LeadIntellectWorkspace() {
                             }}
                             className="text-xs font-bold text-navy hover:text-teal-dark cursor-pointer flex items-center gap-1"
                           >
-                            <span>Inspect Leads</span>
-                            <ArrowUpRight className="w-3.5 h-3.5" />
+                            <span>Inspect</span>
+                            <ArrowUpRight className="w-3 h-3" />
                           </button>
-
                           <button
                             onClick={async () => {
                               const res = await fetch(
-                                `/api/lists?listId=${l.id}&userEmail=${encodeURIComponent(
-                                  currentUser?.email || ""
-                                )}`,
+                                `/api/lists?listId=${l.id}&userEmail=${encodeURIComponent(currentUser?.email || "")}`,
                                 { method: "DELETE" }
                               );
                               if (res.ok) {
@@ -4865,42 +5205,57 @@ export default function LeadIntellectWorkspace() {
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
-
-                        <div className="grid grid-cols-2 gap-2 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedIds(l.prospectIds);
-                              setActiveNav("enrich");
-                              showToast(`Loaded list "${l.name}" in Stage 3: Enrich & Verify`);
-                            }}
-                            className="px-2 py-1.5 bg-teal/10 hover:bg-teal/20 text-teal-dark rounded-lg text-[11px] font-bold text-center cursor-pointer transition-colors"
-                          >
-                            Enrich List
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const listProspects = prospects.filter((p) => l.prospectIds.includes(p.id));
-                              exportProspectsAsCsv(listProspects.length > 0 ? listProspects : []);
-                            }}
-                            className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-navy rounded-lg text-[11px] font-extrabold text-center cursor-pointer transition-colors flex items-center justify-center gap-1 shadow-2xs"
-                          >
-                            <Download className="w-3 h-3 text-teal-dark" />
-                            <span>Export CSV</span>
-                          </button>
-                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
-          {/* ================= STAGE 3: ENRICH & VERIFY ================= */}
+          {/* ================= STAGE 3: ENRICH & VERIFY (ADMIN ONLY) ================= */}
           {activeNav === "enrich" && (
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-10 max-w-6xl mx-auto w-full space-y-6">
+            !(currentUser?.role === "admin" || isCEOUser) ? (
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-10 max-w-4xl mx-auto w-full">
+                <div className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 text-center shadow-xs space-y-6">
+                  <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
+                    <Lock className="w-8 h-8" />
+                  </div>
+                  <div className="max-w-md mx-auto space-y-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-extrabold text-[11px] uppercase tracking-wider">
+                      Admin Access Only
+                    </span>
+                    <h2 className="text-2xl font-extrabold text-navy">
+                      Data Quality &amp; Enrichment Engine
+                    </h2>
+                    <p className="text-xs text-text-muted leading-relaxed">
+                      The live multi-source web scraper, real-time SMTP handshaking, and raw database enrichment pipeline are strictly restricted to <strong>LeadIntellect Administrators</strong>.
+                    </p>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      As a customer, you can search our <strong>85,000+ verified B2B lead directory</strong> and unlock verified contacts using your 10 free credits.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                    <button
+                      onClick={() => setActiveNav("discover")}
+                      className="px-5 py-2.5 rounded-xl bg-teal text-navy font-bold text-xs hover:bg-teal-dark hover:text-white transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+                    >
+                      <Search className="w-4 h-4" />
+                      <span>Search Lead Directory</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveNav("lists")}
+                      className="px-5 py-2.5 rounded-xl bg-slate-100 text-navy font-bold text-xs hover:bg-slate-200 transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <BookmarkPlus className="w-4 h-4 text-teal-dark" />
+                      <span>View My Saved Leads ({savedLeads.length})</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-10 max-w-6xl mx-auto w-full space-y-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal/10 text-teal-dark font-bold text-[10px] uppercase tracking-wider mb-1">
@@ -5117,6 +5472,7 @@ export default function LeadIntellectWorkspace() {
                 </div>
               </div>
             </div>
+            )
           )}
 
           {/* ================= 4. INTELLIGENCE TAB (Requirement 8) ================= */}
@@ -7053,6 +7409,64 @@ export default function LeadIntellectWorkspace() {
                   Apply 50+ Advanced Filters
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* OUT OF CREDITS POPUP MODAL */}
+      {outOfCreditsModalOpen && (
+        <div className="fixed inset-0 z-50 bg-navy/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-100 text-center space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
+              <Coins className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-[11px] font-extrabold uppercase tracking-wider">
+                Credit Balance: 0
+              </span>
+              <h3 className="text-xl font-extrabold text-navy">
+                You&apos;re out of credits
+              </h3>
+              <p className="text-sm font-semibold text-slate-700">
+                You&apos;re out of credits. Upgrade your plan to unlock more leads.
+              </p>
+              <p className="text-xs text-text-muted leading-relaxed pt-1">
+                Upgrade to a premium plan to reveal direct work emails, verified mobile phones, whole-web buyer intent surges, and download CSVs of your target accounts.
+              </p>
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-left text-xs space-y-2">
+              <div className="flex items-center gap-2 text-slate-700">
+                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Unlock 500 to 5,000+ verified decision-makers</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-700">
+                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Real-time SMTP &amp; MX zero-bounce deliverability</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-700">
+                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Full CSV export of all your unlocked leads</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2.5 pt-2">
+              <Link
+                href="/pricing"
+                onClick={() => setOutOfCreditsModalOpen(false)}
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-teal-dark via-teal to-teal text-navy font-extrabold text-xs uppercase tracking-wider shadow-md hover:brightness-105 transition-all text-center"
+              >
+                Upgrade Your Plan
+              </Link>
+              <button
+                type="button"
+                onClick={() => setOutOfCreditsModalOpen(false)}
+                className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-navy transition-colors cursor-pointer"
+              >
+                Maybe Later
+              </button>
             </div>
           </div>
         </div>

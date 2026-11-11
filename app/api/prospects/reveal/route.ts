@@ -57,26 +57,26 @@ export async function POST(req: Request) {
       });
     }
 
-    // Fallback: If user is on trial or guest, provision user record with trial credits
+    // Fallback: If user is on trial or guest, provision user record with 10 free credits
     if (!user) {
       user = await saveUser({
         name: cleanEmail.split("@")[0].replace(/[._-]/g, " "),
         email: cleanEmail,
         provider: "email",
-        role: "user",
+        role: "customer",
         plan: "free",
-        credits: 99,
+        credits: 10,
       });
     }
 
-    const userCredits = typeof user.credits === "number" ? user.credits : 99;
+    const userCredits = typeof user.credits === "number" ? user.credits : 10;
 
     // Check if user already revealed this contact (Idempotent - 0 credits charged)
     const alreadyRevealed = await hasUserRevealedProspect(cleanEmail, String(prospectId));
     if (!alreadyRevealed && !isCeo && userCredits < 1) {
       return NextResponse.json(
         {
-          error: "You have 0 credits remaining. Please upgrade your subscription or purchase additional credits to unlock verified contact details.",
+          error: "You're out of credits. Upgrade your plan to unlock more leads.",
           paymentRequired: true,
           insufficientCredits: true,
           remainingCredits: 0,
@@ -125,7 +125,7 @@ export async function POST(req: Request) {
       if (!isCeo && remainingCredits < 1) {
         return NextResponse.json(
           {
-            error: "Insufficient credits. Your balance is 0. Please upgrade your plan to unlock more prospects.",
+            error: "You're out of credits. Upgrade your plan to unlock more leads.",
             insufficientCredits: true,
             remainingCredits: 0,
           },

@@ -4,7 +4,7 @@ import path from "path";
 import { getProspectIntentSignal, type IntentSignal } from "@/lib/intent";
 import { buildDeterministicSignalForProspect } from "@/lib/intent-store";
 import { interpretProspectingGoal } from "@/lib/orchestrator";
-import { findUserByEmail, isUserOnPaidPlan, isCeoEmail } from "@/lib/db";
+import { findUserByEmail, isUserOnPaidPlan, isCeoEmail, getUserUnlockedProspectIds } from "@/lib/db";
 
 export interface Prospect {
   id: string;
@@ -194,15 +194,22 @@ function matchesEmployee(val: string | undefined | null, filterList: string[]): 
 }
 
 function maskEmail(em: string | undefined | null): string {
-  if (!em || !em.includes("@") || em === "not_available") return "";
+  if (!em || !em.includes("@") || em === "not_available") return "j***@company.com";
   const [user, domain] = em.split("@");
-  const visible = user.length > 0 ? user[0] : "";
-  return `${visible}••••••••@${domain}`;
+  const visible = user.length > 0 ? user[0] : "j";
+  return `${visible}***@${domain}`;
 }
 
 function maskPhone(ph: string | undefined | null): string {
-  if (!ph || ph === "None" || ph === "not_available") return "";
-  return "+1 (•••) •••-••••";
+  if (!ph || ph === "None" || ph === "not_available") return "+91 987*****";
+  const clean = ph.trim();
+  if (clean.startsWith("+91")) {
+    return clean.slice(0, 7) + "*****";
+  }
+  if (clean.length > 6) {
+    return clean.slice(0, 6) + "-***-****";
+  }
+  return "+1 555-***-****";
 }
 
 export async function GET(req: Request) {
@@ -409,10 +416,22 @@ export async function GET(req: Request) {
       return 0;
     });
 
-    // Check subscription status to enforce anti-scraping and database security
+    // Check user and unlocked status
     const userEmail = (searchParams.get("userEmail") || "").toLowerCase().trim();
     const user = userEmail ? await findUserByEmail(userEmail) : null;
-    const isPaidUser = isUserOnPaidPlan(user) || isCeoEmail(userEmail);
+    const isCeo = isCeoEmail(userEmail);
+    const isAdmin = isCeo || user?.role === "admin";
+    const isPaidUser = Boolean(isAdmin || user?.planStatus === "active" || user?.plan === "starter" || user?.plan === "growth" || user?.plan === "enterprise");
+
+    let userUnlockedIds = new Set<string>();
+    if (userEmail) {
+      try {
+        const unlockedList = await getUserUnlockedProspectIds(userEmail);
+        userUnlockedIds = new Set(unlockedList.map(String));
+      } catch (err) {
+        console.warn("Failed to fetch user unlocked prospects:", err);
+      }
+    }
 
     const total = filtered.length;
     // Allow users to browse 25, 50, or 100 records per page as selected in table controls
@@ -421,26 +440,31 @@ export async function GET(req: Request) {
     const startIndex = (page - 1) * effectiveLimit;
     const paginated = filtered.slice(startIndex, startIndex + effectiveLimit);
 
-    // If paid subscriber or CEO, return unmasked contact intelligence with intent
-    // If unpaid, strictly mask emails and phones and flag database as locked
+    // If unlocked by this user or user is Admin/CEO, return unmasked contact details
+    // Otherwise, mask email and phone with an Unlock Contact action
     const returnedProspects = paginated.map((p) => {
       const intent = getProspectIntentSignal(p);
-      if (isPaidUser) {
+      const isUnlocked = isAdmin || userUnlockedIds.has(String(p.id));
+
+      if (isUnlocked) {
         return {
           ...p,
           intentSignal: intent,
           isRevealed: true,
+          isUnlocked: true,
           isLocked: false,
         };
       }
+
       return {
         ...p,
         email: maskEmail(p.email),
         phone: maskPhone(p.phone),
-        directPhone: p.directPhone ? "+1 (•••) •••-••••" : undefined,
-        mobilePhone: p.mobilePhone ? "+1 (•••) •••-••••" : undefined,
+        directPhone: p.directPhone ? maskPhone(p.directPhone) : undefined,
+        mobilePhone: p.mobilePhone ? maskPhone(p.mobilePhone) : undefined,
         intentSignal: intent,
         isRevealed: false,
+        isUnlocked: false,
         isLocked: true,
       };
     });

@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import TrustStrip from "@/components/TrustStrip";
+import SearchableDirectory from "@/components/SearchableDirectory";
 import ProblemSection from "@/components/ProblemSection";
 import Workflow from "@/components/Workflow";
 import FeatureGrid from "@/components/FeatureGrid";
@@ -23,6 +24,7 @@ export default function Home() {
       <main>
         <Hero />
         <TrustStrip />
+        <SearchableDirectory />
         <ProblemSection />
         <Workflow />
         <FeatureGrid />

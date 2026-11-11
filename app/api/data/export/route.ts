@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { logExport, deductUserCredit, findUserByEmail, isUserOnPaidPlan, isCeoEmail } from "@/lib/db";
+import { logExport, deductUserCredit, findUserByEmail, isUserOnPaidPlan, isCeoEmail, getUserUnlockedProspectIds } from "@/lib/db";
 import fs from "fs";
 import path from "path";
 
@@ -25,42 +25,57 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Verify user's paid subscription status
+    // 1. Verify user's role and authorization
     const user = await findUserByEmail(cleanEmail);
     const isPaid = isUserOnPaidPlan(user);
     const isCeo = isCeoEmail(cleanEmail);
+    const isAdmin = isCeo || user?.role === "admin";
 
-    if (!isPaid && !isCeo) {
-      return NextResponse.json(
-        {
-          error: "Database download locked. Exporting contact records requires an active paid subscription (Basic, Starter, or Growth). Please upgrade your plan to unlock.",
-          paymentRequired: true,
-          currentPlan: user?.plan || "free",
-        },
-        { status: 403 }
-      );
+    // Non-admin customers must have unlocked leads to export
+    let targetExportIds: string[] = Array.isArray(prospectIds) ? prospectIds.map(String) : [];
+
+    if (!isAdmin) {
+      const unlockedList = await getUserUnlockedProspectIds(cleanEmail);
+      const unlockedSet = new Set(unlockedList.map(String));
+
+      // Strictly restrict non-admin export to unlocked leads only
+      if (targetExportIds.length === 0) {
+        targetExportIds = Array.from(unlockedSet);
+      } else {
+        targetExportIds = targetExportIds.filter((id) => unlockedSet.has(id));
+      }
+
+      if (targetExportIds.length === 0) {
+        return NextResponse.json(
+          {
+            error: "Access denied. Non-admin customers can only export leads they have unlocked. Please unlock contacts with your credits before downloading.",
+            unlockedCount: unlockedSet.size,
+          },
+          { status: 403 }
+        );
+      }
+    } else {
+      if (targetExportIds.length === 0) {
+        return NextResponse.json(
+          { error: "Please select at least one record to export." },
+          { status: 400 }
+        );
+      }
     }
 
-    if (!Array.isArray(prospectIds) || prospectIds.length === 0) {
-      return NextResponse.json(
-        { error: "Please select at least one record to export." },
-        { status: 400 }
-      );
-    }
-
-    // Server-side credit deduction (1 credit per export batch)
+    // Server-side credit deduction (1 credit per export batch for non-admin if balance permits)
     const deduction = await deductUserCredit(
       cleanEmail,
-      1,
+      isAdmin ? 0 : 1,
       "export",
-      `Exported ${prospectIds.length} records to CSV`,
-      prospectIds.slice(0, 5).join(",")
+      `Exported ${targetExportIds.length} unlocked records to CSV`,
+      targetExportIds.slice(0, 5).join(",")
     );
 
-    if (!deduction.success && !isCeo) {
+    if (!deduction.success && !isAdmin && !isPaid) {
       return NextResponse.json(
         {
-          error: "Insufficient credits to perform CSV export. Please upgrade your plan.",
+          error: "You're out of credits. Upgrade your plan to export more leads.",
           remainingCredits: deduction.remainingCredits,
         },
         { status: 402 }
@@ -74,7 +89,7 @@ export async function POST(req: Request) {
       all = JSON.parse(fs.readFileSync(filePath, "utf-8"));
     }
 
-    const selected = all.filter((p) => prospectIds.includes(p.id));
+    const selected = all.filter((p) => targetExportIds.includes(String(p.id)));
 
     // Construct CSV with all 36 columns matching Database Template.xlsx
     const headers = [
