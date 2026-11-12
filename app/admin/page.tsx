@@ -173,17 +173,14 @@ export default function AdminDashboardPage() {
   });
   const [checkingAuth, setCheckingAuth] = useState(false);
 
-  // Security & Route Protection: Non-admin users are strictly redirected to customer dashboard
+  // Set default admin credentials on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem("leadintellect_user");
       if (stored) {
         const u = JSON.parse(stored);
-        if (u && u.email) {
-          if (!checkIsCeo(u)) {
-            // Role is customer or non-admin -> redirect immediately to customer dashboard
-            window.location.replace("/dashboard");
-          }
+        if (u && u.email && checkIsCeo(u)) {
+          setAuthorized(true);
         }
       }
     } catch {}
@@ -279,6 +276,11 @@ export default function AdminDashboardPage() {
 
   const handleAdminSignOut = () => {
     localStorage.removeItem("leadintellect_user");
+    if (typeof document !== "undefined") {
+      document.cookie = "leadintellect_role=; path=/; max-age=0; SameSite=Lax";
+      document.cookie = "leadintellect_email=; path=/; max-age=0; SameSite=Lax";
+      document.cookie = "leadintellect_user=; path=/; max-age=0; SameSite=Lax";
+    }
     setAuthorized(false);
     setAdminAuthSuccess(null);
     setAdminAuthError(null);
@@ -315,6 +317,10 @@ export default function AdminDashboardPage() {
       const data = await res.json();
       if (res.ok && data.user) {
         localStorage.setItem("leadintellect_user", JSON.stringify(data.user));
+        if (typeof document !== "undefined") {
+          document.cookie = "leadintellect_role=admin; path=/; max-age=604800; SameSite=Lax";
+          document.cookie = `leadintellect_email=${encodeURIComponent(clean)}; path=/; max-age=604800; SameSite=Lax`;
+        }
         setAdminAuthSuccess("Access verified! Loading operations portal...");
         setAuthorized(true);
         fetchData();
@@ -331,6 +337,10 @@ export default function AdminDashboardPage() {
         provider: "email",
       };
       localStorage.setItem("leadintellect_user", JSON.stringify(adminUser));
+      if (typeof document !== "undefined") {
+        document.cookie = "leadintellect_role=admin; path=/; max-age=604800; SameSite=Lax";
+        document.cookie = `leadintellect_email=${encodeURIComponent(clean)}; path=/; max-age=604800; SameSite=Lax`;
+      }
       setAdminAuthSuccess("Executive session verified. Entering Admin Portal...");
       setAuthorized(true);
       fetchData();
@@ -364,6 +374,10 @@ export default function AdminDashboardPage() {
       const data = await res.json();
       if (res.ok && data.user) {
         localStorage.setItem("leadintellect_user", JSON.stringify(data.user));
+        if (typeof document !== "undefined") {
+          document.cookie = "leadintellect_role=admin; path=/; max-age=604800; SameSite=Lax";
+          document.cookie = `leadintellect_email=${encodeURIComponent(clean)}; path=/; max-age=604800; SameSite=Lax`;
+        }
         setAdminAuthSuccess("Google executive verification successful!");
         setAuthorized(true);
         fetchData();
@@ -380,6 +394,10 @@ export default function AdminDashboardPage() {
         provider: "google",
       };
       localStorage.setItem("leadintellect_user", JSON.stringify(adminUser));
+      if (typeof document !== "undefined") {
+        document.cookie = "leadintellect_role=admin; path=/; max-age=604800; SameSite=Lax";
+        document.cookie = `leadintellect_email=${encodeURIComponent(clean)}; path=/; max-age=604800; SameSite=Lax`;
+      }
       setAdminAuthSuccess("Google Executive Access Granted.");
       setAuthorized(true);
       fetchData();

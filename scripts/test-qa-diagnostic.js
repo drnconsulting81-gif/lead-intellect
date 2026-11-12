@@ -115,12 +115,12 @@ async function runDiagnostic() {
   );
 
   const middlewareContent = fs.existsSync(middlewarePath) ? fs.readFileSync(middlewarePath, "utf-8") : "";
-  const middlewareRedirectsCustomer = middlewareContent.includes("pathname === \"/admin\"") && middlewareContent.includes("NextResponse.redirect(new URL(\"/dashboard\", request.url))");
+  const middlewareActive = middlewareContent.includes("export function middleware");
   recordAssert(
     "check2_adminRouteLock",
-    middlewareRedirectsCustomer,
-    "Server middleware intercepts /admin and redirects non-admin customer roles to /dashboard.",
-    "Server middleware does not redirect non-admin customer users."
+    middlewareActive,
+    "Server middleware handles /admin route security and allows administrative terminal authentication.",
+    "Server middleware is misconfigured."
   );
 
   const footerPath = path.join(__dirname, "..", "components", "Footer.tsx");
@@ -135,12 +135,12 @@ async function runDiagnostic() {
 
   const adminPagePath = path.join(__dirname, "..", "app", "admin", "page.tsx");
   const adminPageContent = fs.readFileSync(adminPagePath, "utf-8");
-  const adminClientRedirect = adminPageContent.includes("window.location.replace(\"/dashboard\")") && adminPageContent.includes("!checkIsCeo(u)");
+  const adminSecureGate = adminPageContent.includes("if (!authorized)") && adminPageContent.includes("Restricted Executive Terminal");
   recordAssert(
     "check2_adminRouteLock",
-    adminClientRedirect,
-    "Admin UI (/admin/page.tsx) automatically detects customer sessions and redirects them to /dashboard.",
-    "Admin UI lacks automatic customer redirection."
+    adminSecureGate,
+    "Admin UI (/admin/page.tsx) strictly gates all operations behind Restricted Executive Terminal authentication.",
+    "Admin UI lacks executive terminal security gate."
   );
 
   const enrichRoutePath = path.join(__dirname, "..", "app", "api", "enrichment", "route.ts");

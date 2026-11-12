@@ -71,6 +71,8 @@ import {
   ArrowRight,
   Star,
   SlidersHorizontal,
+  UserPlus,
+  FileText,
 } from "lucide-react";
 import Logo from "@/components/Logo";
 import { LinkedInIcon } from "@/components/SocialIcons";
@@ -719,6 +721,88 @@ export default function LeadIntellectWorkspace() {
     enrichedPhonesCount: number;
     csvContent: string;
   } | null>(null);
+
+  const [importActiveTab, setImportActiveTab] = useState<"csv" | "manual" | "format">("csv");
+  const [manualContact, setManualContact] = useState({
+    fullName: "",
+    companyName: "",
+    title: "",
+    email: "",
+    phone: "",
+    city: "",
+    country: "",
+    industry: "",
+  });
+
+  const handleDownloadTemplate = () => {
+    const headers = "Full Name,Company Name,Job Title,Work Email,Direct Phone,City,Country,Industry,LinkedIn URL";
+    const sample1 = "Stefan Schweikart,1WorldSync,Chief Information Officer,stefan@1worldsync.com,+1 415-890-0000,Chicago,United States,Technology, Media & Telecom,https://www.linkedin.com/in/stefan-schweikart";
+    const sample2 = "Jane Smith,Acme Corp,VP Sales,jane@acmecorp.com,+1 555-019-2834,San Francisco,United States,Software & SaaS,https://www.linkedin.com/in/janesmith";
+    const sample3 = "Robert Schumann,1-800-Flowers.com,Vice President PMO Security,robert@1800flowers.com,+1 516-237-6000,Carle Place,United States,Retail & Wholesale,https://www.linkedin.com/in/robert-schumann";
+    const csvContent = "data:text/csv;charset=utf-8," + [headers, sample1, sample2, sample3].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "leadintellect_contact_import_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Downloaded sample CSV template with standard fields", "success");
+  };
+
+  const handleManualContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualContact.fullName.trim() || !manualContact.companyName.trim() || !manualContact.title.trim()) {
+      showToast("Please provide Full Name, Company Name, and Job Title to add contact.", "error");
+      return;
+    }
+    const headers = "Full Name,Company Name,Title,Email,Direct Phone,City,Country,Industry";
+    const escapeCsv = (val: string) => `"${(val || "").replace(/"/g, '""')}"`;
+    const row = [
+      manualContact.fullName.trim(),
+      manualContact.companyName.trim(),
+      manualContact.title.trim(),
+      manualContact.email.trim(),
+      manualContact.phone.trim(),
+      manualContact.city.trim(),
+      manualContact.country.trim(),
+      manualContact.industry.trim(),
+    ].map(escapeCsv).join(",");
+
+    const csvData = `${headers}\n${row}`;
+    setImportFileContent(csvData);
+    setImportActiveTab("csv");
+    showToast("Contact added! Mapping fields...", "success");
+
+    const lines = csvData.trim().split("\n");
+    const hdrs = lines[0].split(",").map((h) => h.replace(/^["']|["']$/g, "").trim());
+    const sampleRows = lines.slice(1).map((l) => l.split(",").map((c) => c.replace(/^["']|["']$/g, "").trim()));
+    setImportPreview({
+      headers: hdrs,
+      sampleRows,
+      suggestedMapping: {
+        "Full Name": "fullName",
+        "Company Name": "companyName",
+        "Title": "title",
+        "Email": "email",
+        "Direct Phone": "directPhone",
+        "City": "city",
+        "Country": "country",
+        "Industry": "industry",
+      },
+      totalRows: sampleRows.length,
+    });
+    setImportMapping({
+      "Full Name": "fullName",
+      "Company Name": "companyName",
+      "Title": "title",
+      "Email": "email",
+      "Direct Phone": "directPhone",
+      "City": "city",
+      "Country": "country",
+      "Industry": "industry",
+    });
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -6947,79 +7031,359 @@ export default function LeadIntellectWorkspace() {
               </button>
             </div>
 
-            {/* Step 1: Input / Upload */}
+            {/* Step 1: Input / Upload / Manual Add / Format Guide */}
             {!importPreview && !enrichmentResult && (
               <div className="space-y-4">
-                <div className="p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-teal bg-slate-50/50 hover:bg-teal/5 transition-all text-center">
-                  <Upload className="w-8 h-8 text-teal-dark mx-auto mb-2" />
-                  <p className="text-xs font-bold text-navy">Upload CSV Spreadsheet</p>
-                  <p className="text-[11px] text-text-muted mt-0.5 mb-3">
-                    Drag and drop your file or choose from your computer
-                  </p>
-                  <label className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-navy text-white text-xs font-bold hover:bg-slate-800 transition-colors cursor-pointer shadow-xs">
-                    <span>Choose File (.csv)</span>
-                    <input
-                      type="file"
-                      accept=".csv,text/csv"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                  </label>
+                {/* Tab Switcher */}
+                <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setImportActiveTab("csv")}
+                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      importActiveTab === "csv"
+                        ? "bg-white text-navy shadow-2xs"
+                        : "text-slate-600 hover:text-navy hover:bg-white/50"
+                    }`}
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-teal-dark" />
+                    <span>Upload or Paste CSV</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImportActiveTab("manual")}
+                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      importActiveTab === "manual"
+                        ? "bg-white text-navy shadow-2xs"
+                        : "text-slate-600 hover:text-navy hover:bg-white/50"
+                    }`}
+                  >
+                    <UserPlus className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Quick Add Contact</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImportActiveTab("format")}
+                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      importActiveTab === "format"
+                        ? "bg-white text-navy shadow-2xs"
+                        : "text-slate-600 hover:text-navy hover:bg-white/50"
+                    }`}
+                  >
+                    <FileText className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Format Guide</span>
+                  </button>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold text-navy">
-                      Or Paste Raw CSV Data (Header in first row)
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setImportFileContent(
-                          `Full Name,Company Name,Title,Email,Direct Phone,City,Country\nChelsea Hoff,555,Director IT,chelsea.hoff@555.com,+1415890000,Chicago,United States\nDavid Karlsberg,1-800-Flowers.com,Director Network Ops,david@1800flowers.com,,Carle Place,United States`
-                        )
-                      }
-                      className="text-[11px] font-semibold text-teal-dark hover:underline cursor-pointer"
-                    >
-                      Fill Sample Data
-                    </button>
+                {/* TAB 1: CSV FILE UPLOAD OR RAW PASTE */}
+                {importActiveTab === "csv" && (
+                  <div className="space-y-4">
+                    <div className="p-5 rounded-xl border-2 border-dashed border-slate-300 hover:border-teal bg-slate-50/50 hover:bg-teal/5 transition-all text-center">
+                      <Upload className="w-8 h-8 text-teal-dark mx-auto mb-2" />
+                      <p className="text-xs font-bold text-navy">Upload CSV Spreadsheet</p>
+                      <p className="text-[11px] text-text-muted mt-0.5 mb-3">
+                        Drag and drop your file or choose from your computer
+                      </p>
+                      <div className="flex flex-wrap items-center justify-center gap-2">
+                        <label className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-navy text-white text-xs font-bold hover:bg-slate-800 transition-colors cursor-pointer shadow-xs">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Choose File (.csv)</span>
+                          <input
+                            type="file"
+                            accept=".csv,text/csv"
+                            onChange={handleFileUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleDownloadTemplate}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal/10 hover:bg-teal/20 text-teal-dark text-xs font-bold transition-colors cursor-pointer border border-teal/30 shadow-2xs"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Download Sample CSV Template</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold text-navy">
+                          Or Paste Raw CSV Data (Header in first row)
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setImportFileContent(
+                              `Full Name,Company Name,Title,Email,Direct Phone,City,Country\nChelsea Hoff,555,Director IT,chelsea.hoff@555.com,+1415890000,Chicago,United States\nDavid Karlsberg,1-800-Flowers.com,Director Network Ops,david@1800flowers.com,,Carle Place,United States`
+                            )
+                          }
+                          className="text-[11px] font-semibold text-teal-dark hover:underline cursor-pointer"
+                        >
+                          Fill Sample Data
+                        </button>
+                      </div>
+                      <textarea
+                        rows={6}
+                        value={importFileContent}
+                        onChange={(e) => setImportFileContent(e.target.value)}
+                        placeholder={`Full Name,Company Name,Title,Email,Direct Phone\nStefan Schweikart,1WorldSync,Chief Information Officer,stefan@1worldsync.com,\nJane Smith,Acme Corp,VP Sales,jane@acmecorp.com,+1 555-019-2834`}
+                        className="w-full p-3 font-mono text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal/30 bg-slate-50/40"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setImportModalOpen(false)}
+                        className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={importing || !importFileContent.trim()}
+                        onClick={handlePreviewImport}
+                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-dark to-teal hover:from-teal hover:to-teal-dark text-white text-xs font-bold shadow-xs hover:shadow transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {importing ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Scanning Columns...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Scan &amp; Map Database Fields &rarr;</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                  <textarea
-                    rows={6}
-                    value={importFileContent}
-                    onChange={(e) => setImportFileContent(e.target.value)}
-                    placeholder={`Full Name,Company Name,Title,Email,Direct Phone\nStefan Schweikart,1WorldSync,Chief Information Officer,stefan@1worldsync.com,\nJane Smith,Acme Corp,VP Sales,jane@acmecorp.com,+1 555-019-2834`}
-                    className="w-full p-3 font-mono text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal/30 bg-slate-50/40"
-                  />
-                </div>
+                )}
 
-                <div className="flex items-center justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setImportModalOpen(false)}
-                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    disabled={importing || !importFileContent.trim()}
-                    onClick={handlePreviewImport}
-                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-dark to-teal hover:from-teal hover:to-teal-dark text-white text-xs font-bold shadow-xs hover:shadow transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  >
-                    {importing ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Scanning Columns...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>Scan &amp; Map Database Fields &rarr;</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                {/* TAB 2: QUICK ADD SINGLE CONTACT MANUALLY */}
+                {importActiveTab === "manual" && (
+                  <form onSubmit={handleManualContactSubmit} className="space-y-3.5">
+                    <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-100 text-xs text-indigo-900">
+                      <p className="font-bold flex items-center gap-1.5">
+                        <UserPlus className="w-4 h-4 text-indigo-600" />
+                        <span>Direct Contact Addition &amp; Verification</span>
+                      </p>
+                      <p className="text-[11px] text-indigo-700/80 mt-0.5">
+                        Add a contact directly without a spreadsheet. Missing emails or phones are automatically cross-referenced against the master validated database.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="block font-bold text-navy mb-1">
+                          Full Name <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={manualContact.fullName}
+                          onChange={(e) => setManualContact({ ...manualContact, fullName: e.target.value })}
+                          placeholder="e.g. Stefan Schweikart"
+                          className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-teal bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-navy mb-1">
+                          Company Name <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={manualContact.companyName}
+                          onChange={(e) => setManualContact({ ...manualContact, companyName: e.target.value })}
+                          placeholder="e.g. 1WorldSync"
+                          className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-teal bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-navy mb-1">
+                          Job Title / Role <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={manualContact.title}
+                          onChange={(e) => setManualContact({ ...manualContact, title: e.target.value })}
+                          placeholder="e.g. Chief Information Officer"
+                          className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-teal bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-navy mb-1">
+                          Work Email <span className="text-slate-400 font-normal">(Optional)</span>
+                        </label>
+                        <input
+                          type="email"
+                          value={manualContact.email}
+                          onChange={(e) => setManualContact({ ...manualContact, email: e.target.value })}
+                          placeholder="e.g. stefan@1worldsync.com"
+                          className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-teal bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-navy mb-1">
+                          Direct Phone / Mobile <span className="text-slate-400 font-normal">(Optional)</span>
+                        </label>
+                        <input
+                          type="tel"
+                          value={manualContact.phone}
+                          onChange={(e) => setManualContact({ ...manualContact, phone: e.target.value })}
+                          placeholder="e.g. +1 415-890-0000"
+                          className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-teal bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-navy mb-1">
+                          City <span className="text-slate-400 font-normal">(Optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={manualContact.city}
+                          onChange={(e) => setManualContact({ ...manualContact, city: e.target.value })}
+                          placeholder="e.g. Chicago"
+                          className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-teal bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-navy mb-1">
+                          Country <span className="text-slate-400 font-normal">(Optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={manualContact.country}
+                          onChange={(e) => setManualContact({ ...manualContact, country: e.target.value })}
+                          placeholder="e.g. United States"
+                          className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-teal bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-navy mb-1">
+                          Industry <span className="text-slate-400 font-normal">(Optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={manualContact.industry}
+                          onChange={(e) => setManualContact({ ...manualContact, industry: e.target.value })}
+                          placeholder="e.g. Technology, Media & Telecom"
+                          className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-teal bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setImportActiveTab("csv")}
+                        className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white text-xs font-bold shadow-xs hover:shadow transition-all flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Contact &amp; Enrich &rarr;</span>
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* TAB 3: CSV FORMAT & COLUMN SPECIFICATION GUIDE */}
+                {importActiveTab === "format" && (
+                  <div className="space-y-4 text-xs">
+                    <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/80 text-amber-900">
+                      <p className="font-bold flex items-center gap-1.5">
+                        <FileText className="w-4 h-4 text-amber-700" />
+                        <span>Standard CSV Import Specifications</span>
+                      </p>
+                      <p className="text-[11px] text-amber-800/90 mt-0.5">
+                        To ensure 100% accuracy during enrichment, format your CSV with a header row matching any of the recognized standard column names below.
+                      </p>
+                    </div>
+
+                    <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-100 text-navy font-bold border-b border-slate-200">
+                          <tr>
+                            <th className="p-2.5 pl-3">Column Name</th>
+                            <th className="p-2.5">Requirement</th>
+                            <th className="p-2.5">Example Value</th>
+                            <th className="p-2.5 pr-3">Enrichment Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-slate-700">
+                          <tr className="hover:bg-slate-50/60">
+                            <td className="p-2.5 pl-3 font-mono font-bold text-navy">Full Name</td>
+                            <td className="p-2.5"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">Required</span></td>
+                            <td className="p-2.5">Stefan Schweikart</td>
+                            <td className="p-2.5 text-text-muted">Resolves First/Last name</td>
+                          </tr>
+                          <tr className="hover:bg-slate-50/60">
+                            <td className="p-2.5 pl-3 font-mono font-bold text-navy">Company Name</td>
+                            <td className="p-2.5"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">Required</span></td>
+                            <td className="p-2.5">1WorldSync</td>
+                            <td className="p-2.5 text-text-muted">Firmographic match &amp; domain lookup</td>
+                          </tr>
+                          <tr className="hover:bg-slate-50/60">
+                            <td className="p-2.5 pl-3 font-mono font-bold text-navy">Job Title</td>
+                            <td className="p-2.5"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">Required</span></td>
+                            <td className="p-2.5">Chief Information Officer</td>
+                            <td className="p-2.5 text-text-muted">Classifies Seniority &amp; Department</td>
+                          </tr>
+                          <tr className="hover:bg-slate-50/60">
+                            <td className="p-2.5 pl-3 font-mono text-slate-800">Work Email</td>
+                            <td className="p-2.5"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">Optional</span></td>
+                            <td className="p-2.5">stefan@1worldsync.com</td>
+                            <td className="p-2.5 text-text-muted">RFC-821 deliverability check; auto-fills if blank</td>
+                          </tr>
+                          <tr className="hover:bg-slate-50/60">
+                            <td className="p-2.5 pl-3 font-mono text-slate-800">Direct Phone</td>
+                            <td className="p-2.5"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">Optional</span></td>
+                            <td className="p-2.5">+1 415-890-0000</td>
+                            <td className="p-2.5 text-text-muted">E.164 verification &amp; carrier match</td>
+                          </tr>
+                          <tr className="hover:bg-slate-50/60">
+                            <td className="p-2.5 pl-3 font-mono text-slate-800">City &amp; Country</td>
+                            <td className="p-2.5"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">Optional</span></td>
+                            <td className="p-2.5">Chicago, United States</td>
+                            <td className="p-2.5 text-text-muted">Geo-targeting &amp; timezone alignment</td>
+                          </tr>
+                          <tr className="hover:bg-slate-50/60">
+                            <td className="p-2.5 pl-3 font-mono text-slate-800">Industry</td>
+                            <td className="p-2.5"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">Optional</span></td>
+                            <td className="p-2.5">Technology, Media &amp; Telecom</td>
+                            <td className="p-2.5 text-text-muted">Normalized to 12 master sectors</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={handleDownloadTemplate}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-navy font-bold transition-colors cursor-pointer border border-slate-300"
+                      >
+                        <Download className="w-3.5 h-3.5 text-teal-dark" />
+                        <span>Download Sample CSV Template</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setImportActiveTab("csv")}
+                        className="px-4 py-2 rounded-xl bg-navy text-white font-bold hover:bg-slate-800 transition-colors cursor-pointer"
+                      >
+                        Proceed to Upload &rarr;
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
