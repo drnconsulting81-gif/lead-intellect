@@ -1,6 +1,12 @@
 import { MongoClient } from "mongodb";
 
-const uri = process.env.MONGODB_URI;
+const DEFAULT_MONGODB_URI =
+  "mongodb+srv://drnconsulting81_db_user:BuU3CUOF1nfzrs9n@cluster0.0yz4rlv.mongodb.net/leadintellect?appName=Cluster0&retryWrites=true&w=majority";
+
+const uri = (process.env.MONGODB_URI && process.env.MONGODB_URI.trim().length > 0)
+  ? process.env.MONGODB_URI
+  : DEFAULT_MONGODB_URI;
+
 const options = {};
 
 let client: MongoClient | null = null;
@@ -11,7 +17,7 @@ declare global {
 }
 
 export function isMongoConfigured(): boolean {
-  return Boolean(process.env.MONGODB_URI && process.env.MONGODB_URI.trim().length > 0);
+  return Boolean(uri && uri.trim().length > 0);
 }
 
 export async function getMongoClientPromise(): Promise<MongoClient | null> {
