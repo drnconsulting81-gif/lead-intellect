@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { saveLead } from "@/lib/db";
 import { sendLeadNotification } from "@/lib/notifications";
+import { verifyAdminRequest } from "@/lib/admin-auth";
 
 const sampleCompanies = [
   { company: "MedTech Innovations", title: "VP of Partnerships", name: "David Chen", email: "david.chen@medtechinno.com", phone: "+1 (415) 890-1234", comments: "Interested in healthcare ICP scoring." },
@@ -11,6 +12,11 @@ const sampleCompanies = [
 
 export async function POST(req: Request) {
   try {
+    const auth = await verifyAdminRequest(req);
+    if (!auth.isAdmin) {
+      return auth.errorResponse || NextResponse.json({ error: "Admin access required." }, { status: 403 });
+    }
+
     const body = await req.json().catch(() => ({}));
     const type = body.type === "trial" ? "trial" : "demo";
     const sample = sampleCompanies[Math.floor(Math.random() * sampleCompanies.length)];

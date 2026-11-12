@@ -9,7 +9,7 @@ const steps = [
     icon: Search,
     title: "DISCOVER",
     subtitle: "Precision Account Search",
-    text: "Find verified accounts and key decision-makers across 50,000+ records matching your exact ICP criteria.",
+    text: "Find verified accounts and key decision-makers across 220,000+ records matching your exact ICP criteria.",
     badge: "Multi-Filter Engine",
   },
   {

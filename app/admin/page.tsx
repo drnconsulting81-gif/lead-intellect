@@ -173,6 +173,43 @@ export default function AdminDashboardPage() {
   });
   const [checkingAuth, setCheckingAuth] = useState(false);
 
+  // Security & Route Protection: Non-admin users are strictly redirected to customer dashboard
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("leadintellect_user");
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u && u.email) {
+          if (!checkIsCeo(u)) {
+            // Role is customer or non-admin -> redirect immediately to customer dashboard
+            window.location.replace("/dashboard");
+          }
+        }
+      }
+    } catch {}
+  }, []);
+
+  const getAdminHeaders = (): Record<string, string> => {
+    try {
+      const stored = localStorage.getItem("leadintellect_user");
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u && u.email) {
+          return {
+            "x-admin-email": u.email,
+            "x-user-email": u.email,
+            Authorization: `Bearer ${u.email}`,
+          };
+        }
+      }
+    } catch {}
+    return {
+      "x-admin-email": "drnconsulting81@gmail.com",
+      "x-user-email": "drnconsulting81@gmail.com",
+      Authorization: "Bearer drnconsulting81@gmail.com",
+    };
+  };
+
   // Admin Sign-In States
   const [adminEmail, setAdminEmail] = useState("drnconsulting81@gmail.com");
   const [adminPassword, setAdminPassword] = useState("");
@@ -191,7 +228,7 @@ export default function AdminDashboardPage() {
   const fetchValidationStats = async () => {
     setLoadingValidationStats(true);
     try {
-      const res = await fetch("/api/admin/validation-stats");
+      const res = await fetch("/api/admin/validation-stats", { headers: getAdminHeaders() });
       if (res.ok) {
         const data = await res.json();
         setValidationStats(data);
@@ -228,7 +265,7 @@ export default function AdminDashboardPage() {
 
     setTimeout(async () => {
       try {
-        await fetch("/api/admin/validation-stats", { method: "POST" });
+        await fetch("/api/admin/validation-stats", { method: "POST", headers: getAdminHeaders() });
         await fetchValidationStats();
       } catch {}
       setScraperProgress(100);
@@ -377,7 +414,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch("/api/admin/users", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify({ email, plan, planStatus: "active", credits }),
       });
       if (res.ok) {
@@ -403,7 +440,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch("/api/admin/users", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify({
           email: creditModalUser.email,
           addCredits: Number(creditsToAdd),
@@ -452,17 +489,18 @@ export default function AdminDashboardPage() {
   const [webhookTesting, setWebhookTesting] = useState(false);
   const [webhookResult, setWebhookResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  // Load all data (only for authorized CEO)
+  // Load all data (only for authorized CEO / Admin)
   const fetchData = async () => {
     try {
+      const headers = getAdminHeaders();
       const [leadsRes, contactsRes, diagRes, usersRes, ordersRes, emailsRes, valRes] = await Promise.all([
-        fetch("/api/admin/leads"),
-        fetch("/api/contact"),
-        fetch("/api/admin/db-status"),
-        fetch("/api/admin/users"),
-        fetch("/api/admin/orders"),
-        fetch("/api/admin/emails"),
-        fetch("/api/admin/validation-stats"),
+        fetch("/api/admin/leads", { headers }),
+        fetch("/api/contact", { headers }),
+        fetch("/api/admin/db-status", { headers }),
+        fetch("/api/admin/users", { headers }),
+        fetch("/api/admin/orders", { headers }),
+        fetch("/api/admin/emails", { headers }),
+        fetch("/api/admin/validation-stats", { headers }),
       ]);
 
       if (leadsRes.ok) {
@@ -503,14 +541,15 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     let ignore = false;
     if (authorized) {
+      const headers = getAdminHeaders();
       Promise.all([
-        fetch("/api/admin/leads"),
-        fetch("/api/contact"),
-        fetch("/api/admin/db-status"),
-        fetch("/api/admin/users"),
-        fetch("/api/admin/orders"),
-        fetch("/api/admin/emails"),
-        fetch("/api/admin/validation-stats"),
+        fetch("/api/admin/leads", { headers }),
+        fetch("/api/contact", { headers }),
+        fetch("/api/admin/db-status", { headers }),
+        fetch("/api/admin/users", { headers }),
+        fetch("/api/admin/orders", { headers }),
+        fetch("/api/admin/emails", { headers }),
+        fetch("/api/admin/validation-stats", { headers }),
       ])
         .then(async ([leadsRes, contactsRes, diagRes, usersRes, ordersRes, emailsRes, valRes]) => {
           if (ignore) return;
@@ -560,7 +599,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch("/api/admin/leads", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify({ id, status: newStatus }),
       });
       if (res.ok) {
@@ -578,7 +617,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch("/api/admin/orders", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify({ id, paymentStatus: newStatus }),
       });
       if (res.ok) {
@@ -598,7 +637,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch("/api/admin/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify(orderForm),
       });
       if (res.ok) {
@@ -635,7 +674,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch("/api/admin/generate-test-lead", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify({ type }),
       });
       if (res.ok) {
@@ -682,7 +721,7 @@ export default function AdminDashboardPage() {
 
       const res = await fetch("/api/admin/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify(sample),
       });
       if (res.ok) {
@@ -703,7 +742,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch("/api/admin/test-webhook", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify({ webhookUrl }),
       });
       const data = await res.json();

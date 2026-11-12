@@ -40,11 +40,24 @@ async function runTests() {
   console.log(`${colors.bold}1. Master Dataset Ingestion & File Integrity${colors.reset}`);
   const prospectsPath = path.join(__dirname, "..", "data", "prospects.json");
   const companiesPath = path.join(__dirname, "..", "data", "companies.json");
+  const dataDir = path.join(__dirname, "..", "data");
+  const partFiles = fs.readdirSync(dataDir).filter((f) => f.startsWith("prospects_part") && f.endsWith(".json"));
 
-  assert(fs.existsSync(prospectsPath), "data/prospects.json exists");
+  let prospects = [];
+  if (fs.existsSync(prospectsPath)) {
+    prospects = JSON.parse(fs.readFileSync(prospectsPath, "utf-8"));
+    assert(true, "data/prospects.json exists");
+  } else if (partFiles.length > 0) {
+    for (const pf of partFiles.sort()) {
+      prospects = prospects.concat(JSON.parse(fs.readFileSync(path.join(dataDir, pf), "utf-8")));
+    }
+    assert(true, `Master prospects loaded cleanly from ${partFiles.length} chunked git-compliant files`);
+  } else {
+    assert(false, "data/prospects.json or prospects_part*.json exists");
+  }
+
   assert(fs.existsSync(companiesPath), "data/companies.json exists");
 
-  const prospects = JSON.parse(fs.readFileSync(prospectsPath, "utf-8"));
   const companies = JSON.parse(fs.readFileSync(companiesPath, "utf-8"));
 
   assert(prospects.length >= 200000, `Prospects dataset size is ${prospects.length} records (expected >200k)`);

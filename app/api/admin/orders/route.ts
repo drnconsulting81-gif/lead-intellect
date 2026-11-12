@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 import { getOrders, saveOrder, updateOrderStatus, PaymentStatus, OrderItemType } from "@/lib/db";
 import { sendLeadNotification } from "@/lib/notifications";
+import { verifyAdminRequest } from "@/lib/admin-auth";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const auth = await verifyAdminRequest(req);
+    if (!auth.isAdmin) {
+      return auth.errorResponse || NextResponse.json({ error: "Admin access required." }, { status: 403 });
+    }
+
     const orders = await getOrders();
     const paidRevenue = orders
       .filter((o) => o.paymentStatus === "paid")
@@ -26,6 +32,11 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const auth = await verifyAdminRequest(req);
+    if (!auth.isAdmin) {
+      return auth.errorResponse || NextResponse.json({ error: "Admin access required." }, { status: 403 });
+    }
+
     const body = await req.json();
     const {
       customerName,
@@ -90,6 +101,11 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
+    const auth = await verifyAdminRequest(req);
+    if (!auth.isAdmin) {
+      return auth.errorResponse || NextResponse.json({ error: "Admin access required." }, { status: 403 });
+    }
+
     const body = await req.json();
     const { id, paymentStatus } = body;
 

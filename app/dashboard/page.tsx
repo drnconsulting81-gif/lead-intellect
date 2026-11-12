@@ -402,9 +402,9 @@ export default function LeadIntellectWorkspace() {
     company: "Revenue Operations",
     provider: "email",
     role: "customer",
-    credits: 10,
+    credits: 99,
   });
-  const [credits, setCredits] = useState<number>(10);
+  const [credits, setCredits] = useState<number>(99);
 
   // Customer Unlocked Leads & Credit Gating States
   const [savedLeads, setSavedLeads] = useState<Prospect[]>([]);
@@ -5232,7 +5232,7 @@ export default function LeadIntellectWorkspace() {
                       The live multi-source web scraper, real-time SMTP handshaking, and raw database enrichment pipeline are strictly restricted to <strong>LeadIntellect Administrators</strong>.
                     </p>
                     <p className="text-xs text-slate-500 leading-relaxed">
-                      As a customer, you can search our <strong>85,000+ verified B2B lead directory</strong> and unlock verified contacts using your 10 free credits.
+                      As a customer, you can search our <strong>220,000+ verified B2B lead directory</strong> and unlock verified contacts using your 99 free credits.
                     </p>
                   </div>
 

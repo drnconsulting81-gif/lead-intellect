@@ -19,6 +19,18 @@ function getProspectMap(): Map<string, Record<string, unknown>> {
           prospectCacheMap.set(String(p.id), p);
         }
       }
+    } else {
+      const dataDir = path.join(process.cwd(), "data");
+      const parts = fs.readdirSync(dataDir).filter((f) => f.startsWith("prospects_part") && f.endsWith(".json"));
+      for (const part of parts.sort()) {
+        const raw = fs.readFileSync(path.join(dataDir, part), "utf-8");
+        const list: Record<string, unknown>[] = JSON.parse(raw);
+        for (const p of list) {
+          if (p && p.id) {
+            prospectCacheMap.set(String(p.id), p);
+          }
+        }
+      }
     }
   } catch (err) {
     console.error("Failed to load prospect cache:", err);
@@ -57,7 +69,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // Fallback: If user is on trial or guest, provision user record with 10 free credits
+    // Fallback: If user is on trial or guest, provision user record with 99 free credits
     if (!user) {
       user = await saveUser({
         name: cleanEmail.split("@")[0].replace(/[._-]/g, " "),
@@ -65,11 +77,11 @@ export async function POST(req: Request) {
         provider: "email",
         role: "customer",
         plan: "free",
-        credits: 10,
+        credits: 99,
       });
     }
 
-    const userCredits = typeof user.credits === "number" ? user.credits : 10;
+    const userCredits = typeof user.credits === "number" ? user.credits : 99;
 
     // Check if user already revealed this contact (Idempotent - 0 credits charged)
     const alreadyRevealed = await hasUserRevealedProspect(cleanEmail, String(prospectId));

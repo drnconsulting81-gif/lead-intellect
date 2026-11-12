@@ -7,6 +7,7 @@ import Reveal from "./Reveal";
 
 export default function Hero() {
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [cleanedContactsCount, setCleanedContactsCount] = useState("220,000+ Cleaned Master Contacts");
 
   useEffect(() => {
     try {
@@ -16,6 +17,15 @@ export default function Hero() {
         if (u && u.email) setCurrentUser(u);
       }
     } catch {}
+
+    fetch("/api/stats/master-count")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.formatted) {
+          setCleanedContactsCount(data.formatted);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -75,7 +85,7 @@ export default function Hero() {
 
           <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-text-muted">
             <span className="inline-flex items-center gap-1.5 font-medium">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> 50,000+ Cleaned Master Contacts
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> {cleanedContactsCount}
             </span>
             <span className="inline-flex items-center gap-1.5 font-medium">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Provider-Neutral Architecture

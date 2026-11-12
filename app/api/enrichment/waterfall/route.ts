@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
 import { providerManager } from "@/lib/providers/manager";
+import { verifyAdminRequest } from "@/lib/admin-auth";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { firstName, lastName, companyName, companyDomain, linkedinUrl, currentEmail, currentPhone } = body;
+    const { firstName, lastName, companyName, companyDomain, linkedinUrl, currentEmail, currentPhone, userEmail } = body;
+
+    // Strict Admin check: Waterfall provider enrichment is restricted to Admin role
+    const auth = await verifyAdminRequest(req, userEmail);
+    if (!auth.isAdmin) {
+      return auth.errorResponse || NextResponse.json(
+        { error: "Access denied. Waterfall enrichment is strictly restricted to platform administrators." },
+        { status: 403 }
+      );
+    }
 
     if (!firstName || !companyName) {
       return NextResponse.json(

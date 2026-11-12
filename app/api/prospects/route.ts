@@ -6,6 +6,8 @@ import { buildDeterministicSignalForProspect } from "@/lib/intent-store";
 import { interpretProspectingGoal } from "@/lib/orchestrator";
 import { findUserByEmail, isUserOnPaidPlan, isCeoEmail, getUserUnlockedProspectIds } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export interface Prospect {
   id: string;
   name: string;
@@ -468,17 +470,21 @@ export async function GET(req: Request) {
         };
       }
 
-      return {
+      const masked: any = {
         ...p,
         email: maskEmail(p.email),
         phone: maskPhone(p.phone),
         directPhone: p.directPhone ? maskPhone(p.directPhone) : undefined,
         mobilePhone: p.mobilePhone ? maskPhone(p.mobilePhone) : undefined,
+        corpPhone: p.corpPhone ? maskPhone(p.corpPhone) : undefined,
         intentSignal: intent,
         isRevealed: false,
         isUnlocked: false,
         isLocked: true,
       };
+      delete masked.cellPhone;
+      delete masked.faxNumber;
+      return masked;
     });
 
     // Aggregations

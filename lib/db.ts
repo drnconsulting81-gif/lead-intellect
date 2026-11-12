@@ -464,7 +464,7 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
   const found = local.users.find((u) => u.email.toLowerCase() === cleanEmail);
   if (found) {
     found.role = isCeoEmail(found.email) ? "admin" : (found.role === "admin" ? "admin" : "customer");
-    found.credits = typeof found.credits === "number" ? found.credits : 10;
+    found.credits = typeof found.credits === "number" ? found.credits : 99;
     found.plan = isCeoEmail(found.email) ? "enterprise" : (found.plan || "free");
     found.planStatus = isCeoEmail(found.email) ? "active" : (found.planStatus || "inactive");
     return found;
@@ -475,7 +475,7 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
 export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Promise<UserRecord> {
   const cleanEmail = user.email.toLowerCase().trim();
   const role = isCeoEmail(cleanEmail) ? "admin" : (user.role === "admin" ? "admin" : "customer");
-  const credits = typeof user.credits === "number" ? user.credits : 10;
+  const credits = typeof user.credits === "number" ? user.credits : 99;
   const emailVerified = user.emailVerified ?? false;
   const plan = isCeoEmail(cleanEmail) ? "enterprise" : (user.plan || "free");
   const planStatus = isCeoEmail(cleanEmail) ? "active" : (user.planStatus || "inactive");
@@ -558,7 +558,7 @@ export async function saveUser(user: Omit<UserRecord, "id" | "createdAt">): Prom
       companyName: record.company || "Self",
       email: record.email,
       phone: "",
-      comments: `New Platform User Sign-up (${role.toUpperCase()}). Granted 100 free prospecting credits.`,
+      comments: `New Platform User Sign-up (${role.toUpperCase()}). Granted 99 free prospecting credits.`,
       status: "new",
     });
   } catch (err) {
@@ -865,7 +865,7 @@ export async function deductUserCredit(
 ): Promise<{ success: boolean; remainingCredits: number; error?: string }> {
   const cleanEmail = email.toLowerCase().trim();
   const isCeo = isCeoEmail(cleanEmail);
-  const defaultInitial = 10;
+  const defaultInitial = 99;
 
   // 1. Try MongoDB first if configured
   if (isMongoConfigured()) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { providerManager } from "@/lib/providers/manager";
 import { deductUserCredit } from "@/lib/db";
+import { verifyAdminRequest } from "@/lib/admin-auth";
 import fs from "fs";
 import path from "path";
 
@@ -8,6 +9,15 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { userEmail, prospectIds, preferredProvider } = body;
+
+    // Strict Admin check: Data enrichment engine is strictly restricted to Admin users
+    const auth = await verifyAdminRequest(req, userEmail);
+    if (!auth.isAdmin) {
+      return auth.errorResponse || NextResponse.json(
+        { error: "Access denied. The Data Quality & Enrichment Engine is strictly restricted to platform administrators." },
+        { status: 403 }
+      );
+    }
 
     if (!Array.isArray(prospectIds) || prospectIds.length === 0) {
       return NextResponse.json(
@@ -38,11 +48,18 @@ export async function POST(req: Request) {
       );
     }
 
-    // Load prospects to enrich
+    // Load prospects to enrich (supports single or chunked files)
     const filePath = path.join(process.cwd(), "data", "prospects.json");
     let allProspects: Array<Record<string, string> & { id: string }> = [];
     if (fs.existsSync(filePath)) {
       allProspects = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+    } else {
+      const dataDir = path.join(process.cwd(), "data");
+      const parts = fs.readdirSync(dataDir).filter((f) => f.startsWith("prospects_part") && f.endsWith(".json"));
+      for (const p of parts.sort()) {
+        const raw = fs.readFileSync(path.join(dataDir, p), "utf-8");
+        allProspects = allProspects.concat(JSON.parse(raw));
+      }
     }
 
     const enrichedResults = [];

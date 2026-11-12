@@ -41,7 +41,7 @@ const scenes = [
     timestamp: "0:00",
     duration: 8,
     narration:
-      "Type conversational queries like 'Operations leaders at US manufacturing firms with 500+ employees'. LeadIntellect automatically parses your query into structured Boolean filters (Country, Industry, Headcount, Seniority) and matches 50,000+ verified decision-makers with a 0-100 ICP fit score.",
+      "Type conversational queries like 'Operations leaders at US manufacturing firms with 500+ employees'. LeadIntellect automatically parses your query into structured Boolean filters (Country, Industry, Headcount, Seniority) and matches 220,000+ verified decision-makers with a 0-100 ICP fit score.",
     highlight: "Natural Query Translation & ICP 0-100 Scoring",
   },
   {
@@ -189,7 +189,7 @@ export default function ProductDemoVideoModal({
                     <span>Search Leads: Natural Language Query &rarr; Filters</span>
                   </div>
                   <span className="text-[10px] bg-teal/20 text-teal px-2 py-0.5 rounded-full font-mono font-bold">
-                    50,000+ Cleaned Records
+                    220,000+ Cleaned Records
                   </span>
                 </div>
 
@@ -355,7 +355,7 @@ export default function ProductDemoVideoModal({
                 <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50 flex items-center justify-between text-xs text-slate-300">
                   <span className="flex items-center gap-1.5">
                     <Building className="w-3.5 h-3.5 text-teal" />
-                    <span>Company View &bull; 50,000+ Verified Accounts with Hierarchy &amp; Tech Stack</span>
+                    <span>Company View &bull; 220,000+ Verified Accounts with Hierarchy &amp; Tech Stack</span>
                   </span>
                 </div>
               </div>

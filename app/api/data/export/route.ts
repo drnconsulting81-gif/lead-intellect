@@ -82,11 +82,18 @@ export async function POST(req: Request) {
       );
     }
 
-    // Load prospects
+    // Load prospects (support both full and chunked git-safe parts)
     const filePath = path.join(process.cwd(), "data", "prospects.json");
     let all: Array<Record<string, unknown> & { id: string }> = [];
     if (fs.existsSync(filePath)) {
       all = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+    } else {
+      const dataDir = path.join(process.cwd(), "data");
+      const parts = fs.readdirSync(dataDir).filter((f) => f.startsWith("prospects_part") && f.endsWith(".json"));
+      for (const p of parts.sort()) {
+        const raw = fs.readFileSync(path.join(dataDir, p), "utf-8");
+        all = all.concat(JSON.parse(raw));
+      }
     }
 
     const selected = all.filter((p) => targetExportIds.includes(String(p.id)));

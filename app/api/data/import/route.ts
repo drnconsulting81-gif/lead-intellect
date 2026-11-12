@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { saveList, isEmailSuppressed } from "@/lib/db";
+import { verifyAdminRequest } from "@/lib/admin-auth";
 import fs from "fs";
 import path from "path";
 
@@ -93,6 +94,17 @@ function getMasterProspects(): Array<Record<string, any>> {
       cachedMasterProspects = JSON.parse(fs.readFileSync(prospectsFilePath, "utf-8"));
       return cachedMasterProspects || [];
     }
+    const dataDir = path.join(process.cwd(), "data");
+    const parts = fs.readdirSync(dataDir).filter((f) => f.startsWith("prospects_part") && f.endsWith(".json"));
+    if (parts.length > 0) {
+      let combined: Array<Record<string, any>> = [];
+      for (const p of parts.sort()) {
+        const raw = fs.readFileSync(path.join(dataDir, p), "utf-8");
+        combined = combined.concat(JSON.parse(raw));
+      }
+      cachedMasterProspects = combined;
+      return cachedMasterProspects || [];
+    }
   } catch (err) {
     console.error("Error loading master prospects:", err);
   }
@@ -103,6 +115,15 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { action, csvContent, mapping, listName, userEmail } = body;
+
+    // Strict Admin authorization check: Enrichment and data import are restricted to Admin role
+    const auth = await verifyAdminRequest(req, userEmail);
+    if (!auth.isAdmin) {
+      return auth.errorResponse || NextResponse.json(
+        { error: "Access denied. The Data Quality Scrubber & Import Engine is strictly restricted to platform administrators." },
+        { status: 403 }
+      );
+    }
 
     if (!csvContent || typeof csvContent !== "string") {
       return NextResponse.json({ error: "CSV content is required." }, { status: 400 });

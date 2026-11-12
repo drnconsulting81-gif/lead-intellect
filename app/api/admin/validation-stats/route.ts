@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
+import { verifyAdminRequest } from "@/lib/admin-auth";
 import fs from "fs";
 import path from "path";
 
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+export async function GET(req: Request) {
   try {
+    const auth = await verifyAdminRequest(req);
+    if (!auth.isAdmin) {
+      return auth.errorResponse || NextResponse.json({ error: "Admin access required." }, { status: 403 });
+    }
     const auditPath = path.join(process.cwd(), "data", "database_validation_audit.json");
     const prospectsPath = path.join(process.cwd(), "data", "prospects.json");
     const companiesPath = path.join(process.cwd(), "data", "companies.json");
@@ -90,8 +97,12 @@ export async function GET() {
 }
 
 // POST endpoint to simulate or trigger live scraping tool re-validation pass
-export async function POST() {
+export async function POST(req: Request) {
   try {
+    const auth = await verifyAdminRequest(req);
+    if (!auth.isAdmin) {
+      return auth.errorResponse || NextResponse.json({ error: "Admin access required." }, { status: 403 });
+    }
     const auditPath = path.join(process.cwd(), "data", "database_validation_audit.json");
     let audit = null;
     if (fs.existsSync(auditPath)) {

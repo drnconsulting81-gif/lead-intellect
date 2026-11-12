@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { testWebhook } from "@/lib/notifications";
+import { verifyAdminRequest } from "@/lib/admin-auth";
 
 export async function POST(req: Request) {
   try {
+    const auth = await verifyAdminRequest(req);
+    if (!auth.isAdmin) {
+      return auth.errorResponse || NextResponse.json({ error: "Admin access required." }, { status: 403 });
+    }
+
     const body = await req.json();
     const webhookUrl = body.webhookUrl || process.env.CRM_WEBHOOK_URL;
 

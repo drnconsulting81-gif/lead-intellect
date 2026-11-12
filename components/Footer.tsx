@@ -27,6 +27,7 @@ const footerColumns = [
       { label: "Documentation", href: "/docs" },
       { label: "Sign In", href: "/login" },
       { label: "Resource Center", href: "/resources" },
+      { label: "Admin Portal", href: "/admin" },
     ],
   },
   {
