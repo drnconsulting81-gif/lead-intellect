@@ -7,7 +7,12 @@ const uri = (process.env.MONGODB_URI && process.env.MONGODB_URI.trim().length > 
   ? process.env.MONGODB_URI
   : DEFAULT_MONGODB_URI;
 
-const options = {};
+const options = {
+  serverSelectionTimeoutMS: 6000,
+  connectTimeoutMS: 6000,
+  socketTimeoutMS: 20000,
+  maxPoolSize: 10,
+};
 
 let client: MongoClient | null = null;
 let clientPromise: Promise<MongoClient> | null = null;
@@ -25,19 +30,16 @@ export async function getMongoClientPromise(): Promise<MongoClient | null> {
     return null;
   }
 
-  if (process.env.NODE_ENV === "development") {
-    // In development mode, use a global variable so that the value
-    // is preserved across module reloads caused by HMR.
-    if (!global._mongoClientPromise) {
-      client = new MongoClient(uri, options);
-      global._mongoClientPromise = client.connect();
-    }
-    clientPromise = global._mongoClientPromise;
-  } else {
-    // In production mode, it's best to not use a global variable.
+  // Cache client promise globally in all environments (essential for serverless reuse)
+  if (!global._mongoClientPromise) {
     client = new MongoClient(uri, options);
-    clientPromise = client.connect();
+    global._mongoClientPromise = client.connect().catch((err) => {
+      // Clear global promise on connection error so future calls can retry
+      global._mongoClientPromise = undefined;
+      throw err;
+    });
   }
+  clientPromise = global._mongoClientPromise;
 
   return clientPromise;
 }

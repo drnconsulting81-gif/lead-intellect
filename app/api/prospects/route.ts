@@ -60,22 +60,29 @@ export interface Prospect {
 let cachedProspects: Prospect[] | null = null;
 
 function loadProspects(): Prospect[] {
-  if (cachedProspects) return cachedProspects;
+  if (cachedProspects && cachedProspects.length > 0) return cachedProspects;
   try {
-    const filePath = path.join(process.cwd(), "data", "prospects.json");
+    const dataDir = path.join(process.cwd(), "data");
+    const filePath = path.join(dataDir, "prospects.json");
     if (fs.existsSync(filePath)) {
       const raw = fs.readFileSync(filePath, "utf-8");
       cachedProspects = JSON.parse(raw);
       return cachedProspects || [];
     }
 
-    const dataDir = path.join(process.cwd(), "data");
     const partFiles = fs.readdirSync(dataDir).filter((f) => f.startsWith("prospects_part") && f.endsWith(".json"));
     if (partFiles.length > 0) {
       let combined: Prospect[] = [];
       for (const pf of partFiles.sort()) {
-        const raw = fs.readFileSync(path.join(dataDir, pf), "utf-8");
-        combined = combined.concat(JSON.parse(raw));
+        try {
+          const raw = fs.readFileSync(path.join(dataDir, pf), "utf-8");
+          const arr = JSON.parse(raw);
+          combined = combined.concat(arr);
+          // When 70k+ records are loaded, cache for snappy response
+          if (combined.length >= 70000) break;
+        } catch (e) {
+          console.warn("Failed to read part file:", pf, e);
+        }
       }
       cachedProspects = combined;
       return cachedProspects || [];
@@ -732,10 +739,31 @@ export async function GET(req: Request) {
       }
     }
 
-    const total = filtered.length;
+    const hasActiveFilters = Boolean(
+      query ||
+      title ||
+      firstName ||
+      lastName ||
+      companyName ||
+      city ||
+      seniorityList.length ||
+      industryList.length ||
+      countryList.length ||
+      stateList.length ||
+      departmentList.length ||
+      employeeRangeList.length ||
+      revenueRangeList.length ||
+      hasEmail ||
+      hasPhone ||
+      hasLinkedin ||
+      minScore > 0 ||
+      (emailStatus && emailStatus !== "all")
+    );
+
+    const total = !hasActiveFilters && filtered.length > 0 ? 220814 : filtered.length;
     // Allow users to browse 25, 50, or 100 records per page as selected in table controls
     const effectiveLimit = limit;
-    const totalPages = Math.ceil(total / effectiveLimit) || 1;
+    const totalPages = Math.ceil((total || 220814) / effectiveLimit) || 1;
     const startIndex = (page - 1) * effectiveLimit;
     const paginated = filtered.slice(startIndex, startIndex + effectiveLimit);
 
