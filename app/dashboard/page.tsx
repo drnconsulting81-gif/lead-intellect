@@ -75,6 +75,8 @@ import {
   SlidersHorizontal,
   UserPlus,
   FileText,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import Logo from "@/components/Logo";
 import { LinkedInIcon } from "@/components/SocialIcons";
@@ -458,6 +460,14 @@ export default function LeadIntellectWorkspace() {
       localStorage.setItem("leadintellect_visible_columns", JSON.stringify(DEFAULT_VISIBLE_COLUMNS));
     } catch {}
     showToast("Columns reset to default view (6 core columns)");
+  };
+
+  const toggleFullScreenMode = () => {
+    const next = !fullListView;
+    setFullListView(next);
+    setHideFilters(next);
+    setSidebarCollapsed(next);
+    showToast(next ? "Full Screen Mode: Sidebars collapsed for maximum view" : "Standard Split View restored");
   };
 
   // Outreach Target List & Campaign Send State
@@ -4033,6 +4043,21 @@ export default function LeadIntellectWorkspace() {
                     <span>{hideFilters ? "Show Filters" : "Hide Filters"}</span>
                   </button>
 
+                  {/* Full Screen Table Toggle */}
+                  <button
+                    type="button"
+                    onClick={toggleFullScreenMode}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all ${
+                      fullListView
+                        ? "bg-navy text-teal border-navy font-extrabold ring-1 ring-teal/50"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                    title={fullListView ? "Exit Full Screen (Restore filter sidebar)" : "Full Screen Table (Maximize width and height)"}
+                  >
+                    {fullListView ? <Minimize2 className="w-3.5 h-3.5 text-teal" /> : <Maximize2 className="w-3.5 h-3.5 text-teal-dark" />}
+                    <span>{fullListView ? "Exit Full Screen" : "Full Screen Table"}</span>
+                  </button>
+
                   {/* Quick Search People Input with Instant Alphabetical Suggestions */}
                   <div className="relative min-w-[260px] sm:min-w-[320px]">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -4256,7 +4281,7 @@ export default function LeadIntellectWorkspace() {
               </div>
 
               {/* Discovery Main Layout: Left Filters + Results Area */}
-              <div className="flex-1 flex min-h-0 overflow-hidden">
+              <div className="flex-1 flex min-h-0 overflow-hidden relative">
                 {/* Left Filter Sidebar with dedicated custom scroller (Screenshot 1 & 3) */}
                 {!hideFilters && (
                   <aside className="w-72 border-r border-slate-200 bg-white p-4 overflow-y-auto max-h-[calc(100vh-140px)] custom-scrollbar hidden lg:block shrink-0 z-10 space-y-4">
@@ -4264,11 +4289,24 @@ export default function LeadIntellectWorkspace() {
                   </aside>
                 )}
 
+                {/* Floating Filter Button when Filters are Hidden in Full Screen Mode */}
+                {hideFilters && (
+                  <button
+                    type="button"
+                    onClick={() => setHideFilters(false)}
+                    className="fixed left-4 bottom-5 z-40 px-3.5 py-2 rounded-xl bg-navy text-white text-xs font-bold shadow-lg hover:bg-slate-800 flex items-center gap-2 cursor-pointer transition-all border border-teal/40 animate-in fade-in slide-in-from-bottom-2 duration-150"
+                    title="Open Filters"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-teal" />
+                    <span>Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ""}</span>
+                  </button>
+                )}
+
                 {/* Right Results & Content Area with dedicated custom scroller (Requirement 6) */}
-                <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 sm:p-6 space-y-4">
+                <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-all duration-200 ${fullListView ? "p-2 sm:p-2.5 space-y-2" : "p-2.5 sm:p-3.5 space-y-2.5"}`}>
                   {/* Compact Collapsible AI Search Assistant & Quick Filters (Maximizes List View) */}
                   <div className="shrink-0 rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-                    <div className="p-2.5 px-4 flex items-center justify-between gap-3 bg-gradient-to-r from-slate-50 to-white">
+                    <div className="p-2 px-3.5 flex items-center justify-between gap-3 bg-gradient-to-r from-slate-50 to-white">
                       <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar py-0.5 min-w-0">
                         <span className="text-xs font-bold text-navy flex items-center gap-1.5 shrink-0">
                           <Sparkles className="w-3.5 h-3.5 text-teal-dark" />
@@ -4299,11 +4337,7 @@ export default function LeadIntellectWorkspace() {
                       <div className="flex items-center gap-2 shrink-0">
                         <button
                           type="button"
-                          onClick={() => {
-                            const next = !fullListView;
-                            setFullListView(next);
-                            setHideFilters(next);
-                          }}
+                          onClick={toggleFullScreenMode}
                           className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors flex items-center gap-1 cursor-pointer ${
                             fullListView
                               ? "bg-navy text-white border-navy"
@@ -4311,7 +4345,7 @@ export default function LeadIntellectWorkspace() {
                           }`}
                           title={fullListView ? "Restore Normal View" : "Maximize Table (Full Width & Height View)"}
                         >
-                          <SlidersHorizontal className="w-3.5 h-3.5" />
+                          {fullListView ? <Minimize2 className="w-3 h-3 text-teal" /> : <Maximize2 className="w-3 h-3 text-teal-dark" />}
                           <span>{fullListView ? "⊟ Normal View" : "⛶ Full List View"}</span>
                         </button>
                         <button
@@ -4982,7 +5016,7 @@ export default function LeadIntellectWorkspace() {
                   </div>
 
                   {/* PROSPECTS DATA TABLE CONTAINER (Horizontal and Vertical Scrollers) */}
-                  <div className={`flex-1 overflow-x-auto overflow-y-auto ${fullListView ? "min-h-[640px] h-[calc(100vh-105px)]" : "min-h-[480px] h-[calc(100vh-175px)]"} custom-scrollbar rounded-2xl border border-slate-200 bg-white shadow-xs`}>
+                  <div className="flex-1 min-h-[380px] overflow-x-auto overflow-y-auto custom-scrollbar rounded-2xl border border-slate-200 bg-white shadow-xs relative">
                     {loading ? (
                       <div className="p-16 text-center">
                         <RefreshCw className="w-6 h-6 text-teal-dark animate-spin mx-auto mb-2" />
@@ -4998,33 +5032,33 @@ export default function LeadIntellectWorkspace() {
                       <table className="w-full text-left border-collapse text-xs">
                         <thead className="sticky top-0 z-20 text-slate-200 font-bold tracking-wider text-[11px] uppercase shadow-sm">
                           <tr>
-                            <th className="p-3 w-10 text-center sticky top-0 left-0 bg-[#0B132B] text-slate-200 z-30 border-b border-slate-700">
+                            <th className="p-2.5 w-9 text-center sticky top-0 left-0 bg-[#0B132B] text-slate-200 z-30 border-b border-slate-700">
                               <button
                                 type="button"
                                 onClick={toggleSelectAll}
                                 className="text-slate-400 hover:text-white cursor-pointer"
                               >
                                 {selectedIds.length === prospects.length && prospects.length > 0 ? (
-                                  <CheckSquare className="w-4 h-4 text-teal" />
+                                  <CheckSquare className="w-3.5 h-3.5 text-teal" />
                                 ) : (
-                                  <Square className="w-4 h-4" />
+                                  <Square className="w-3.5 h-3.5" />
                                 )}
                               </button>
                             </th>
-                            {visibleColumns.decisionMaker && <th className="p-3 min-w-[220px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Decision Maker</th>}
-                            {visibleColumns.company && <th className="p-3 min-w-[180px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Company &amp; Industry</th>}
-                            {visibleColumns.location && <th className="p-3 min-w-[130px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Location</th>}
-                            {visibleColumns.icpScore && <th className="p-3 min-w-[100px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">ICP Score</th>}
-                            {visibleColumns.reachability && <th className="p-3 min-w-[200px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Reachability</th>}
-                            {visibleColumns.departments && <th className="p-3 min-w-[150px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Department &amp; Function</th>}
-                            {visibleColumns.directPhone && <th className="p-3 min-w-[130px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Direct Phone</th>}
-                            {visibleColumns.corpPhone && <th className="p-3 min-w-[130px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Corp HQ Phone</th>}
-                            {visibleColumns.revenue && <th className="p-3 min-w-[110px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Revenue</th>}
-                            {visibleColumns.employees && <th className="p-3 min-w-[110px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Employees</th>}
-                            {visibleColumns.linkedin && <th className="p-3 min-w-[120px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">LinkedIn URL</th>}
-                            {visibleColumns.website && <th className="p-3 min-w-[120px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Website</th>}
-                            {visibleColumns.ownership && <th className="p-3 min-w-[100px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Ownership</th>}
-                            {visibleColumns.actions && <th className="p-3 text-right min-w-[140px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Actions</th>}
+                            {visibleColumns.decisionMaker && <th className="p-2.5 w-[24%] min-w-[165px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Decision Maker</th>}
+                            {visibleColumns.company && <th className="p-2.5 w-[20%] min-w-[140px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Company &amp; Industry</th>}
+                            {visibleColumns.location && <th className="p-2.5 w-[13%] min-w-[95px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Location</th>}
+                            {visibleColumns.icpScore && <th className="p-2.5 w-[9%] min-w-[70px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">ICP Score</th>}
+                            {visibleColumns.reachability && <th className="p-2.5 w-[20%] min-w-[145px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Reachability</th>}
+                            {visibleColumns.departments && <th className="p-2.5 min-w-[130px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Department &amp; Function</th>}
+                            {visibleColumns.directPhone && <th className="p-2.5 min-w-[110px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Direct Phone</th>}
+                            {visibleColumns.corpPhone && <th className="p-2.5 min-w-[110px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Corp HQ Phone</th>}
+                            {visibleColumns.revenue && <th className="p-2.5 min-w-[90px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Revenue</th>}
+                            {visibleColumns.employees && <th className="p-2.5 min-w-[90px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Employees</th>}
+                            {visibleColumns.linkedin && <th className="p-2.5 min-w-[90px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">LinkedIn URL</th>}
+                            {visibleColumns.website && <th className="p-2.5 min-w-[100px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Website</th>}
+                            {visibleColumns.ownership && <th className="p-2.5 min-w-[85px] sticky top-0 bg-[#0B132B] text-slate-200 z-20 border-b border-slate-700">Ownership</th>}
+                            {visibleColumns.actions && <th className="p-2.5 text-right w-[14%] min-w-[130px] sticky top-0 right-0 bg-[#0B132B] text-slate-200 z-30 border-b border-slate-700 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.3)]">Actions</th>}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -5037,32 +5071,33 @@ export default function LeadIntellectWorkspace() {
                             return (
                               <tr
                                 key={p.id}
-                                className={`hover:bg-slate-50/70 transition-colors ${
+                                className={`hover:bg-slate-50/70 transition-colors group ${
                                   isSelected ? "bg-teal/5" : ""
                                 }`}
                               >
-                                <td className="py-2.5 px-3 text-center sticky left-0 bg-white z-10">
+                                <td className={`py-2 px-2 text-center sticky left-0 z-10 ${isSelected ? "bg-[#F2FAF9]" : "bg-white"} group-hover:bg-slate-50 transition-colors`}>
                                   <button
                                     type="button"
                                     onClick={() => toggleSelect(p.id)}
                                     className="text-slate-400 hover:text-navy cursor-pointer"
                                   >
                                     {isSelected ? (
-                                      <CheckSquare className="w-4 h-4 text-teal-dark" />
+                                      <CheckSquare className="w-3.5 h-3.5 text-teal-dark" />
                                     ) : (
-                                      <Square className="w-4 h-4" />
+                                      <Square className="w-3.5 h-3.5" />
                                     )}
                                   </button>
                                 </td>
 
                                 {/* Person Name & Title */}
                                 {visibleColumns.decisionMaker && (
-                                  <td className="py-2.5 px-3.5">
+                                  <td className="py-2 px-3">
                                     <div className="flex items-center gap-1.5">
                                       <button
                                         type="button"
                                         onClick={() => setActiveProfile(p)}
-                                        className="font-bold text-navy hover:text-teal-dark text-left cursor-pointer group"
+                                        className="font-bold text-navy hover:text-teal-dark text-left cursor-pointer group truncate max-w-[160px]"
+                                        title={p.name}
                                       >
                                         <span>{p.name}</span>
                                       </button>
@@ -5071,20 +5106,22 @@ export default function LeadIntellectWorkspace() {
                                           href={p.linkedin}
                                           target="_blank"
                                           rel="noreferrer"
-                                          className="text-slate-400 hover:text-[#0a66c2] p-0.5 inline-flex items-center"
+                                          className="text-slate-400 hover:text-[#0a66c2] p-0.5 inline-flex items-center shrink-0"
                                           title="View LinkedIn Profile"
                                         >
                                           <LinkedInIcon className="w-3 h-3" />
                                         </a>
                                       )}
                                     </div>
-                                    <p className="text-[11px] text-text-muted mt-0.5 truncate max-w-xs">
+                                    <p className="text-[11px] text-text-muted mt-0.5 truncate max-w-[170px]" title={p.title}>
                                       {p.title}
                                     </p>
                                     <div className="flex flex-wrap items-center gap-1 mt-1">
-                                      <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.2 rounded font-medium">
-                                        {p.seniority}
-                                      </span>
+                                      {p.seniority && (
+                                        <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.2 rounded font-medium shrink-0">
+                                          {p.seniority}
+                                        </span>
+                                      )}
                                       {(() => {
                                         const sig = p.intentSignal || getProspectIntentSignal(p);
                                         if (!sig) return null;
@@ -5100,12 +5137,12 @@ export default function LeadIntellectWorkspace() {
                                               title={`Intent: ${sig.headline} (${sig.recencyDays}d ago). Click for Opportunity Brief.`}
                                             >
                                               <Zap className="w-2.5 h-2.5 text-teal-dark shrink-0" />
-                                              <span className="truncate max-w-[120px]">{sig.categoryLabel}</span>
+                                              <span className="truncate max-w-[100px]">{sig.categoryLabel}</span>
                                               <span className="text-[9px] opacity-75 font-mono">({sig.recencyDays}d)</span>
                                             </button>
                                             {sig.webPlatform && (
                                               <span
-                                                className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                                className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0"
                                                 title={`Web Source: ${WEB_INTENT_PLATFORMS.find((w) => w.id === sig.webPlatform)?.label || "Web"}`}
                                               >
                                                 <span>{WEB_INTENT_PLATFORMS.find((w) => w.id === sig.webPlatform)?.icon || "🌐"}</span>
@@ -5121,10 +5158,10 @@ export default function LeadIntellectWorkspace() {
 
                                 {/* Company & Industry */}
                                 {visibleColumns.company && (
-                                  <td className="py-2.5 px-3.5">
-                                    <p className="font-semibold text-navy">{p.company}</p>
-                                    <p className="text-[11px] text-text-muted">{p.industry}</p>
-                                    <span className="text-[10px] text-slate-400">
+                                  <td className="py-2 px-3">
+                                    <p className="font-semibold text-navy truncate max-w-[160px]" title={p.company}>{p.company}</p>
+                                    <p className="text-[11px] text-text-muted truncate max-w-[160px]" title={p.industry}>{p.industry}</p>
+                                    <span className="text-[10px] text-slate-400 block truncate max-w-[160px]">
                                       {p.employeeRange} emps &middot; {p.revenueRange}
                                     </span>
                                   </td>
@@ -5132,16 +5169,16 @@ export default function LeadIntellectWorkspace() {
 
                                 {/* Location */}
                                 {visibleColumns.location && (
-                                  <td className="py-2.5 px-3.5 text-text-muted">
-                                    <p>{p.city ? `${p.city}, ${p.state}` : p.location}</p>
-                                    <p className="text-[10px] text-slate-400">{p.country}</p>
+                                  <td className="py-2.5 px-3 text-text-muted">
+                                    <p className="truncate max-w-[120px]">{p.city ? `${p.city}, ${p.state}` : p.location}</p>
+                                    <p className="text-[10px] text-slate-400 truncate max-w-[120px]">{p.country}</p>
                                   </td>
                                 )}
 
                                 {/* ICP Score */}
                                 {visibleColumns.icpScore && (
-                                  <td className="py-2.5 px-3.5">
-                                    <div className="flex items-center gap-1.5">
+                                  <td className="py-2 px-2.5">
+                                    <div className="flex items-center gap-1">
                                       <span
                                         className={`font-extrabold text-sm ${
                                           p.icpScore >= 85
@@ -5156,7 +5193,7 @@ export default function LeadIntellectWorkspace() {
                                       <span className="text-[10px] text-text-muted">/100</span>
                                     </div>
                                     <span
-                                      className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                                      className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-block ${
                                         p.icpTier === "Tier 1"
                                           ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                                           : "bg-slate-100 text-slate-600"
@@ -5169,20 +5206,22 @@ export default function LeadIntellectWorkspace() {
 
                                 {/* Reachability: Email & Phone Status */}
                                 {visibleColumns.reachability && (
-                                  <td className="py-2.5 px-3.5">
+                                  <td className="py-2 px-3">
                                     {isRevealed ? (
                                       <div className="space-y-1">
                                         <div className="flex items-center gap-1.5">
-                                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
-                                            <CheckCircle className="w-3 h-3 text-emerald-600" />
+                                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] font-bold shrink-0">
+                                            <CheckCircle className="w-2.5 h-2.5 text-emerald-600" />
                                             Verified
                                           </span>
-                                          <span className="font-bold text-navy text-xs select-all">{activeEmail}</span>
+                                          <span className="font-bold text-navy text-xs select-all truncate max-w-[130px]" title={activeEmail}>
+                                            {activeEmail}
+                                          </span>
                                           <button
                                             type="button"
                                             onClick={() => copyToClipboard(activeEmail, "Email")}
                                             title="Copy email to clipboard"
-                                            className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-navy cursor-pointer"
+                                            className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-navy cursor-pointer shrink-0"
                                           >
                                             {copiedItem === "Email" ? (
                                               <Check className="w-3 h-3 text-emerald-600" />
@@ -5195,12 +5234,12 @@ export default function LeadIntellectWorkspace() {
                                         {activePhone && (
                                           <div className="flex items-center gap-1.5 text-slate-600 text-xs">
                                             <Phone className="w-3 h-3 text-teal-dark shrink-0" />
-                                            <span className="font-semibold select-all">{activePhone}</span>
+                                            <span className="font-semibold select-all truncate max-w-[130px]" title={activePhone}>{activePhone}</span>
                                             <button
                                               type="button"
                                               onClick={() => copyToClipboard(activePhone, "Phone")}
                                               title="Copy direct dial to clipboard"
-                                              className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-navy cursor-pointer"
+                                              className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-navy cursor-pointer shrink-0"
                                             >
                                               {copiedItem === "Phone" ? (
                                                 <Check className="w-3 h-3 text-emerald-600" />
@@ -5214,17 +5253,17 @@ export default function LeadIntellectWorkspace() {
                                     ) : (
                                       <div className="space-y-1">
                                         <div className="flex items-center gap-1.5">
-                                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                                          <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
                                             <Lock className="w-2.5 h-2.5 text-slate-400" />
                                             <span>Masked</span>
                                           </span>
-                                          <span className="font-mono text-xs text-slate-400 select-none tracking-wider">
+                                          <span className="font-mono text-xs text-slate-500 select-none tracking-wider truncate max-w-[130px]" title="Unlock contact to reveal email address">
                                             {p.maskedEmail || (p.email && p.email.includes("@") ? `${p.email.charAt(0)}***@${p.email.split("@")[1]}` : "j***@company.com")}
                                           </span>
                                         </div>
                                         <div className="flex items-center gap-1.5 text-slate-400 text-xs">
                                           <Phone className="w-3 h-3 text-slate-300 shrink-0" />
-                                          <span className="font-mono select-none tracking-wider">
+                                          <span className="font-mono select-none tracking-wider truncate max-w-[130px]" title="Unlock contact to reveal phone">
                                             {p.maskedPhone || "+91 987*****"}
                                           </span>
                                         </div>
@@ -5235,16 +5274,16 @@ export default function LeadIntellectWorkspace() {
 
                                 {/* Extended Template Columns from Database Template.xlsx */}
                                 {visibleColumns.departments && (
-                                  <td className="py-2.5 px-3.5">
-                                    <p className="font-semibold text-navy">{p.department || "Technology"}</p>
-                                    <p className="text-[10px] text-slate-400">{p.jobFunctions || p.title}</p>
+                                  <td className="py-2 px-3">
+                                    <p className="font-semibold text-navy truncate max-w-[130px]">{p.department || "Technology"}</p>
+                                    <p className="text-[10px] text-slate-400 truncate max-w-[130px]">{p.jobFunctions || p.title}</p>
                                   </td>
                                 )}
 
                                 {visibleColumns.directPhone && (
-                                  <td className="py-2.5 px-3.5 font-mono text-[11px]">
+                                  <td className="py-2 px-3 font-mono text-[11px]">
                                     {isRevealed && activePhone ? (
-                                      <span className="text-navy font-bold">{activePhone}</span>
+                                      <span className="text-navy font-bold truncate max-w-[120px] block">{activePhone}</span>
                                     ) : (
                                       <span className="text-slate-400 italic">Click Reveal (1 Cr)</span>
                                     )}
@@ -5252,25 +5291,25 @@ export default function LeadIntellectWorkspace() {
                                 )}
 
                                 {visibleColumns.corpPhone && (
-                                  <td className="py-2.5 px-3.5 font-mono text-[11px] text-slate-600">
+                                  <td className="py-2 px-3 font-mono text-[11px] text-slate-600 truncate max-w-[120px]">
                                     {p.corpPhone || "+1 (HQ Switchboard)"}
                                   </td>
                                 )}
 
                                 {visibleColumns.revenue && (
-                                  <td className="py-2.5 px-3.5 font-bold text-navy">
+                                  <td className="py-2 px-3 font-bold text-navy truncate max-w-[100px]">
                                     {p.revenueMil ? `$${p.revenueMil}M` : p.revenueRange}
                                   </td>
                                 )}
 
                                 {visibleColumns.employees && (
-                                  <td className="py-2.5 px-3.5 text-slate-600">
+                                  <td className="py-2 px-3 text-slate-600 truncate max-w-[100px]">
                                     {p.employeeRange || `${p.employees} emps`}
                                   </td>
                                 )}
 
                                 {visibleColumns.linkedin && (
-                                  <td className="py-2.5 px-3.5">
+                                  <td className="py-2 px-3">
                                     {p.linkedin ? (
                                       <a
                                         href={p.linkedin}
@@ -5288,16 +5327,16 @@ export default function LeadIntellectWorkspace() {
                                 )}
 
                                 {visibleColumns.website && (
-                                  <td className="py-2.5 px-3.5">
+                                  <td className="py-2 px-3">
                                     {p.website ? (
                                       <a
                                         href={p.website.startsWith("http") ? p.website : `https://${p.website}`}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="text-teal-dark hover:underline flex items-center gap-1"
+                                        className="text-teal-dark hover:underline flex items-center gap-1 truncate max-w-[110px]"
                                       >
-                                        <ExternalLink className="w-3 h-3" />
-                                        <span>{p.domain || "Website"}</span>
+                                        <ExternalLink className="w-3 h-3 shrink-0" />
+                                        <span className="truncate">{p.domain || "Website"}</span>
                                       </a>
                                     ) : (
                                       <span className="text-slate-400">—</span>
@@ -5306,22 +5345,23 @@ export default function LeadIntellectWorkspace() {
                                 )}
 
                                 {visibleColumns.ownership && (
-                                  <td className="py-2.5 px-3.5">
+                                  <td className="py-2 px-3">
                                     <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold">
                                       {p.ownership || "Private"}
                                     </span>
                                   </td>
                                 )}
 
-                                {/* Actions */}
+                                {/* Actions - Sticky Right Column */}
                                 {visibleColumns.actions && (
-                                  <td className="py-2.5 px-3.5 text-right bg-white">
+                                  <td className={`py-2 px-3 text-right sticky right-0 z-20 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] ${isSelected ? "bg-[#F0FDF4]" : "bg-white"} group-hover:bg-slate-50 transition-colors`}>
                                     <div className="flex items-center justify-end gap-1.5">
                                       {!isRevealed ? (
                                         <button
                                           onClick={() => handleRevealContact(p)}
                                           disabled={revealingId === p.id}
-                                          className="px-3 py-1.5 rounded-xl bg-teal/20 hover:bg-teal text-navy text-[11px] font-extrabold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs hover:shadow-xs"
+                                          className="px-2.5 py-1 rounded-lg bg-teal/20 hover:bg-teal text-navy text-[10.5px] font-extrabold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 shadow-2xs whitespace-nowrap"
+                                          title="Spend 1 credit to unlock verified contact details"
                                         >
                                           {revealingId === p.id ? (
                                             <RefreshCw className="w-3 h-3 animate-spin" />
@@ -5331,8 +5371,8 @@ export default function LeadIntellectWorkspace() {
                                           <span>Unlock Contact (1 Cr)</span>
                                         </button>
                                       ) : (
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-extrabold flex items-center gap-1 border border-emerald-200 shadow-2xs">
+                                        <div className="flex items-center gap-1">
+                                          <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-extrabold flex items-center gap-1 border border-emerald-200 shadow-2xs whitespace-nowrap">
                                             <CheckCircle className="w-3 h-3 text-emerald-600" />
                                             <span>✓ Unlocked</span>
                                           </span>
@@ -5343,7 +5383,7 @@ export default function LeadIntellectWorkspace() {
                                               setListModalOpen(true);
                                             }}
                                             title="Save to list"
-                                            className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-navy cursor-pointer transition-colors"
+                                            className="p-1 rounded-md border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-navy cursor-pointer transition-colors"
                                           >
                                             <BookmarkPlus className="w-3.5 h-3.5 text-teal-dark" />
                                           </button>
