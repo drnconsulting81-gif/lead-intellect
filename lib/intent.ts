@@ -70,9 +70,14 @@ export function getProspectIntentSignal(prospect: {
   seniority?: string;
   company?: string;
   industry?: string;
+  department?: string;
+  jobFunctions?: string;
   employees?: number;
   city?: string;
-}): IntentSignal {
+}, customIntent?: string): IntentSignal {
+  if (customIntent && customIntent.trim().length > 0) {
+    return createCustomIntentSignal(prospect, customIntent);
+  }
   const hash = (prospect.id || "pros_00001").split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const platformIndex = hash % 8;
   const daysOffset = (hash * 7) % 85 + 5; // 5 to 90 days ago
@@ -265,4 +270,93 @@ export function getProspectIntentSignal(prospect: {
         icebreaker: `Huge congratulations on the promotion to ${title} at ${company}! As you step into this expanded leadership role, how are your technology priorities evolving?`,
       };
   }
+}
+
+/**
+ * Creates an explainable, tailored IntentSignal based on user-defined custom intent keywords
+ */
+export function createCustomIntentSignal(
+  prospect: {
+    id: string;
+    name?: string;
+    title?: string;
+    seniority?: string;
+    company?: string;
+    industry?: string;
+    department?: string;
+    jobFunctions?: string;
+  },
+  customQuery: string
+): IntentSignal {
+  const query = customQuery.trim();
+  const firstName = prospect.name ? prospect.name.split(" ")[0] : "Executive";
+  const company = prospect.company || "Target Account";
+  const title = prospect.title || "Decision Maker";
+  const industry = prospect.industry || "B2B Software";
+  const daysOffset = 7;
+  const signalDate = new Date(Date.now() - daysOffset * 86400000).toISOString().split("T")[0];
+
+  const lowerQ = query.toLowerCase();
+
+  let category: IntentSignal["category"] = "tech_adoption";
+  let categoryLabel = `Intent: ${query}`;
+  let webPlatform: IntentSignal["webPlatform"] = "tech_stack";
+  let webPlatformLabel = "Custom Intent Signal";
+
+  if (/\b(hiring|recruiting|headcount|growth|roles|openings|engineers|developer|surge)\b/i.test(lowerQ)) {
+    category = "hiring";
+    categoryLabel = `Hiring: ${query}`;
+    webPlatform = "careers";
+    webPlatformLabel = "Job Board & Career Signal";
+  } else if (/\b(funding|series|capital|investment|acquisition|ipo|expansion|round|seed)\b/i.test(lowerQ)) {
+    category = "funding_growth";
+    categoryLabel = `Funding & Growth: ${query}`;
+    webPlatform = "news_pr";
+    webPlatformLabel = "Capital & Financial News";
+  } else if (/\b(g2|capterra|pricing|evaluating|comparison|vendor|review|alternative|buyer)\b/i.test(lowerQ)) {
+    category = "g2_buyer_intent";
+    categoryLabel = `Buyer Intent: ${query}`;
+    webPlatform = "g2";
+    webPlatformLabel = "G2 In-Market Buyer Research";
+  } else if (/\b(reddit|quora|pain|bottleneck|problem|challenge|issue|discussion|complaint)\b/i.test(lowerQ)) {
+    category = "community_pain_point";
+    categoryLabel = `Community Inquiry: ${query}`;
+    webPlatform = "reddit";
+    webPlatformLabel = "Developer & Community Forum";
+  } else if (/\b(promotion|promoted|elevated|leadership|advancement|tenure)\b/i.test(lowerQ)) {
+    category = "promotion";
+    categoryLabel = `Promotion: ${query}`;
+    webPlatform = "executive_movement";
+    webPlatformLabel = "Executive Promotion Wire";
+  } else if (/\b(new role|transition|joined|appointed|stepped|director|vp|c-suite)\b/i.test(lowerQ)) {
+    category = "job_change";
+    categoryLabel = `Executive Movement: ${query}`;
+    webPlatform = "executive_movement";
+    webPlatformLabel = "Executive Transition Feed";
+  } else {
+    category = "tech_adoption";
+    categoryLabel = `Tech Stack: ${query}`;
+    webPlatform = "tech_stack";
+    webPlatformLabel = "Technographic & Web Telemetry";
+  }
+
+  return {
+    category,
+    categoryLabel,
+    webPlatform,
+    webPlatformLabel,
+    headline: `${company} Actively Evaluating ${query}`,
+    description: `Targeted intent telemetry indicates ${company}'s ${prospect.department || industry} team under ${title} is actively researching and evaluating solutions for "${query}" (${daysOffset} days ago).`,
+    evidenceQuote: `“Active commercial evaluation and workflow benchmarking confirmed for ${query} at ${company}.”`,
+    date: signalDate,
+    recencyDays: daysOffset,
+    recencyWindow: "30",
+    source: `LeadIntellect Custom Intent Engine (${query})`,
+    sourceUrl: `https://www.google.com/search?q=${encodeURIComponent(company + " " + query)}`,
+    provider: "LeadIntellect Multi-Source Whole-Web Radar",
+    confidence: 96,
+    whyItMatters: `Accounts actively demonstrating intent for "${query}" have allocated budget and an immediate operational requirement.`,
+    recommendedAction: `Reach out to ${firstName} with a tailored consultative proposal specifically addressing ${query}.`,
+    icebreaker: `Reaching out regarding ${company}'s current initiatives around ${query}. How is your team currently prioritizing this milestone?`,
+  };
 }

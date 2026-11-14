@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { getProspectIntentSignal, type IntentSignal } from "@/lib/intent";
+import { getProspectIntentSignal, createCustomIntentSignal, type IntentSignal } from "@/lib/intent";
 import { buildDeterministicSignalForProspect } from "@/lib/intent-store";
 import { interpretProspectingGoal } from "@/lib/orchestrator";
 import { findUserByEmail, isUserOnPaidPlan, isCeoEmail, getUserUnlockedProspectIds } from "@/lib/db";
@@ -298,6 +298,7 @@ export async function GET(req: Request) {
     const intentCategory = searchParams.get("intentCategory") || interpretedCriteria?.intentCategory || "";
     const intentRecency = searchParams.get("intentRecency") || interpretedCriteria?.intentRecency || "";
     const webPlatform = searchParams.get("webPlatform") || "";
+    const customIntent = (searchParams.get("customIntent") || "").trim();
 
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
     const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit")) || 25));
@@ -358,7 +359,23 @@ export async function GET(req: Request) {
             mongoFilter.city = { $regex: city.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
           }
           if (seniorityList.length > 0) {
-            mongoFilter.seniority = { $in: seniorityList.map((s) => new RegExp(`^${s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")) };
+            const expandedSeniorities: (string | RegExp)[] = [];
+            for (const s of seniorityList) {
+              if (s.includes("c-suite") || s.includes("c-level") || s === "cxo") {
+                expandedSeniorities.push(/C-Level/i, /C-Suite/i, /Chief/i);
+              } else if (s === "vp" || s.includes("vice president")) {
+                expandedSeniorities.push(/VP/i, /Vice President/i);
+              } else if (s === "director" || s.includes("head")) {
+                expandedSeniorities.push(/Director/i, /Head/i);
+              } else if (s === "manager" || s.includes("lead")) {
+                expandedSeniorities.push(/Manager/i, /Lead/i);
+              } else if (s === "founder" || s.includes("founder") || s.includes("owner")) {
+                expandedSeniorities.push(/Founder/i, /Owner/i, /C-Level/i);
+              } else {
+                expandedSeniorities.push(new RegExp(s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+              }
+            }
+            mongoFilter.seniority = { $in: expandedSeniorities };
           }
           if (industryList.length > 0) {
             mongoFilter.industry = { $in: industryList.map((ind) => new RegExp(ind.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i")) };
@@ -400,17 +417,54 @@ export async function GET(req: Request) {
 
           if (intentCategoryList.length > 0) {
             if (intentCategoryList.includes("promotion") && seniorityList.length === 0) {
-              mongoFilter.seniority = { $in: [/C-Suite/i, /VP/i, /Director/i, /Manager/i, /Founder/i, /Head/i] };
+              mongoFilter.seniority = { $in: [/C-Level/i, /VP/i, /Director/i, /Manager/i, /Senior/i] };
             } else if (intentCategoryList.includes("job_change") && !title) {
               mongoFilter.title = { $exists: true, $ne: "" };
             } else if (intentCategoryList.includes("hiring") && employeeRangeList.length === 0) {
               mongoFilter.employeeRange = { $in: [/51-200/i, /201-500/i, /501-1000/i, /1000\+/i] };
             } else if (intentCategoryList.includes("funding_growth") && revenueRangeList.length === 0) {
               mongoFilter.revenueRange = { $in: [/100M\+/i, /20M - 100M/i, /10M - 50M/i, /1M - 20M/i] };
+            } else if (intentCategoryList.includes("tech_adoption")) {
+              mongoFilter.industry = { $in: [/Technology/i, /Software/i, /Telecom/i, /Manufacturing/i] };
+            } else if (intentCategoryList.includes("g2_buyer_intent")) {
+              mongoFilter.icpScore = { $gte: 85 };
             }
           }
 
-          const totalDocs = await prospectsColl.countDocuments(mongoFilter);
+          if (customIntent) {
+            const safeIntent = customIntent.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const tokens = customIntent
+              .split(/\s+/)
+              .filter((t) => t.length > 2)
+              .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+
+            const intentOr: any[] = [
+              { title: { $regex: safeIntent, $options: "i" } },
+              { company: { $regex: safeIntent, $options: "i" } },
+              { industry: { $regex: safeIntent, $options: "i" } },
+              { department: { $regex: safeIntent, $options: "i" } },
+              { jobFunctions: { $regex: safeIntent, $options: "i" } },
+            ];
+            for (const tok of tokens) {
+              intentOr.push({ title: { $regex: tok, $options: "i" } });
+              intentOr.push({ department: { $regex: tok, $options: "i" } });
+              intentOr.push({ industry: { $regex: tok, $options: "i" } });
+            }
+            if (mongoFilter.$or) {
+              mongoFilter.$and = [{ $or: mongoFilter.$or }, { $or: intentOr }];
+              delete mongoFilter.$or;
+            } else {
+              mongoFilter.$or = intentOr;
+            }
+          }
+
+          let totalDocs = await prospectsColl.countDocuments(mongoFilter);
+          if (totalDocs === 0 && customIntent) {
+            delete mongoFilter.$and;
+            delete mongoFilter.$or;
+            mongoFilter.icpScore = { $gte: 80 };
+            totalDocs = await prospectsColl.countDocuments(mongoFilter);
+          }
           if (totalDocs > 0) {
             const sortObj: Record<string, 1 | -1> = {};
             if (sortBy === "name") sortObj.name = sortOrder === "asc" ? 1 : -1;
@@ -499,7 +553,7 @@ export async function GET(req: Request) {
                 corpPhone: rawDoc.corpPhone,
               } as Prospect;
 
-              let intent = getProspectIntentSignal(p);
+              let intent = getProspectIntentSignal(p, customIntent);
               if (intentCategoryList.length > 0 && !intentCategoryList.includes(intent.category.toLowerCase())) {
                 if (intentCategoryList.includes("promotion")) {
                   intent = {
@@ -557,6 +611,7 @@ export async function GET(req: Request) {
                 : "Preview mode: emails & direct dials are masked. Upgrade plan to unlock verified contacts and exports.",
               interpretedCriteria,
               nlExplanation,
+              customIntent: customIntent || undefined,
               pagination: {
                 total: totalDocs,
                 page,
@@ -725,9 +780,17 @@ export async function GET(req: Request) {
       if (intentRecency && intentRecency !== "all") {
         const maxDays = Number(intentRecency);
         if (!isNaN(maxDays)) {
-          const signal = getProspectIntentSignal(p);
+          const signal = getProspectIntentSignal(p, customIntent);
           if (signal.recencyDays > maxDays) return false;
         }
+      }
+
+      if (customIntent) {
+        const lowerCI = customIntent.toLowerCase().trim();
+        const tokens = lowerCI.split(/\s+/).filter((t) => t.length > 2);
+        const textTarget = `${p.title || ""} ${p.department || ""} ${p.jobFunctions || ""} ${p.company || ""} ${p.industry || ""} ${p.subIndustry || ""}`.toLowerCase();
+        const matchesCustom = textTarget.includes(lowerCI) || tokens.some((tok) => textTarget.includes(tok));
+        if (!matchesCustom) return false;
       }
 
       return true;
@@ -779,6 +842,7 @@ export async function GET(req: Request) {
 
     const hasActiveFilters = Boolean(
       query ||
+      customIntent ||
       title ||
       firstName ||
       lastName ||
@@ -808,7 +872,7 @@ export async function GET(req: Request) {
     // If unlocked by this user or user is Admin/CEO, return unmasked contact details
     // Otherwise, mask email and phone with an Unlock Contact action
     const returnedProspects = paginated.map((p) => {
-      let intent = getProspectIntentSignal(p);
+      let intent = getProspectIntentSignal(p, customIntent);
       if (intentCategoryList.length > 0 && !intentCategoryList.includes(intent.category.toLowerCase())) {
         if (intentCategoryList.includes("promotion")) {
           intent = {
@@ -909,6 +973,7 @@ export async function GET(req: Request) {
         : "Preview mode: emails & direct dials are masked. Upgrade plan to unlock verified contacts and exports.",
       interpretedCriteria,
       nlExplanation,
+      customIntent: customIntent || undefined,
       pagination: {
         total,
         page,

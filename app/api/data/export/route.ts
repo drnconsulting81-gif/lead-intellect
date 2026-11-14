@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { logExport, deductUserCredit, findUserByEmail, isUserOnPaidPlan, isCeoEmail, getUserUnlockedProspectIds } from "@/lib/db";
+import { getMongoDb, isMongoConfigured } from "@/lib/mongodb";
 import fs from "fs";
 import path from "path";
+
+export const dynamic = "force-dynamic";
 
 function escapeCsvValue(val: unknown): string {
   if (val === undefined || val === null) return '""';
@@ -12,7 +15,7 @@ function escapeCsvValue(val: unknown): string {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { userEmail, prospectIds, exportType = "people" } = body;
+    const { userEmail, prospectIds, exportType = "people", autoUnlock = false } = body;
 
     const cleanEmail = (userEmail || "").toLowerCase().trim();
     if (!cleanEmail || cleanEmail === "guest@leadintellect.ai") {
@@ -38,22 +41,52 @@ export async function POST(req: Request) {
       const unlockedList = await getUserUnlockedProspectIds(cleanEmail);
       const unlockedSet = new Set(unlockedList.map(String));
 
-      // Strictly restrict non-admin export to unlocked leads only
+      // If no specific IDs passed, export all user's unlocked leads
       if (targetExportIds.length === 0) {
         targetExportIds = Array.from(unlockedSet);
-      } else {
-        targetExportIds = targetExportIds.filter((id) => unlockedSet.has(id));
       }
 
       if (targetExportIds.length === 0) {
         return NextResponse.json(
           {
-            error: "Access denied. Non-admin customers can only export leads they have unlocked. Please unlock contacts with your credits before downloading.",
-            unlockedCount: unlockedSet.size,
+            error: "No leads selected or unlocked. Please select contacts or unlock leads with your credits before downloading.",
+            unlockedCount: 0,
           },
-          { status: 403 }
+          { status: 400 }
         );
       }
+
+      // Check for locked leads in the target export list
+      const lockedIds = targetExportIds.filter((id) => !unlockedSet.has(id));
+
+      if (lockedIds.length > 0) {
+        const availableCredits = user?.credits ?? 0;
+        // If user requested autoUnlock or has sufficient credits to unlock these leads:
+        if (autoUnlock || availableCredits >= lockedIds.length) {
+          for (const lid of lockedIds) {
+            await deductUserCredit(
+              cleanEmail,
+              1,
+              "reveal",
+              `Unlocked contact during CSV export`,
+              lid
+            );
+            unlockedSet.add(lid);
+          }
+        } else {
+          return NextResponse.json(
+            {
+              error: `Non-admin customers can only export leads they have unlocked. Please unlock contacts with your credits before downloading. You need ${lockedIds.length} credits, but only have ${availableCredits} credits.`,
+              neededCredits: lockedIds.length,
+              availableCredits,
+            },
+            { status: 403 }
+          );
+        }
+      }
+
+      // Restrict export strictly to unlocked contacts
+      targetExportIds = targetExportIds.filter((id) => unlockedSet.has(id));
     } else {
       if (targetExportIds.length === 0) {
         return NextResponse.json(
@@ -63,40 +96,62 @@ export async function POST(req: Request) {
       }
     }
 
-    // Server-side credit deduction (1 credit per export batch for non-admin if balance permits)
-    const deduction = await deductUserCredit(
-      cleanEmail,
-      isAdmin ? 0 : 1,
-      "export",
-      `Exported ${targetExportIds.length} unlocked records to CSV`,
-      targetExportIds.slice(0, 5).join(",")
-    );
+    // Load prospects from MongoDB Atlas or local fallback
+    let selected: Array<Record<string, unknown> & { id: string }> = [];
 
-    if (!deduction.success && !isAdmin && !isPaid) {
-      return NextResponse.json(
-        {
-          error: "You're out of credits. Upgrade your plan to export more leads.",
-          remainingCredits: deduction.remainingCredits,
-        },
-        { status: 402 }
-      );
-    }
+    if (isMongoConfigured()) {
+      try {
+        const db = await getMongoDb();
+        if (db) {
+          const prospectsColl = db.collection("prospects");
+          const mongoDocs = await prospectsColl
+            .find({
+              $or: [
+                { id: { $in: targetExportIds } },
+                { id: { $in: targetExportIds.map(String) } },
+              ],
+            } as any)
+            .toArray();
 
-    // Load prospects (support both full and chunked git-safe parts)
-    const filePath = path.join(process.cwd(), "data", "prospects.json");
-    let all: Array<Record<string, unknown> & { id: string }> = [];
-    if (fs.existsSync(filePath)) {
-      all = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-    } else {
-      const dataDir = path.join(process.cwd(), "data");
-      const parts = fs.readdirSync(dataDir).filter((f) => f.startsWith("prospects_part") && f.endsWith(".json"));
-      for (const p of parts.sort()) {
-        const raw = fs.readFileSync(path.join(dataDir, p), "utf-8");
-        all = all.concat(JSON.parse(raw));
+          if (mongoDocs && mongoDocs.length > 0) {
+            selected = mongoDocs.map((doc) => ({
+              ...doc,
+              id: String(doc.id || doc._id),
+            })) as any;
+          }
+        }
+      } catch (mongoErr) {
+        console.warn("MongoDB export fetch failed, falling back to local files:", mongoErr);
       }
     }
 
-    const selected = all.filter((p) => targetExportIds.includes(String(p.id)));
+    // Local fallback if MongoDB Atlas is not configured or missing some records
+    if (selected.length < targetExportIds.length) {
+      const foundIds = new Set(selected.map((s) => String(s.id)));
+      const missingIds = targetExportIds.filter((id) => !foundIds.has(id));
+
+      const filePath = path.join(process.cwd(), "data", "prospects.json");
+      let all: Array<Record<string, unknown> & { id: string }> = [];
+      if (fs.existsSync(filePath)) {
+        try {
+          all = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+        } catch (e) {}
+      } else {
+        const dataDir = path.join(process.cwd(), "data");
+        if (fs.existsSync(dataDir)) {
+          const parts = fs.readdirSync(dataDir).filter((f) => f.startsWith("prospects_part") && f.endsWith(".json"));
+          for (const p of parts.sort()) {
+            try {
+              const raw = fs.readFileSync(path.join(dataDir, p), "utf-8");
+              all = all.concat(JSON.parse(raw));
+            } catch (e) {}
+          }
+        }
+      }
+
+      const localFound = all.filter((p) => missingIds.includes(String(p.id)));
+      selected = selected.concat(localFound);
+    }
 
     // Construct CSV with all 36 columns matching Database Template.xlsx
     const headers = [
@@ -192,12 +247,21 @@ export async function POST(req: Request) {
       format: "csv",
     });
 
+    const refreshedUser = await findUserByEmail(cleanEmail);
+
     return NextResponse.json({
       success: true,
       recordCount: selected.length,
       csvContent: csvOutput,
       filename: `leadintellect_export_${new Date().toISOString().split("T")[0]}.csv`,
-      remainingCredits: deduction.remainingCredits,
+      remainingCredits: refreshedUser?.credits ?? user?.credits ?? 0,
+      unlockedProspects: selected.map((p) => ({
+        id: p.id,
+        email: p.email,
+        phone: p.phone,
+        directPhone: p.directPhone,
+        linkedin: p.linkedin,
+      })),
     });
   } catch (err) {
     console.error("Error in /api/data/export:", err);

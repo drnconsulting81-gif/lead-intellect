@@ -452,6 +452,8 @@ export default function LeadIntellectWorkspace() {
 
   const handleResetDefaultColumns = () => {
     setVisibleColumns({ ...DEFAULT_VISIBLE_COLUMNS });
+    setFullListView(false);
+    setHideFilters(false);
     try {
       localStorage.setItem("leadintellect_visible_columns", JSON.stringify(DEFAULT_VISIBLE_COLUMNS));
     } catch {}
@@ -576,6 +578,18 @@ export default function LeadIntellectWorkspace() {
   const [intentCategories, setIntentCategories] = useState<string[]>([]);
   const [intentRecency, setIntentRecency] = useState("all");
   const [webPlatforms, setWebPlatforms] = useState<string[]>([]);
+  const [customIntent, setCustomIntent] = useState("");
+  const [customIntentInput, setCustomIntentInput] = useState("");
+  const [customIntentModalOpen, setCustomIntentModalOpen] = useState(false);
+  const [savedCustomIntents, setSavedCustomIntents] = useState<string[]>([
+    "SOC-2 / ISO-27001 Compliance",
+    "CRM Migration to HubSpot or Salesforce",
+    "Hiring Machine Learning & AI Engineers",
+    "Series A/B Capital Expansion",
+    "Cloud Infrastructure Scaling",
+  ]);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   // Computed & Compatibility Helpers
   const industry = industries.join(",");
@@ -851,11 +865,15 @@ export default function LeadIntellectWorkspace() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("leadintellect_user_integrations_v4");
+      const saved = localStorage.getItem("leadintellect_user_integrations_v5");
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setIntegrationsList(parsed);
+          const sanitized = parsed.map((item: UserIntegration) => ({
+            ...item,
+            connected: Boolean(item.apiKey || item.endpointUrl),
+          }));
+          setIntegrationsList(sanitized);
         }
       }
     } catch (e) {
@@ -906,7 +924,7 @@ export default function LeadIntellectWorkspace() {
     });
     setIntegrationsList(updated);
     try {
-      localStorage.setItem("leadintellect_user_integrations_v4", JSON.stringify(updated));
+      localStorage.setItem("leadintellect_user_integrations_v5", JSON.stringify(updated));
     } catch (e) {}
     showToast(`${selectedIntegration.name} connected successfully!`, "success");
     setSelectedIntegration(null);
@@ -926,7 +944,7 @@ export default function LeadIntellectWorkspace() {
     });
     setIntegrationsList(updated);
     try {
-      localStorage.setItem("leadintellect_user_integrations_v4", JSON.stringify(updated));
+      localStorage.setItem("leadintellect_user_integrations_v5", JSON.stringify(updated));
     } catch (e) {}
     showToast("Integration disconnected", "info");
     setSelectedIntegration(null);
@@ -1296,6 +1314,7 @@ export default function LeadIntellectWorkspace() {
         if (intentCategories.length > 0) params.set("intentCategory", intentCategories.join(","));
         if (intentRecency && intentRecency !== "all") params.set("intentRecency", intentRecency);
         if (webPlatforms.length > 0) params.set("webPlatform", webPlatforms.join(","));
+        if (customIntent) params.set("customIntent", customIntent);
         if (datasetFilter && datasetFilter !== "all") params.set("dataset", datasetFilter);
         params.set("page", page.toString());
         params.set("limit", limitPerPage.toString());
@@ -1311,7 +1330,7 @@ export default function LeadIntellectWorkspace() {
               const totalFromApi = data.pagination?.total;
               if (typeof totalFromApi === "number" && totalFromApi > 0) {
                 setTotalCount(totalFromApi);
-              } else if (!query && seniority.length === 0 && industries.length === 0 && countries.length === 0 && !titleFilter && !companyFilter && !cityFilter) {
+              } else if (!query && !customIntent && seniority.length === 0 && industries.length === 0 && countries.length === 0 && !titleFilter && !companyFilter && !cityFilter && intentCategories.length === 0) {
                 setTotalCount(220814);
               } else {
                 setTotalCount(totalFromApi || 0);
@@ -1393,6 +1412,7 @@ export default function LeadIntellectWorkspace() {
     intentCategories,
     intentRecency,
     webPlatforms,
+    customIntent,
     datasetFilter,
     limitPerPage,
     page,
@@ -2044,14 +2064,18 @@ export default function LeadIntellectWorkspace() {
     }
   };
 
-  // CSV Export
-  const handleExportSelected = async () => {
+  // CSV Export Modal trigger
+  const handleExportSelected = () => {
     const idsToExport = selectedIds.length > 0 ? selectedIds : prospects.slice(0, 25).map((p) => p.id);
     if (idsToExport.length === 0) {
       showToast("No records available to export.", "info");
       return;
     }
+    setExportModalOpen(true);
+  };
 
+  const handleConfirmExport = async (idsToExport: string[]) => {
+    setExportLoading(true);
     try {
       const res = await fetch("/api/data/export", {
         method: "POST",
@@ -2059,6 +2083,7 @@ export default function LeadIntellectWorkspace() {
         body: JSON.stringify({
           userEmail: currentUser?.email || "guest@leadintellect.ai",
           prospectIds: idsToExport,
+          autoUnlock: true,
         }),
       });
       const data = await res.json();
@@ -2067,12 +2092,42 @@ export default function LeadIntellectWorkspace() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `leadintellect_export_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.download = data.filename || `leadintellect_export_${new Date().toISOString().slice(0, 10)}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showToast(`Successfully exported ${idsToExport.length} prospects.`);
+
+        if (typeof data.remainingCredits === "number") {
+          setCredits(data.remainingCredits);
+          if (currentUser) {
+            const updatedUser = { ...currentUser, credits: data.remainingCredits };
+            setCurrentUser(updatedUser);
+            try { localStorage.setItem("leadintellect_user", JSON.stringify(updatedUser)); } catch {}
+          }
+        }
+
+        if (Array.isArray(data.unlockedProspects)) {
+          setRevealedContacts((prev) => {
+            const next = { ...prev };
+            data.unlockedProspects.forEach((p: any) => {
+              next[p.id] = {
+                email: p.email,
+                phone: p.directPhone || p.phone,
+                linkedin: p.linkedin || "",
+                revealedAt: Date.now(),
+              };
+            });
+            return next;
+          });
+        }
+
+        setProspects((prev) =>
+          prev.map((p) => (idsToExport.includes(p.id) ? { ...p, isUnlocked: true, isRevealed: true, isLocked: false } : p))
+        );
+
+        setExportModalOpen(false);
+        showToast(`Successfully unlocked & exported ${idsToExport.length} verified leads!`);
       } else {
         if (data.paymentRequired) {
           showToast("Export locked: Active subscription required. Redirecting to plans...", "error");
@@ -2083,6 +2138,8 @@ export default function LeadIntellectWorkspace() {
       }
     } catch {
       showToast("Failed to export prospects.", "error");
+    } finally {
+      setExportLoading(false);
     }
   };
 
@@ -2309,6 +2366,8 @@ export default function LeadIntellectWorkspace() {
     setIntentCategories([]);
     setIntentRecency("all");
     setWebPlatforms([]);
+    setCustomIntent("");
+    setCustomIntentInput("");
     setCountrySearchText("");
     setIndustrySearchText("");
     setQuery("");
@@ -2324,6 +2383,7 @@ export default function LeadIntellectWorkspace() {
     industries.length +
     intentCategories.length +
     webPlatforms.length +
+    (customIntent ? 1 : 0) +
     (titleFilter ? 1 : 0) +
     (cityFilter ? 1 : 0) +
     (stateFilter ? 1 : 0) +
@@ -2370,7 +2430,7 @@ export default function LeadIntellectWorkspace() {
           <span className="flex items-center gap-2">
             <Zap className="w-3.5 h-3.5 text-teal-dark" />
             <span>Intent &amp; Change Signals</span>
-            {(intentCategories.length > 0 || intentRecency !== "all" || webPlatforms.length > 0) && (
+            {(intentCategories.length > 0 || intentRecency !== "all" || webPlatforms.length > 0 || Boolean(customIntent)) && (
               <span className="w-2 h-2 rounded-full bg-teal-dark animate-pulse" />
             )}
           </span>
@@ -2382,6 +2442,97 @@ export default function LeadIntellectWorkspace() {
         </button>
         {filterSections.intent && (
           <div className="p-3.5 pt-1 space-y-3.5 border-t border-teal/20">
+            {/* Custom Intent Creator */}
+            <div className="bg-slate-50 border border-teal/30 rounded-xl p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-extrabold text-navy flex items-center gap-1.5 uppercase tracking-wider">
+                  <span>🎯 Custom Buying Intent</span>
+                </label>
+                {customIntent && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomIntent("");
+                      setCustomIntentInput("");
+                      setPage(1);
+                    }}
+                    className="text-[10px] text-rose-600 font-semibold hover:underline cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-500 leading-tight">
+                Enter your target buying signals (e.g., SOC-2 compliance, CRM migration, hiring AI engineers).
+              </p>
+              <div className="flex gap-1.5">
+                <input
+                  type="text"
+                  value={customIntentInput}
+                  onChange={(e) => setCustomIntentInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && customIntentInput.trim()) {
+                      setCustomIntent(customIntentInput.trim());
+                      if (!savedCustomIntents.includes(customIntentInput.trim())) {
+                        const updated = [customIntentInput.trim(), ...savedCustomIntents.slice(0, 9)];
+                        setSavedCustomIntents(updated);
+                        try { localStorage.setItem("leadintellect_user_custom_intents", JSON.stringify(updated)); } catch {}
+                      }
+                      setPage(1);
+                      showToast(`Custom intent applied: "${customIntentInput.trim()}"`);
+                    }
+                  }}
+                  placeholder="e.g. SOC-2, CRM Migration..."
+                  className="flex-1 text-xs px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-navy placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-dark"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (customIntentInput.trim()) {
+                      setCustomIntent(customIntentInput.trim());
+                      if (!savedCustomIntents.includes(customIntentInput.trim())) {
+                        const updated = [customIntentInput.trim(), ...savedCustomIntents.slice(0, 9)];
+                        setSavedCustomIntents(updated);
+                        try { localStorage.setItem("leadintellect_user_custom_intents", JSON.stringify(updated)); } catch {}
+                      }
+                      setPage(1);
+                      showToast(`Custom intent applied: "${customIntentInput.trim()}"`);
+                    }
+                  }}
+                  className="px-2.5 py-1.5 bg-teal text-navy rounded-lg font-bold text-xs hover:bg-teal-dark hover:text-white transition-colors cursor-pointer shrink-0"
+                >
+                  Apply
+                </button>
+              </div>
+              {/* Quick Preset Badges */}
+              <div className="flex flex-wrap gap-1 pt-1">
+                {[
+                  { label: "🔒 SOC-2 Audit", val: "SOC-2 Compliance" },
+                  { label: "🔄 CRM Migration", val: "CRM Migration to HubSpot or Salesforce" },
+                  { label: "🤖 AI Hiring", val: "Hiring AI & Machine Learning Engineers" },
+                  { label: "🚀 Series A/B", val: "Series A / Series B Capital Expansion" },
+                  { label: "☁️ Cloud Migration", val: "Cloud Infrastructure Scaling" },
+                ].map((preset) => (
+                  <button
+                    key={preset.val}
+                    type="button"
+                    onClick={() => {
+                      setCustomIntent(preset.val);
+                      setCustomIntentInput(preset.val);
+                      setPage(1);
+                      showToast(`Custom intent set: ${preset.label}`);
+                    }}
+                    className={`text-[10px] px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
+                      customIntent === preset.val
+                        ? "bg-navy text-teal font-bold shadow-2xs"
+                        : "bg-white text-slate-600 hover:bg-teal/10 hover:text-teal-dark border border-slate-200"
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             {/* Signal Category Multi-Select Checkboxes */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
@@ -3134,19 +3285,10 @@ export default function LeadIntellectWorkspace() {
             </button>
 
             {/* Prospect and Enrich (Search Icon with Direct Navigation & Flyout Dropdown) */}
-            <div
-              className="relative"
-              onMouseEnter={() => setProspectFlyoutOpen(true)}
-              onMouseLeave={() => setProspectFlyoutOpen(false)}
-            >
+            <div className="relative">
               <button
                 type="button"
                 onClick={() => {
-                  if (activeNav !== "discover") {
-                    setActiveNav("discover");
-                    setDiscoverMode("people");
-                    setPage(1);
-                  }
                   setProspectFlyoutOpen((prev) => !prev);
                 }}
                 title="Search Directory & Enrichment (People, Companies, Lists, Enrich)"
@@ -3167,8 +3309,7 @@ export default function LeadIntellectWorkspace() {
                     onClick={() => setProspectFlyoutOpen(false)}
                   />
                   <div
-                    onMouseEnter={() => setProspectFlyoutOpen(true)}
-                    className="absolute left-12 top-0 z-50 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2.5 py-3 animate-in fade-in zoom-in-95 duration-100 before:content-[''] before:absolute before:-left-3 before:top-0 before:w-4 before:h-full"
+                    className="absolute left-12 top-0 z-50 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2.5 py-3 animate-in fade-in zoom-in-95 duration-100"
                   >
                     <p className="px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
                       Prospect &amp; Enrich
@@ -4002,6 +4143,22 @@ export default function LeadIntellectWorkspace() {
 
                   <button
                     type="button"
+                    onClick={() => {
+                      setFilterSections((s) => ({ ...s, intent: true }));
+                      showToast("Define custom buying intent in the left filter panel");
+                    }}
+                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all ${
+                      customIntent
+                        ? "bg-teal text-navy border-teal font-extrabold"
+                        : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Target className="w-3.5 h-3.5 text-teal-dark" />
+                    <span>{customIntent ? `Intent: ${customIntent.slice(0, 18)}...` : "+ Custom Intent"}</span>
+                  </button>
+
+                  <button
+                    type="button"
                     disabled={savingSearchLoading}
                     onClick={handleSaveCurrentSearch}
                     className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-50"
@@ -4311,6 +4468,23 @@ export default function LeadIntellectWorkspace() {
                               setPage(1);
                             }}
                             className="hover:text-rose-600 cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+
+                      {customIntent && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-teal text-navy border border-teal font-extrabold text-[11px] shadow-2xs">
+                          <span>🎯 Intent: &quot;{customIntent}&quot;</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomIntent("");
+                              setCustomIntentInput("");
+                              setPage(1);
+                            }}
+                            className="hover:text-rose-600 cursor-pointer ml-1 font-bold"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -8349,6 +8523,121 @@ export default function LeadIntellectWorkspace() {
                 Maybe Later
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* EXPORT CONFIRMATION & CREDIT UNLOCK MODAL */}
+      {exportModalOpen && (
+        <div className="fixed inset-0 z-50 bg-navy/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-teal/15 text-teal-dark flex items-center justify-center shadow-inner">
+                  <Download className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-navy text-base">Export Verified Leads to CSV</h3>
+                  <p className="text-[11px] text-text-muted">Master 36-column clean database export</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setExportModalOpen(false)}
+                className="text-slate-400 hover:text-navy cursor-pointer p-1 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {(() => {
+              const idsToExport = selectedIds.length > 0 ? selectedIds : prospects.slice(0, 25).map((p) => p.id);
+              const lockedCount = idsToExport.filter((id) => !revealedContacts[id] && !prospects.find((p) => p.id === id)?.isUnlocked).length;
+              const alreadyUnlockedCount = idsToExport.length - lockedCount;
+              const availableCredits = currentUser?.credits ?? credits ?? 0;
+              const hasEnoughCredits = isCEOUser || currentUser?.role === "admin" || availableCredits >= lockedCount;
+
+              return (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-2.5 p-3.5 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase text-slate-400">Total Leads</p>
+                      <p className="text-xl font-extrabold text-navy mt-0.5">{idsToExport.length}</p>
+                      <p className="text-[10px] text-slate-500">Selected</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase text-slate-400">Already Unlocked</p>
+                      <p className="text-xl font-extrabold text-emerald-600 mt-0.5">{alreadyUnlockedCount}</p>
+                      <p className="text-[10px] text-slate-500">0 credits</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase text-slate-400">To Unlock</p>
+                      <p className="text-xl font-extrabold text-teal-dark mt-0.5">{lockedCount}</p>
+                      <p className="text-[10px] text-slate-500">{lockedCount} credits</p>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl border border-teal/20 bg-teal/5 flex items-center justify-between text-xs">
+                    <span className="text-slate-700">
+                      Your Available Balance: <strong>{availableCredits.toLocaleString()} credits</strong>
+                    </span>
+                    <span className="font-extrabold text-teal-dark">
+                      {isCEOUser || currentUser?.role === "admin"
+                        ? "Unlimited Admin"
+                        : hasEnoughCredits
+                        ? `After: ${(availableCredits - lockedCount).toLocaleString()} credits`
+                        : "Insufficient"}
+                    </span>
+                  </div>
+
+                  {!hasEnoughCredits ? (
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs space-y-2">
+                      <p className="font-semibold">
+                        You need {lockedCount - availableCredits} more credits to unlock and export all {idsToExport.length} contacts.
+                      </p>
+                      <Link
+                        href="/pricing"
+                        onClick={() => setExportModalOpen(false)}
+                        className="inline-block px-3 py-1.5 rounded-lg bg-rose-600 text-white font-bold text-xs hover:bg-rose-700"
+                      >
+                        Upgrade Credits
+                      </Link>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Direct dial phone numbers and verified work emails will be completely unmasked and included in your download.
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setExportModalOpen(false)}
+                      className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={exportLoading || (!hasEnoughCredits && lockedCount > 0)}
+                      onClick={() => handleConfirmExport(idsToExport)}
+                      className="px-5 py-2.5 rounded-xl bg-navy text-white text-xs font-bold hover:bg-slate-800 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 shadow-xs"
+                    >
+                      {exportLoading ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Download className="w-3.5 h-3.5" />
+                      )}
+                      <span>
+                        {lockedCount > 0
+                          ? `Unlock & Download CSV (${lockedCount} Credits)`
+                          : `Download CSV (${idsToExport.length} Leads)`}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
