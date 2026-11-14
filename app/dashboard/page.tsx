@@ -2801,16 +2801,26 @@ export default function LeadIntellectWorkspace() {
         )}
       </div>
 
-      {/* Accordion 2: People Lookalikes (Advanced AI Feature) */}
-      <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/60">
-        <div className="w-full px-3.5 py-2.5 flex items-center justify-between font-bold text-slate-600 text-left">
-          <span className="flex items-center gap-2">
-            <Users className="w-3.5 h-3.5 text-slate-400" />
-            People Lookalikes
+      {/* Accordion 2: People Lookalikes (Advanced AI Feature - Clickable Upgrade Gate) */}
+      <Link
+        href="/pricing"
+        title="People Lookalikes is a premium feature. Click to upgrade your plan."
+        className="group border border-slate-200 hover:border-amber-400 rounded-xl overflow-hidden bg-slate-50 hover:bg-amber-50/50 px-3.5 py-2.5 flex items-center justify-between font-bold text-slate-700 hover:text-navy transition-all cursor-pointer shadow-2xs hover:shadow-xs block"
+      >
+        <span className="flex items-center gap-2">
+          <Users className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 transition-colors" />
+          <span>People Lookalikes</span>
+          <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-200">
+            PRO
           </span>
-          <Lock className="w-3.5 h-3.5 text-amber-500" />
-        </div>
-      </div>
+        </span>
+        <span className="flex items-center gap-1.5 text-amber-600">
+          <span className="text-[10px] font-extrabold hidden group-hover:inline-block transition-all">
+            Upgrade
+          </span>
+          <Lock className="w-3.5 h-3.5 text-amber-500 group-hover:scale-110 transition-transform" />
+        </span>
+      </Link>
 
       {/* Accordion 3: Company */}
       <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
