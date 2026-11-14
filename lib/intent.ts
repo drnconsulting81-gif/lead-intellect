@@ -74,7 +74,7 @@ export function getProspectIntentSignal(prospect: {
   city?: string;
 }): IntentSignal {
   const hash = (prospect.id || "pros_00001").split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const platformIndex = hash % 7;
+  const platformIndex = hash % 8;
   const daysOffset = (hash * 7) % 85 + 5; // 5 to 90 days ago
 
   const signalDate = new Date(Date.now() - daysOffset * 86400000).toISOString().split("T")[0];
@@ -220,9 +220,8 @@ export function getProspectIntentSignal(prospect: {
         icebreaker: `Noticed ${company}'s recent technology evolution in ${industry}. We engineered our integration specifically to complement modern cloud stacks like yours.`,
       };
 
-    // 7. Executive Transition & Promotion
+    // 7. Executive Transition & Lateral Move
     case 6:
-    default:
       return {
         category: "job_change",
         categoryLabel: "Executive Transition",
@@ -241,6 +240,29 @@ export function getProspectIntentSignal(prospect: {
         whyItMatters: "New executive hires re-evaluate legacy tool stacks and allocate discretionary budget within their first 90 days in seat.",
         recommendedAction: `Congratulate ${firstName} on the leadership role and provide proven peer benchmarks from other ${industry} executives.`,
         icebreaker: `Congratulations on stepping into the ${title} role at ${company}! How is the initial onboarding and technology roadmap taking shape?`,
+      };
+
+    // 8. Recent Leadership Promotions & Career Advancement
+    case 7:
+    default:
+      return {
+        category: "promotion",
+        categoryLabel: "Recent Promotion",
+        webPlatform: "executive_movement",
+        webPlatformLabel: "Executive Promotion Wire",
+        headline: `${firstName} Promoted to ${title} at ${company}`,
+        description: `${firstName} was recently promoted to ${title} at ${company}, expanding leadership scope across ${industry} initiatives (${daysOffset} days ago).`,
+        evidenceQuote: `“Earned strategic promotion to lead departmental roadmap, budget allocation, and vendor selection.”`,
+        date: signalDate,
+        recencyDays: daysOffset,
+        recencyWindow,
+        source: "Corporate Organizational Index & Executive Promotion Wire",
+        sourceUrl: `https://www.google.com/search?q=${encodeURIComponent(company + " " + title + " " + firstName + " promotion")}`,
+        provider: "LeadIntellect Career Trajectory Index",
+        confidence: 97,
+        whyItMatters: "Newly promoted leaders actively seek to modernize systems, establish early wins, and evaluate new vendors within their first 60-90 days.",
+        recommendedAction: `Congratulate ${firstName} on their promotion and present an executive brief on optimizing their team's performance.`,
+        icebreaker: `Huge congratulations on the promotion to ${title} at ${company}! As you step into this expanded leadership role, how are your technology priorities evolving?`,
       };
   }
 }

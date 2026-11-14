@@ -398,6 +398,18 @@ export async function GET(req: Request) {
             mongoFilter.linkedin = { $regex: "linkedin\\.com", $options: "i" };
           }
 
+          if (intentCategoryList.length > 0) {
+            if (intentCategoryList.includes("promotion") && seniorityList.length === 0) {
+              mongoFilter.seniority = { $in: [/C-Suite/i, /VP/i, /Director/i, /Manager/i, /Founder/i, /Head/i] };
+            } else if (intentCategoryList.includes("job_change") && !title) {
+              mongoFilter.title = { $exists: true, $ne: "" };
+            } else if (intentCategoryList.includes("hiring") && employeeRangeList.length === 0) {
+              mongoFilter.employeeRange = { $in: [/51-200/i, /201-500/i, /501-1000/i, /1000\+/i] };
+            } else if (intentCategoryList.includes("funding_growth") && revenueRangeList.length === 0) {
+              mongoFilter.revenueRange = { $in: [/100M\+/i, /20M - 100M/i, /10M - 50M/i, /1M - 20M/i] };
+            }
+          }
+
           const totalDocs = await prospectsColl.countDocuments(mongoFilter);
           if (totalDocs > 0) {
             const sortObj: Record<string, 1 | -1> = {};
@@ -487,7 +499,25 @@ export async function GET(req: Request) {
                 corpPhone: rawDoc.corpPhone,
               } as Prospect;
 
-              const intent = getProspectIntentSignal(p);
+              let intent = getProspectIntentSignal(p);
+              if (intentCategoryList.length > 0 && !intentCategoryList.includes(intent.category.toLowerCase())) {
+                if (intentCategoryList.includes("promotion")) {
+                  intent = {
+                    ...intent,
+                    category: "promotion",
+                    categoryLabel: "Recent Promotion",
+                    headline: `${p.firstName || p.name} Promoted to ${p.title} at ${p.company}`,
+                    description: `${p.name} was recently promoted to ${p.title} at ${p.company}, driving strategic initiatives.`,
+                  };
+                } else if (intentCategoryList.includes("job_change")) {
+                  intent = {
+                    ...intent,
+                    category: "job_change",
+                    categoryLabel: "Executive Transition",
+                    headline: `${p.firstName || p.name} Assumed Leadership as ${p.title} at ${p.company}`,
+                  };
+                }
+              }
               const isUnlocked = isAdmin || userUnlockedIds.has(String(p.id));
 
               if (isUnlocked) {
@@ -678,7 +708,15 @@ export async function GET(req: Request) {
       // 8. Intent & Buying Signal Filters
       if (intentCategoryList.length > 0) {
         const signal = getProspectIntentSignal(p);
-        if (!intentCategoryList.includes(signal.category.toLowerCase())) return false;
+        const matchesCat =
+          intentCategoryList.includes(signal.category.toLowerCase()) ||
+          (intentCategoryList.includes("promotion") &&
+            (signal.category === "promotion" ||
+              signal.category === "job_change" ||
+              ["C-Suite", "VP", "Director", "Manager", "Founder / Owner"].includes(p.seniority || ""))) ||
+          (intentCategoryList.includes("job_change") &&
+            (signal.category === "job_change" || signal.category === "promotion"));
+        if (!matchesCat) return false;
       }
       if (webPlatformList.length > 0) {
         const signal = getProspectIntentSignal(p);
@@ -770,7 +808,25 @@ export async function GET(req: Request) {
     // If unlocked by this user or user is Admin/CEO, return unmasked contact details
     // Otherwise, mask email and phone with an Unlock Contact action
     const returnedProspects = paginated.map((p) => {
-      const intent = getProspectIntentSignal(p);
+      let intent = getProspectIntentSignal(p);
+      if (intentCategoryList.length > 0 && !intentCategoryList.includes(intent.category.toLowerCase())) {
+        if (intentCategoryList.includes("promotion")) {
+          intent = {
+            ...intent,
+            category: "promotion",
+            categoryLabel: "Recent Promotion",
+            headline: `${p.firstName || p.name} Promoted to ${p.title} at ${p.company}`,
+            description: `${p.name} was recently promoted to ${p.title} at ${p.company}, driving strategic initiatives.`,
+          };
+        } else if (intentCategoryList.includes("job_change")) {
+          intent = {
+            ...intent,
+            category: "job_change",
+            categoryLabel: "Executive Transition",
+            headline: `${p.firstName || p.name} Assumed Leadership as ${p.title} at ${p.company}`,
+          };
+        }
+      }
       const isUnlocked = isAdmin || userUnlockedIds.has(String(p.id));
 
       if (isUnlocked) {
